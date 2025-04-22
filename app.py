@@ -133,6 +133,10 @@ class ImageGeneratorGUI(ctk.CTk):
         os.environ["REPLICATE_API_TOKEN"] = self.config["replicate_api_key"]
         os.environ["HUGGINGFACE_TOKEN"] = self.config["huggingface_token"]
         
+        # Set environment variables to disable safety checkers
+        os.environ["FLUX_DISABLE_SAFETY"] = "true"
+        os.environ["FLUX_GO_FAST"] = "true"
+        
         # This is a placeholder - in a real implementation, we would initialize
         # the actual service clients for both Hugging Face and Replicate here
         self.service_clients = {
@@ -775,36 +779,352 @@ class ImageGeneratorGUI(ctk.CTk):
                 self.canvas.create_text(200, 150, text=f"Error displaying image: {str(e)[:50]}...", fill="white")
     
     def configure_api_keys(self):
-        """Show dialog to configure API keys"""
-        pass
+        """Open a dialog to configure API keys"""
+        # Create a modal dialog
+        dialog = ctk.CTkToplevel(self)
+        dialog.title("Configure API Keys")
+        dialog.geometry("500x200")
+        dialog.resizable(False, False)
+        dialog.transient(self)
+        dialog.grab_set()
+        
+        # Make it a modal dialog
+        dialog.focus_set()
+        
+        # Replicate API key
+        replicate_label = ctk.CTkLabel(
+            dialog,
+            text="Replicate API Key:",
+            font=ctk.CTkFont(size=14)
+        )
+        replicate_label.grid(row=0, column=0, padx=20, pady=(20, 10), sticky="w")
+        
+        replicate_key_var = tk.StringVar(value=self.config["replicate_api_key"])
+        replicate_entry = ctk.CTkEntry(
+            dialog,
+            textvariable=replicate_key_var,
+            width=300
+        )
+        replicate_entry.grid(row=0, column=1, padx=20, pady=(20, 10), sticky="ew")
+        
+        # Hugging Face token
+        hf_label = ctk.CTkLabel(
+            dialog,
+            text="Hugging Face Token:",
+            font=ctk.CTkFont(size=14)
+        )
+        hf_label.grid(row=1, column=0, padx=20, pady=10, sticky="w")
+        
+        hf_token_var = tk.StringVar(value=self.config["huggingface_token"])
+        hf_entry = ctk.CTkEntry(
+            dialog,
+            textvariable=hf_token_var,
+            width=300
+        )
+        hf_entry.grid(row=1, column=1, padx=20, pady=10, sticky="ew")
+        
+        # Save button
+        def save_keys():
+            self.config["replicate_api_key"] = replicate_key_var.get()
+            self.config["huggingface_token"] = hf_token_var.get()
+            
+            # Set environment variables
+            os.environ["REPLICATE_API_TOKEN"] = self.config["replicate_api_key"]
+            os.environ["HUGGINGFACE_TOKEN"] = self.config["huggingface_token"]
+            
+            # Save config
+            self.save_config()
+            dialog.destroy()
+        
+        save_button = ctk.CTkButton(
+            dialog,
+            text="Save",
+            command=save_keys
+        )
+        save_button.grid(row=2, column=0, columnspan=2, padx=20, pady=20)
     
     def save_image_as(self):
-        """Save displayed image with a new name"""
-        pass
+        """Save the current image with a new name"""
+        if not self.current_image_path or not os.path.exists(self.current_image_path):
+            messagebox.showinfo("No Image", "No image to save")
+            return
+            
+        # Get original image format
+        original_format = os.path.splitext(self.current_image_path)[1].lower()
+        
+        # Show save dialog
+        file_types = [
+            ("PNG files", "*.png"), 
+            ("JPEG files", "*.jpg"), 
+            ("WEBP files", "*.webp"), 
+            ("All files", "*.*")
+        ]
+        
+        save_path = filedialog.asksaveasfilename(
+            initialdir=self.config["output_directory"],
+            initialfile=os.path.basename(self.current_image_path),
+            defaultextension=original_format,
+            filetypes=file_types
+        )
+        
+        if save_path:
+            try:
+                # Open the original image
+                img = Image.open(self.current_image_path)
+                
+                # Save to the new path
+                img.save(save_path)
+                
+                messagebox.showinfo("Save Successful", f"Image saved to:\n{save_path}")
+            except Exception as e:
+                messagebox.showerror("Save Error", f"Error saving image: {e}")
     
     def open_output_folder(self):
-        """Open output folder in file explorer"""
-        pass
+        """Open the output folder in file explorer"""
+        output_dir = self.config["output_directory"]
+        if os.path.exists(output_dir):
+            # Use the appropriate command for the OS
+            if sys.platform == "win32":
+                os.startfile(output_dir)
+            elif sys.platform == "darwin":  # macOS
+                os.system(f'open "{output_dir}"')
+            else:  # Linux
+                os.system(f'xdg-open "{output_dir}"')
+        else:
+            messagebox.showinfo("Folder Not Found", f"Output folder does not exist:\n{output_dir}")
     
     def browse_output_dir(self):
-        """Browse for output directory"""
-        pass
+        """Open a dialog to select output directory"""
+        directory = filedialog.askdirectory(initialdir=self.config["output_directory"])
+        if directory:
+            self.output_dir_var.set(directory)
+            self.config["output_directory"] = directory
+            self.save_config()
     
     def show_prompt_history(self):
-        """Show prompt history"""
-        pass
+        """Show prompt history in a dialog"""
+        if not self.config["recent_prompts"]:
+            messagebox.showinfo("Prompt History", "No recent prompts found.")
+            return
+        
+        # Create a dialog
+        dialog = ctk.CTkToplevel(self)
+        dialog.title("Prompt History")
+        dialog.geometry("600x400")
+        dialog.transient(self)
+        dialog.grab_set()
+        
+        # Make it a modal dialog
+        dialog.focus_set()
+        
+        # List of prompts
+        prompt_listbox = tk.Listbox(
+            dialog,
+            bg="#2B2B2B",
+            fg="white",
+            selectbackground="#3B8ED0",
+            font=("Arial", 12),
+            height=15,
+            width=60
+        )
+        prompt_listbox.pack(fill="both", expand=True, padx=20, pady=20)
+        
+        # Add prompts to listbox
+        for prompt in self.config["recent_prompts"]:
+            prompt_listbox.insert("end", prompt)
+        
+        # Button frame
+        button_frame = ctk.CTkFrame(dialog)
+        button_frame.pack(fill="x", padx=20, pady=(0, 20))
+        
+        # Use selected prompt
+        def use_selected_prompt():
+            selection = prompt_listbox.curselection()
+            if selection:
+                selected_prompt = prompt_listbox.get(selection[0])
+                self.prompt_text.delete("1.0", "end")
+                self.prompt_text.insert("1.0", selected_prompt)
+                dialog.destroy()
+        
+        use_button = ctk.CTkButton(
+            button_frame,
+            text="Use Selected",
+            command=use_selected_prompt
+        )
+        use_button.pack(side="left", padx=10, pady=10)
+        
+        # Close button
+        close_button = ctk.CTkButton(
+            button_frame,
+            text="Close",
+            command=dialog.destroy
+        )
+        close_button.pack(side="right", padx=10, pady=10)
     
     def add_replicate_model(self):
         """Add a new Replicate model"""
-        pass
+        dialog = ctk.CTkToplevel(self)
+        dialog.title("Add Replicate Model")
+        dialog.geometry("600x150")
+        dialog.resizable(False, False)
+        dialog.transient(self)
+        dialog.grab_set()
+        
+        # Make it a modal dialog
+        dialog.focus_set()
+        
+        # Model entry
+        model_label = ctk.CTkLabel(
+            dialog,
+            text="Model ID (owner/model:version):",
+            font=ctk.CTkFont(size=14)
+        )
+        model_label.grid(row=0, column=0, padx=20, pady=(20, 10), sticky="w")
+        
+        model_var = tk.StringVar()
+        model_entry = ctk.CTkEntry(
+            dialog,
+            textvariable=model_var,
+            width=400
+        )
+        model_entry.grid(row=0, column=1, padx=20, pady=(20, 10), sticky="ew")
+        
+        # Save button
+        def save_model():
+            model_id = model_var.get().strip()
+            if not model_id:
+                messagebox.showerror("Error", "Please enter a valid model ID")
+                return
+                
+            # Add to recent models if not already there
+            if model_id not in self.config["recent_models_replicate"]:
+                self.config["recent_models_replicate"].append(model_id)
+                
+            # Update the combobox
+            self.replicate_model_combo.configure(values=self.config["recent_models_replicate"])
+            self.replicate_model_var.set(model_id)
+            self.config["last_used_model_replicate"] = model_id
+            
+            # Save config
+            self.save_config()
+            dialog.destroy()
+        
+        save_button = ctk.CTkButton(
+            dialog,
+            text="Add Model",
+            command=save_model
+        )
+        save_button.grid(row=1, column=0, columnspan=2, padx=20, pady=20)
     
     def add_hf_model(self):
         """Add a new Hugging Face model"""
-        pass
+        dialog = ctk.CTkToplevel(self)
+        dialog.title("Add Hugging Face Model")
+        dialog.geometry("600x150")
+        dialog.resizable(False, False)
+        dialog.transient(self)
+        dialog.grab_set()
+        
+        # Make it a modal dialog
+        dialog.focus_set()
+        
+        # Model entry
+        model_label = ctk.CTkLabel(
+            dialog,
+            text="Model ID (owner/model):",
+            font=ctk.CTkFont(size=14)
+        )
+        model_label.grid(row=0, column=0, padx=20, pady=(20, 10), sticky="w")
+        
+        model_var = tk.StringVar()
+        model_entry = ctk.CTkEntry(
+            dialog,
+            textvariable=model_var,
+            width=400
+        )
+        model_entry.grid(row=0, column=1, padx=20, pady=(20, 10), sticky="ew")
+        
+        # Save button
+        def save_model():
+            model_id = model_var.get().strip()
+            if not model_id:
+                messagebox.showerror("Error", "Please enter a valid model ID")
+                return
+                
+            # Add to recent models if not already there
+            if model_id not in self.config["recent_models_hf"]:
+                self.config["recent_models_hf"].append(model_id)
+                
+            # Update the combobox
+            self.hf_model_combo.configure(values=self.config["recent_models_hf"])
+            self.hf_model_var.set(model_id)
+            self.config["last_used_model_hf"] = model_id
+            
+            # Save config
+            self.save_config()
+            dialog.destroy()
+        
+        save_button = ctk.CTkButton(
+            dialog,
+            text="Add Model",
+            command=save_model
+        )
+        save_button.grid(row=1, column=0, columnspan=2, padx=20, pady=20)
     
     def add_hf_lora(self):
         """Add a new Hugging Face LoRA"""
-        pass
+        dialog = ctk.CTkToplevel(self)
+        dialog.title("Add Hugging Face LoRA")
+        dialog.geometry("600x150")
+        dialog.resizable(False, False)
+        dialog.transient(self)
+        dialog.grab_set()
+        
+        # Make it a modal dialog
+        dialog.focus_set()
+        
+        # LoRA entry
+        lora_label = ctk.CTkLabel(
+            dialog,
+            text="LoRA URL:",
+            font=ctk.CTkFont(size=14)
+        )
+        lora_label.grid(row=0, column=0, padx=20, pady=(20, 10), sticky="w")
+        
+        lora_var = tk.StringVar()
+        lora_entry = ctk.CTkEntry(
+            dialog,
+            textvariable=lora_var,
+            width=400
+        )
+        lora_entry.grid(row=0, column=1, padx=20, pady=(20, 10), sticky="ew")
+        
+        # Save button
+        def save_lora():
+            lora_url = lora_var.get().strip()
+            if not lora_url:
+                messagebox.showerror("Error", "Please enter a valid LoRA URL")
+                return
+                
+            # Add to recent LoRAs if not already there
+            if lora_url not in self.config["recent_loras_hf"]:
+                self.config["recent_loras_hf"].append(lora_url)
+                
+            # Update the combobox
+            self.hf_lora_combo.configure(values=self.config["recent_loras_hf"])
+            self.hf_lora_var.set(lora_url)
+            self.config["last_used_lora_hf"] = lora_url
+            
+            # Save config
+            self.save_config()
+            dialog.destroy()
+        
+        save_button = ctk.CTkButton(
+            dialog,
+            text="Add LoRA",
+            command=save_lora
+        )
+        save_button.grid(row=1, column=0, columnspan=2, padx=20, pady=20)
     
     def create_progress_ui(self):
         """Create progress UI elements"""
@@ -1011,8 +1331,17 @@ class ImageGeneratorGUI(ctk.CTk):
             "num_inference_steps": parameters["num_inference_steps"],
             "guidance_scale": parameters["guidance_scale"],
             "prompt_strength": 0.8,
-            "apply_watermark": False
+            "apply_watermark": False,
+            # Add safety checker bypass parameters
+            "disable_safety_checker": True,
+            "safety_checker": None,
+            "safety_tolerance": 6,  # Maximum tolerance (most permissive)
+            "requires_safety_checker": False
         }
+        
+        # Reinforce the environment variables for disabling safety checks
+        os.environ["FLUX_DISABLE_SAFETY"] = "true"
+        os.environ["FLUX_GO_FAST"] = "true"
         
         # Add LoRA scale if using flux-lora-uncensored
         if "flux-lora" in model.lower() or "lora_scale" in parameters:
@@ -1161,6 +1490,11 @@ class ImageGeneratorGUI(ctk.CTk):
                     "height": parameters["height"],
                     "num_inference_steps": parameters["num_inference_steps"],
                     "guidance_scale": parameters["guidance_scale"],
+                    # Add safety checker bypass parameters
+                    "disable_safety_checker": True,
+                    "safety_checker": None,
+                    "requires_safety_checker": False,
+                    "safety_tolerance": 6  # Maximum tolerance (most permissive)
                 }
             }
             
