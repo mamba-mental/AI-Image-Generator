@@ -1,0 +1,25 @@
+2025-04-22 03:24:26,241 - root - INFO - Python version: 3.12.3 (tags/v3.12.3:f6650f9, Apr  9 2024, 14:05:25) [MSC v.1938 64 bit (AMD64)]
+2025-04-22 03:24:26,242 - root - INFO - Operating system: win32
+2025-04-22 03:24:26,242 - root - INFO - Working directory: C:\GitHub_Projects\2025.0421 - Hugging Face_Replicate API Image Gen
+2025-04-22 03:24:26,242 - root - INFO - Tkinter version: 8.6
+2025-04-22 03:24:26,243 - root - INFO - CustomTkinter available: True
+2025-04-22 03:24:26,243 - AIImageGenerator - INFO - Starting AI Image Generator application
+2025-04-22 03:24:26,254 - AIImageGenerator - DEBUG - Added method ImageGeneratorGUI to ImageGeneratorGUI
+2025-04-22 03:24:26,254 - AIImageGenerator - DEBUG - Added method enable_debug_logging to ImageGeneratorGUI
+2025-04-22 03:24:26,254 - AIImageGenerator - DEBUG - Added method toggle_advanced_mode to ImageGeneratorGUI
+2025-04-22 03:24:26,254 - AIImageGenerator - DEBUG - Added method on_service_change to ImageGeneratorGUI
+2025-04-22 03:24:26,254 - AIImageGenerator - DEBUG - Added method configure_api_keys to ImageGeneratorGUI
+2025-04-22 03:24:26,254 - AIImageGenerator - DEBUG - Added method show_prompt_history to ImageGeneratorGUI
+2025-04-22 03:24:26,256 - AIImageGenerator - DEBUG - Added method add_replicate_model to ImageGeneratorGUI
+2025-04-22 03:24:26,256 - AIImageGenerator - DEBUG - Added method add_hf_model to ImageGeneratorGUI
+2025-04-22 03:24:26,256 - AIImageGenerator - DEBUG - Added method add_hf_lora to ImageGeneratorGUI
+2025-04-22 03:24:26,256 - AIImageGenerator - DEBUG - Added method browse_output_dir to ImageGeneratorGUI
+2025-04-22 03:24:26,256 - AIImageGenerator - DEBUG - Added method generate_image to ImageGeneratorGUI
+2025-04-22 03:24:26,256 - AIImageGenerator - DEBUG - Added method generate_batch to ImageGeneratorGUI
+2025-04-22 03:24:26,257 - AIImageGenerator - DEBUG - Added method save_image_as to ImageGeneratorGUI
+2025-04-22 03:24:26,257 - AIImageGenerator - DEBUG - Added method open_output_folder to ImageGeneratorGUI
+2025-04-22 03:24:26,257 - AIImageGenerator - DEBUG - Added method display_image to ImageGeneratorGUI
+2025-04-22 03:24:26,257 - AIImageGenerator - DEBUG - Creating application instance
+2025-04-22 03:24:27,037 - AIImageGenerator - INFO - Starting main event loop
+2025-04-22 03:39:08,025 - AIImageGenerator - INFO - Application closing
+2025-04-22 03:39:08,238 - AIImageGenerator - INFO - Application exited normally

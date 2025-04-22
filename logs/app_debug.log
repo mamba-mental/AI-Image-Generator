@@ -1,0 +1,12 @@
+2025-04-22 04:27:31,908 - root - INFO - Python version: 3.12.3 (tags/v3.12.3:f6650f9, Apr  9 2024, 14:05:25) [MSC v.1938 64 bit (AMD64)]
+2025-04-22 04:27:31,908 - root - INFO - Operating system: win32
+2025-04-22 04:27:31,908 - root - INFO - Working directory: C:\GitHub_Projects\2025.0421 - Hugging Face_Replicate API Image Gen
+2025-04-22 04:27:31,909 - root - INFO - Tkinter version: 8.6
+2025-04-22 04:27:31,909 - root - INFO - CustomTkinter available: True
+2025-04-22 04:27:31,909 - AIImageGenerator - INFO - Starting AI Image Generator application
+2025-04-22 04:27:31,909 - AIImageGenerator - DEBUG - Creating application instance
+2025-04-22 04:27:32,523 - PIL.PngImagePlugin - DEBUG - STREAM b'IHDR' 16 13
+2025-04-22 04:27:32,523 - PIL.PngImagePlugin - DEBUG - STREAM b'IDAT' 41 4022
+2025-04-22 04:27:32,559 - AIImageGenerator - INFO - Starting main event loop
+2025-04-22 04:30:22,251 - AIImageGenerator - INFO - Application closing
+2025-04-22 04:30:22,651 - AIImageGenerator - INFO - Application exited normally

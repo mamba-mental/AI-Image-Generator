@@ -1,0 +1,16 @@
+# Requirements for Hugging Face & Replicate API Image Generator
+
+# Core dependencies
+replicate==0.22.0
+requests==2.31.0
+Pillow==10.1.0
+customtkinter==5.2.1
+
+# Hugging Face dependencies
+diffusers==0.25.0
+transformers==4.36.2
+torch==2.1.2
+accelerate==0.25.0
+safetensors==0.4.1
+
+# Note: tkinter is part of the Python standard library and doesn't need to be installed separately
