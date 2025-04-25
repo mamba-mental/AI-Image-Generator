@@ -13,6 +13,7 @@ import replicate
 from huggingface_hub import InferenceClient # Added for HF API
 import customtkinter as ctk
 from dotenv import load_dotenv # Import dotenv
+from loramanager import LoRAManager
 
 # Load environment variables from .env file at the start
 load_dotenv()
@@ -52,50 +53,11 @@ except Exception as e:
     print(f"WARNING: Unexpected error importing tkinterdnd2: {e}")
 
 
-# === Phase 2: UI Organization and Enhancement ===
+# === Phase 3: Model-Specific UI & Global Controls ===
 
-from tkinter import ttk
+# (ParameterSections class removed, replaced by model-specific tabs logic below)
 
-class ParameterSections:
-    def __init__(self, parent):
-        self.parent = parent # This parent should be the parameters_frame created in create_parameters_section
-        self.notebook = None
-        self.sections = {} # Dictionary to hold the simple Frame for each tab content
-        self.create_parameter_sections()
-
-    def create_parameter_sections(self):
-        """Create organized parameter sections in tabs using simple Frames"""
-        # Create notebook for tabs
-        # Use CTkNotebook if available and preferred, otherwise ttk.Notebook
-        try:
-            self.notebook = ctk.CTkNotebook(self.parent, fg_color=FRAME_BG_COLOR)
-        except AttributeError:
-            print("CTkNotebook not found, falling back to ttk.Notebook.")
-            style = ttk.Style()
-            style.theme_use('clam')
-            style.configure("TNotebook", background=FRAME_BG_COLOR, borderwidth=0)
-            style.configure("TNotebook.Tab", background=FRAME_BG_COLOR, foreground=TEXT_COLOR, lightcolor=FRAME_BG_COLOR, borderwidth=1)
-            style.map("TNotebook.Tab", background=[("selected", APP_BG_COLOR)], foreground=[("selected", TEXT_COLOR)])
-            self.notebook = ttk.Notebook(self.parent, style="TNotebook")
-
-        # Create simple frames for each section and add them to the notebook
-        tab_names = ["Basic", "Advanced", "Experimental"]
-        for name in tab_names:
-            # Use CTkFrame for content consistency within the tab
-            content_frame = ctk.CTkFrame(self.notebook, fg_color=FRAME_BG_COLOR)
-            # Don't pack here, the notebook manages the tab content area
-            # Add the content frame to the notebook
-            self.notebook.add(content_frame, text=name)
-            # Store the content frame (this is where widgets will go)
-            self.sections[name.lower()] = content_frame
-
-        self.notebook.pack(fill="x", expand=True, padx=10, pady=10) # Pack the notebook into its parent
-
-    def get_section(self, name):
-        """Get the content frame for a section by name"""
-        return self.sections.get(name.lower()) # Return the CTkFrame
-
-# === Phase 2.2: Image Upload Implementation ===
+# === Phase 2.2: Image Upload Implementation === (Keeping this class)
 
 class ImageUploader:
     def __init__(self, parent): # Parent should be the inner frame of the main scrollable area
@@ -339,19 +301,26 @@ ctk.set_default_color_theme("blue") # Use blue as base, we'll override colors
 
 def configure_hf_api_params(params):
     """Apply comprehensive NSFW filter bypass techniques for Hugging Face"""
-    # Add specific NSFW bypass terms to negative prompt
-    base_negative = "nsfw, watermark, censored, safety checker, explicit censoring, text" # Updated terms
+    # More aggressive NSFW bypass terms for negative prompt
+    base_negative = "worst quality, low quality, normal quality, signature, watermark, username, artist name, text, words, blurry, censored, safety checker, explicit censoring"
     if "negative_prompt" in params and params["negative_prompt"]:
-        # Combine base bypass terms with user's negative prompt
-        params["negative_prompt"] = f"{base_negative}, {params['negative_prompt']}"
+        # Combine base bypass terms with user's negative prompt, avoiding duplicates
+        user_neg = params['negative_prompt']
+        combined_neg = f"{base_negative}, {user_neg}"
+        # Simple deduplication
+        params["negative_prompt"] = ", ".join(sorted(list(set(p.strip() for p in combined_neg.split(',')))))
     else:
         params["negative_prompt"] = base_negative
-    # Add safety keyword to prompt
-    safety_keywords = "(perfectly acceptable content:1.4)"
-    if "prompt" in params and params["prompt"] and safety_keywords not in params["prompt"]:
-        params["prompt"] = f"{params['prompt']} {safety_keywords}"
+
+    # Add stronger safety keyword to prompt
+    safety_keywords = "(highly detailed, masterpiece, best quality, photorealistic:1.4), (perfectly acceptable content:1.8)" # Stronger emphasis
+    if "prompt" in params and params["prompt"]:
+         # Avoid adding if already present (simple check)
+         if "(perfectly acceptable content" not in params["prompt"]:
+              params["prompt"] = f"{params['prompt']} {safety_keywords}"
     # Set environment variable (Note: This might be better set once at startup)
-    os.environ["HF_DISABLE_SAFETY"] = "true"
+    os.environ["HF_DISABLE_SAFETY"] = "true" # Ensure this is set
+    print(f"HF NSFW Bypass Applied - Negative Prompt: {params.get('negative_prompt', 'N/A')}")
     return params
 
 # Base class will always be ctk.CTk for styling consistency
@@ -375,6 +344,15 @@ class ImageGeneratorGUI(ctk.CTk): # Inherit directly from ctk.CTk
                 print(f"WARNING: Failed to initialize TkinterDND2 on CTk window: {dnd_init_error}")
 
         self.config = self.load_config()
+        # --- LoRAManager integration ---
+        self.hf_lora_manager = LoRAManager("hf")
+        for url in self.config.get("recent_loras_hf", []):
+            self.hf_lora_manager.add_lora(url)
+        self.rep_lora_manager = LoRAManager("replicate")
+        for url in self.config.get("recent_loras_replicate", []):
+            self.rep_lora_manager.add_lora(url)
+        # -------------------------------
+
         self.title("AI Image Generator")
         self.geometry("1200x800")
         self.minsize(900, 600)
@@ -450,7 +428,8 @@ class ImageGeneratorGUI(ctk.CTk): # Inherit directly from ctk.CTk
             "advanced_mode": False, "recent_prompts": [],
             "recent_models_replicate": ["stability-ai/sdxl:c221b2b8ef527988fb59bf24a8b97c4561f1c671f73bd389f866bfb27c061316"],
             "recent_models_hf": ["black-forest-labs/FLUX.1-dev"],
-            "recent_loras_hf": ["https://huggingface.co/aifeifei798/flux-lora-uncensored/resolve/main/flux_lora_v1.safetensors"]
+            "recent_loras_hf": ["https://huggingface.co/aifeifei798/flux-lora-uncensored/resolve/main/flux_lora_v1.safetensors"],
+            "recent_loras_replicate": []
         }
         try:
             if os.path.exists(config_path):
@@ -491,31 +470,38 @@ class ImageGeneratorGUI(ctk.CTk): # Inherit directly from ctk.CTk
         self.grid_rowconfigure(1, weight=0)    # Status bar row - fixed height
 
     def setup_services(self):
-        """Initialize service abstraction layer and check for API keys"""
-        # .env should be loaded already, check if keys are present in environment
-        replicate_key = os.environ.get("REPLICATE_API_TOKEN") or self.config.get("replicate_api_key", "")
-        hf_token = os.environ.get("HUGGINGFACE_TOKEN") or self.config.get("huggingface_token", "")
+        """Initialize service abstraction layer and check for API keys, prioritizing config/UI over .env"""
+        # Prioritize keys from config (set by UI) over environment variables (from .env)
+        config_replicate_key = self.config.get("replicate_api_key", "")
+        config_hf_token = self.config.get("huggingface_token", "")
 
-        # Update config with keys found in environment if they weren't in config initially
-        # This allows .env to override config if both exist
-        if replicate_key and not self.config.get("replicate_api_key"):
-            self.config["replicate_api_key"] = replicate_key
-        if hf_token and not self.config.get("huggingface_token"):
-            self.config["huggingface_token"] = hf_token
+        env_replicate_key = os.environ.get("REPLICATE_API_TOKEN")
+        env_hf_token = os.environ.get("HUGGINGFACE_TOKEN")
 
-        # Set other env vars needed by libraries/logic
+        # Use config key if available and not a placeholder, otherwise try env var, else empty
+        final_replicate_key = config_replicate_key if config_replicate_key and "YOUR_REPLICATE_API_TOKEN" not in config_replicate_key else env_replicate_key or ""
+        final_hf_token = config_hf_token if config_hf_token and "YOUR_HUGGINGFACE_TOKEN" not in config_hf_token else env_hf_token or ""
+
+        # Update config if we ended up using a valid env var when config was empty/placeholder
+        if not config_replicate_key or "YOUR_REPLICATE_API_TOKEN" in config_replicate_key:
+            if final_replicate_key: self.config["replicate_api_key"] = final_replicate_key
+        if not config_hf_token or "YOUR_HUGGINGFACE_TOKEN" in config_hf_token:
+            if final_hf_token: self.config["huggingface_token"] = final_hf_token
+
+        # Set other env vars needed by libraries/logic (Keep these as they are)
         os.environ["FLUX_DISABLE_SAFETY"] = "true"
         os.environ["FLUX_GO_FAST"] = "true"
 
         # Update the actual environment variables used by the API clients later
-        # Ensure they reflect the final values (from .env or config)
-        os.environ["REPLICATE_API_TOKEN"] = replicate_key
-        os.environ["HUGGINGFACE_TOKEN"] = hf_token
+        # Ensure they reflect the final determined values
+        os.environ["REPLICATE_API_TOKEN"] = final_replicate_key
+        os.environ["HUGGINGFACE_TOKEN"] = final_hf_token
+        print(f"API Key Setup: Replicate Key Loaded: {bool(final_replicate_key)}, HF Token Loaded: {bool(final_hf_token)}")
 
-        # Initialize service status based on key availability
+        # Initialize service status based on final key availability
         self.service_clients = {
-            "replicate": {"initialized": bool(replicate_key)},
-            "huggingface": {"initialized": bool(hf_token)}
+            "replicate": {"initialized": bool(final_replicate_key)},
+            "huggingface": {"initialized": bool(final_hf_token)}
         }
         # Update UI status labels if they exist (might be called before UI creation)
         if hasattr(self, 'replicate_status'):
@@ -604,15 +590,26 @@ class ImageGeneratorGUI(ctk.CTk): # Inherit directly from ctk.CTk
         """Create the prompt input section inside the parent frame (left_panel)"""
         prompt_frame = ctk.CTkFrame(parent, fg_color=FRAME_BG_COLOR)
         prompt_frame.pack(fill="x", padx=5, pady=2) # Consistent padding
-        prompt_frame.grid_columnconfigure(0, weight=1) # Allow textbox to expand
+        prompt_frame.grid_columnconfigure(1, weight=1) # Allow entry/textbox to expand
 
-        ctk.CTkLabel(prompt_frame, text="Prompt:", font=ctk.CTkFont(size=16), text_color=TEXT_COLOR).grid(row=0, column=0, padx=5, pady=(2, 0), sticky="w") # Consistent padding
+        # --- Manual Trigger Words Section ---
+        manual_trigger_frame = ctk.CTkFrame(prompt_frame, fg_color="transparent")
+        manual_trigger_frame.grid(row=0, column=0, columnspan=2, padx=5, pady=(2,0), sticky="ew")
+        manual_trigger_frame.grid_columnconfigure(1, weight=1) # Allow entry to expand
+
+        self.use_manual_trigger_words_var = tk.BooleanVar(value=False) # Default OFF
+        ctk.CTkCheckBox(manual_trigger_frame, text="Use Manual Trigger Words:", variable=self.use_manual_trigger_words_var, text_color=TEXT_COLOR, checkbox_height=18, checkbox_width=18, fg_color=BUTTON_GOLD_COLOR).grid(row=0, column=0, padx=(0,5), pady=2, sticky="w")
+        self.manual_trigger_words_entry = ctk.CTkEntry(manual_trigger_frame, placeholder_text="Enter manual trigger words here...", text_color=TEXT_COLOR, fg_color="#333333")
+        self.manual_trigger_words_entry.grid(row=0, column=1, padx=0, pady=2, sticky="ew")
+
+        # --- Main Prompt Section ---
+        ctk.CTkLabel(prompt_frame, text="Prompt:", font=ctk.CTkFont(size=16), text_color=TEXT_COLOR).grid(row=1, column=0, padx=5, pady=(5, 0), sticky="w") # Add top padding
         self.prompt_text = ctk.CTkTextbox(prompt_frame, height=80, wrap="word", text_color=TEXT_COLOR, fg_color="#333333")
-        self.prompt_text.grid(row=1, column=0, padx=5, pady=(0, 2), sticky="ew") # Consistent padding
+        self.prompt_text.grid(row=2, column=0, columnspan=2, padx=5, pady=(0, 2), sticky="ew") # Span 2 columns
         self.prompt_text.insert("1.0", "A beautiful woman on the beach, realistic, detailed, high quality")
-        ctk.CTkButton(prompt_frame, text="History", width=120, command=self.show_prompt_history, fg_color=BUTTON_GOLD_COLOR, text_color=BUTTON_TEXT_COLOR, hover_color="#CCAA00").grid(row=1, column=1, padx=(0, 5), pady=(0, 2), sticky="ne") # Consistent padding
-        self.trigger_words_var = tk.BooleanVar(value=True)
-        ctk.CTkCheckBox(prompt_frame, text="Auto-include trigger words (porn, nude, sex, boobs)", variable=self.trigger_words_var, text_color=TEXT_COLOR, checkbox_height=18, checkbox_width=18, fg_color=BUTTON_GOLD_COLOR).grid(row=2, column=0, padx=5, pady=(0, 2), sticky="w") # Consistent padding
+        ctk.CTkButton(prompt_frame, text="History", width=120, command=self.show_prompt_history, fg_color=BUTTON_GOLD_COLOR, text_color=BUTTON_TEXT_COLOR, hover_color="#CCAA00").grid(row=2, column=2, padx=(5, 5), pady=(0, 2), sticky="ne") # Move history button to col 2
+
+        # --- Negative Prompt Section (conditionally shown) ---
         self.negative_prompt_label = ctk.CTkLabel(prompt_frame, text="Negative Prompt:", font=ctk.CTkFont(size=16), text_color=TEXT_COLOR)
         self.negative_prompt_text = ctk.CTkTextbox(prompt_frame, height=80, wrap="word", text_color=TEXT_COLOR, fg_color="#333333")
         self.negative_prompt_text.insert("1.0", self.config["parameters"]["negative_prompt"])
@@ -631,57 +628,114 @@ class ImageGeneratorGUI(ctk.CTk): # Inherit directly from ctk.CTk
 
         ctk.CTkLabel(parameters_frame, text="Parameters:", font=ctk.CTkFont(size=16), text_color=TEXT_COLOR).pack(anchor="w", padx=10, pady=(10,5))
 
-        # ParameterSections creates and packs its own notebook
-        self.parameter_sections = ParameterSections(parameters_frame)
+        # --- Global Width/Height Controls ---
+        global_dim_frame = ctk.CTkFrame(parameters_frame, fg_color="transparent")
+        global_dim_frame.pack(fill="x", padx=10, pady=(0, 5))
+        ctk.CTkLabel(global_dim_frame, text="Width:", text_color=TEXT_COLOR).grid(row=0, column=0, padx=5, pady=2, sticky="w")
+        self.global_width_var = tk.IntVar(value=1024)
+        ctk.CTkEntry(global_dim_frame, textvariable=self.global_width_var, width=80).grid(row=0, column=1, padx=5, pady=2, sticky="w")
+        ctk.CTkLabel(global_dim_frame, text="Height:", text_color=TEXT_COLOR).grid(row=0, column=2, padx=5, pady=2, sticky="w")
+        self.global_height_var = tk.IntVar(value=1024)
+        ctk.CTkEntry(global_dim_frame, textvariable=self.global_height_var, width=80).grid(row=0, column=3, padx=5, pady=2, sticky="w")
 
-        # Place widgets inside the correct *content* frames obtained from get_section
-        basic_section = self.parameter_sections.get_section("basic")
-        advanced_section = self.parameter_sections.get_section("advanced")
+        # --- Model-Specific Parameters ---
+        # Create the main notebook for model tabs
+        self.model_param_notebook = ctk.CTkTabview(parameters_frame, fg_color=FRAME_BG_COLOR)
+        self.model_param_notebook.pack(fill="x", expand=True, padx=10, pady=10)
+        self.model_param_tabs = {} # To store frames for each model tab
 
-        # --- Basic Section Widgets ---
-        basic_grid_frame = ctk.CTkFrame(basic_section, fg_color="transparent") # Use a frame for grid layout
-        basic_grid_frame.pack(fill="x", expand=True)
-        basic_grid_frame.grid_columnconfigure((1,3), weight=1) # Allow dropdowns to expand slightly if needed
+        # Define model configurations (matching the prompt)
+        # TODO: Populate this with actual model IDs used in the dropdowns later
+        model_configs = {
+            "black-forest-labs/flux-dev-lora": { # Assuming this is a valid model ID
+                "params": ["prompt_strength", "num_outputs", "num_inference_steps", "guidance", "lora_scale"],
+                "defaults": {"prompt_strength": 0.8, "num_outputs": 1, "num_inference_steps": 28, "guidance": 3.0, "lora_scale": 1.0},
+                "ranges": {"prompt_strength": (0, 1), "num_outputs": (1, 4), "num_inference_steps": (1, 50), "guidance": (0, 10), "lora_scale": (-1, 3)}
+            },
+             "black-forest-labs/flux-dev": {
+                 "params": ["prompt_strength", "num_outputs", "num_inference_steps", "guidance"],
+                 "defaults": {"prompt_strength": 0.8, "num_outputs": 1, "num_inference_steps": 28, "guidance": 3.5},
+                 "ranges": {"prompt_strength": (0, 1), "num_outputs": (1, 4), "num_inference_steps": (1, 50), "guidance": (0, 10)}
+             },
+             "black-forest-labs/flux-1.1-pro-ultra": {
+                 "params": ["image_prompt_strength", "aspect_ratio", "safety_tolerance", "raw"],
+                 "defaults": {"image_prompt_strength": 0.1, "aspect_ratio": "1:1", "safety_tolerance": 2, "raw": False},
+                 "ranges": {"image_prompt_strength": (0, 1), "safety_tolerance": (1, 6)},
+                 "options": {"aspect_ratio": ["1:1", "3:2", "2:3", "9:16", "16:9"]}
+             },
+             "black-forest-labs/flux-1.1-pro": {
+                 "params": ["width", "height", "safety_tolerance", "prompt_upsampling"],
+                 "defaults": {"width": 1024, "height": 1024, "safety_tolerance": 2, "prompt_upsampling": False},
+                 "ranges": {"width": (256, 1440, 32), "height": (256, 1440, 32), "safety_tolerance": (1, 6)} # Added step 32
+             },
+             "black-forest-labs/flux-pro": {
+                 "params": ["width", "height", "steps", "guidance", "interval", "safety_tolerance", "prompt_upsampling"],
+                 "defaults": {"width": 1024, "height": 1024, "steps": 25, "guidance": 3.0, "interval": 2, "safety_tolerance": 2, "prompt_upsampling": False},
+                 "ranges": {"width": (256, 1440, 32), "height": (256, 1440, 32), "steps": (1, 50), "guidance": (2, 5), "interval": (1, 4), "safety_tolerance": (1, 6)}
+             }
+            # Add other models as needed
+        }
 
-        # Consistent padding (padx=5, pady=2)
-        ctk.CTkLabel(basic_grid_frame, text="Width:", text_color=TEXT_COLOR).grid(row=0, column=0, padx=5, pady=2, sticky="w")
-        self.width_var = tk.StringVar(value=str(self.config["parameters"]["width"]))
-        ctk.CTkComboBox(basic_grid_frame, values=["512", "768", "1024", "1280", "1536"], variable=self.width_var, width=100).grid(row=0, column=1, padx=5, pady=2, sticky="ew")
-        ctk.CTkLabel(basic_grid_frame, text="Height:", text_color=TEXT_COLOR).grid(row=0, column=2, padx=5, pady=2, sticky="w")
-        self.height_var = tk.StringVar(value=str(self.config["parameters"]["height"]))
-        ctk.CTkComboBox(basic_grid_frame, values=["512", "768", "1024", "1280", "1536"], variable=self.height_var, width=100).grid(row=0, column=3, padx=5, pady=2, sticky="ew")
-        ctk.CTkLabel(basic_grid_frame, text="Steps:", text_color=TEXT_COLOR).grid(row=1, column=0, padx=5, pady=2, sticky="w")
-        self.steps_var = tk.StringVar(value=str(self.config["parameters"]["num_inference_steps"]))
-        ctk.CTkComboBox(basic_grid_frame, values=["20", "30", "40", "50", "75", "100"], variable=self.steps_var, width=100).grid(row=1, column=1, padx=5, pady=2, sticky="ew")
-        ctk.CTkLabel(basic_grid_frame, text="Format:", text_color=TEXT_COLOR).grid(row=1, column=2, padx=5, pady=2, sticky="w")
-        self.format_var = tk.StringVar(value="png")
-        ctk.CTkComboBox(basic_grid_frame, values=["png", "jpg", "webp"], variable=self.format_var, width=100).grid(row=1, column=3, padx=5, pady=2, sticky="ew")
+        # Create tabs and widgets for each model
+        self.model_param_vars = {} # Store tk variables for each model's params
+        for model_id, config in model_configs.items():
+            tab_name = model_id.split('/')[-1] # Use model name part for tab label
+            tab = self.model_param_notebook.add(tab_name)
+            self.model_param_tabs[model_id] = tab
+            self.model_param_vars[model_id] = {}
 
-        # --- Advanced Section Widgets ---
-        adv_grid_frame = ctk.CTkFrame(advanced_section, fg_color="transparent")
-        adv_grid_frame.pack(fill="x", expand=True)
-        adv_grid_frame.grid_columnconfigure(1, weight=1) # Allow slider to expand
+            # Create widgets within the tab's frame (tab)
+            param_frame = ctk.CTkFrame(tab, fg_color="transparent")
+            param_frame.pack(fill="both", expand=True, padx=5, pady=5)
+            param_frame.grid_columnconfigure(1, weight=1) # Allow controls to expand
 
-        # Consistent padding (padx=5, pady=2)
-        ctk.CTkLabel(adv_grid_frame, text="Guidance Scale:", text_color=TEXT_COLOR).grid(row=0, column=0, padx=5, pady=2, sticky="w")
-        self.guidance_var = tk.DoubleVar(value=self.config["parameters"]["guidance_scale"])
-        ctk.CTkSlider(adv_grid_frame, from_=1.0, to=15.0, number_of_steps=140, variable=self.guidance_var).grid(row=0, column=1, padx=5, pady=2, sticky="ew")
-        self.guidance_value_label = ctk.CTkLabel(adv_grid_frame, text=f"{self.guidance_var.get():.1f}", text_color=TEXT_COLOR)
-        self.guidance_value_label.grid(row=0, column=2, padx=5, pady=2, sticky="w")
-        self.guidance_var.trace_add("write", lambda *args: self.guidance_value_label.configure(text=f"{self.guidance_var.get():.1f}"))
+            row_idx = 0
+            for param_name in config["params"]:
+                self.model_param_vars[model_id][param_name] = self._create_param_widget(
+                    param_frame, param_name, config, row_idx
+                )
+                row_idx += 1
 
-        ctk.CTkLabel(adv_grid_frame, text="LoRA Scale:", text_color=TEXT_COLOR).grid(row=1, column=0, padx=5, pady=2, sticky="w")
-        self.lora_scale_var = tk.DoubleVar(value=self.config["parameters"]["lora_scale"])
-        ctk.CTkSlider(adv_grid_frame, from_=0.1, to=1.0, number_of_steps=90, variable=self.lora_scale_var).grid(row=1, column=1, padx=5, pady=2, sticky="ew")
-        self.lora_scale_value_label = ctk.CTkLabel(adv_grid_frame, text=f"{self.lora_scale_var.get():.1f}", text_color=TEXT_COLOR)
-        self.lora_scale_value_label.grid(row=1, column=2, padx=5, pady=2, sticky="w")
-        self.lora_scale_var.trace_add("write", lambda *args: self.lora_scale_value_label.configure(text=f"{self.lora_scale_var.get():.1f}"))
+        # --- Global Controls Section (Now separate, below model tabs) ---
+        global_frame = ctk.CTkFrame(parameters_frame, fg_color=FRAME_BG_COLOR)
+        global_frame.pack(fill="x", padx=10, pady=(15, 5)) # Add padding above
+        global_frame.grid_columnconfigure(1, weight=1) # Allow controls to expand
 
-        # Add Seed input to Advanced tab
-        ctk.CTkLabel(adv_grid_frame, text="Seed:", text_color=TEXT_COLOR).grid(row=2, column=0, padx=5, pady=2, sticky="w")
+        ctk.CTkLabel(global_frame, text="Global Controls:", font=ctk.CTkFont(size=16, weight="bold"), text_color=TEXT_COLOR).grid(row=0, column=0, columnspan=3, padx=5, pady=(0,5), sticky="w")
+
+        # Seed
+        ctk.CTkLabel(global_frame, text="Seed:", text_color=TEXT_COLOR).grid(row=1, column=0, padx=5, pady=2, sticky="w")
         self.seed_var = tk.StringVar(value="") # Initialize empty
-        self.seed_entry = ctk.CTkEntry(adv_grid_frame, textvariable=self.seed_var, width=120, placeholder_text="Optional (integer)")
-        self.seed_entry.grid(row=2, column=1, columnspan=2, padx=5, pady=2, sticky="w") # Span 2 columns, align left
+        self.seed_entry = ctk.CTkEntry(global_frame, textvariable=self.seed_var, width=120, placeholder_text="Optional (integer)")
+        self.seed_entry.grid(row=1, column=1, columnspan=2, padx=5, pady=2, sticky="w")
+
+        # Output Format
+        ctk.CTkLabel(global_frame, text="Output Format:", text_color=TEXT_COLOR).grid(row=2, column=0, padx=5, pady=2, sticky="w")
+        self.output_format_var = tk.StringVar(value=self.config.get("output_format", "webp")) # Default webp
+        self.output_format_combo = ctk.CTkComboBox(global_frame, values=["webp", "png", "jpg"], variable=self.output_format_var, width=100, command=self._update_quality_slider_state)
+        self.output_format_combo.grid(row=2, column=1, columnspan=2, padx=5, pady=2, sticky="w")
+
+        # Output Quality
+        ctk.CTkLabel(global_frame, text="Output Quality:", text_color=TEXT_COLOR).grid(row=3, column=0, padx=5, pady=2, sticky="w")
+        self.output_quality_var = tk.IntVar(value=self.config.get("output_quality", 80)) # Default 80
+        self.output_quality_slider = ctk.CTkSlider(global_frame, from_=0, to=100, number_of_steps=100, variable=self.output_quality_var)
+        self.output_quality_slider.grid(row=3, column=1, padx=5, pady=2, sticky="ew")
+        self.output_quality_label = ctk.CTkLabel(global_frame, text=f"{self.output_quality_var.get()}", text_color=TEXT_COLOR, width=35)
+        self.output_quality_label.grid(row=3, column=2, padx=5, pady=2, sticky="w")
+        self.output_quality_var.trace_add("write", lambda *args: self.output_quality_label.configure(text=f"{self.output_quality_var.get()}"))
+        self._update_quality_slider_state() # Set initial state
+
+        # Megapixels
+        ctk.CTkLabel(global_frame, text="Megapixels:", text_color=TEXT_COLOR).grid(row=4, column=0, padx=5, pady=2, sticky="w")
+        self.megapixels_var = tk.StringVar(value=str(self.config.get("megapixels", "1"))) # Default 1
+        ctk.CTkComboBox(global_frame, values=[str(i) for i in range(1, 9)], variable=self.megapixels_var, width=100).grid(row=4, column=1, columnspan=2, padx=5, pady=2, sticky="w")
+
+        # Go Fast
+        self.go_fast_var = tk.BooleanVar(value=self.config.get("go_fast", True)) # Default ON
+        ctk.CTkCheckBox(global_frame, text="Go Fast (where available)", variable=self.go_fast_var, text_color=TEXT_COLOR).grid(row=5, column=0, columnspan=3, padx=5, pady=2, sticky="w")
+
+        # TODO: Add logic to show/hide model tabs based on selected service (Replicate/HF)
+        # TODO: Add logic to load/save model-specific params from/to config
 
     def create_model_section(self, parent):
         """Create the model selection section inside the parent frame (left_panel)"""
@@ -700,10 +754,51 @@ class ImageGeneratorGUI(ctk.CTk): # Inherit directly from ctk.CTk
         self.hf_model_var = tk.StringVar(value=self.config["last_used_model_hf"])
         self.hf_model_combo = ctk.CTkComboBox(self.model_section_frame, values=self.config["recent_models_hf"], variable=self.hf_model_var, width=400, state="readonly")
         self.add_hf_model_button = ctk.CTkButton(self.model_section_frame, text="Add Model", width=100, command=self.add_hf_model, fg_color=BUTTON_GOLD_COLOR, text_color=BUTTON_TEXT_COLOR, hover_color="#CCAA00")
-        self.hf_lora_label = ctk.CTkLabel(self.model_section_frame, text="HF LoRA:", font=ctk.CTkFont(size=16), text_color=TEXT_COLOR)
-        self.hf_lora_var = tk.StringVar(value=self.config["last_used_lora_hf"])
-        self.hf_lora_combo = ctk.CTkComboBox(self.model_section_frame, values=self.config["recent_loras_hf"], variable=self.hf_lora_var, width=400, state="readonly")
-        self.add_hf_lora_button = ctk.CTkButton(self.model_section_frame, text="Add LoRA", width=100, command=self.add_hf_lora, fg_color=BUTTON_GOLD_COLOR, text_color=BUTTON_TEXT_COLOR, hover_color="#CCAA00")
+        # --- LoRA Management (Common Structure) ---
+        self.lora_management_frame = ctk.CTkFrame(self.model_section_frame, fg_color="transparent")
+        self.lora_management_frame.grid_columnconfigure(0, weight=1) # Allow listbox to expand
+
+        # Replicate LoRA Widgets
+        self.rep_lora_label = ctk.CTkLabel(self.lora_management_frame, text="Replicate LoRAs:", font=ctk.CTkFont(size=14), text_color=TEXT_COLOR)
+        self.rep_lora_tree = ttk.Treeview(self.lora_management_frame, columns=("url", "scale"), show="headings", selectmode="extended", height=4)
+        self.rep_lora_tree.heading("url", text="URL")
+        self.rep_lora_tree.heading("scale", text="Scale")
+        self.rep_lora_tree.column("url", width=340, anchor="w")
+        self.rep_lora_tree.column("scale", width=60, anchor="center")
+        for url, scale in self.rep_lora_manager.get_loras():
+            self.rep_lora_tree.insert("", tk.END, values=(url, f"{scale:.2f}"))
+        self.rep_lora_button_frame = ctk.CTkFrame(self.lora_management_frame, fg_color="transparent")
+        self.add_rep_lora_button = ctk.CTkButton(self.rep_lora_button_frame, text="Add", width=60, command=self.add_rep_lora, fg_color=BUTTON_GOLD_COLOR, text_color=BUTTON_TEXT_COLOR, hover_color="#CCAA00")
+        self.remove_rep_lora_button = ctk.CTkButton(self.rep_lora_button_frame, text="Remove", width=60, command=self.remove_rep_lora, fg_color="#555555", hover_color="#777777")
+
+        # Hugging Face LoRA Widgets
+        self.hf_lora_label = ctk.CTkLabel(self.lora_management_frame, text="HuggingFace LoRAs:", font=ctk.CTkFont(size=14), text_color=TEXT_COLOR)
+        self.hf_lora_tree = ttk.Treeview(self.lora_management_frame, columns=("url", "scale"), show="headings", selectmode="extended", height=4)
+        self.hf_lora_tree.heading("url", text="URL")
+        self.hf_lora_tree.heading("scale", text="Scale")
+        self.hf_lora_tree.column("url", width=340, anchor="w")
+        self.hf_lora_tree.column("scale", width=60, anchor="center")
+        for url, scale in self.hf_lora_manager.get_loras():
+            self.hf_lora_tree.insert("", tk.END, values=(url, f"{scale:.2f}"))
+        self.hf_lora_button_frame = ctk.CTkFrame(self.lora_management_frame, fg_color="transparent")
+        self.add_hf_lora_button = ctk.CTkButton(self.hf_lora_button_frame, text="Add", width=60, command=self.add_hf_lora, fg_color=BUTTON_GOLD_COLOR, text_color=BUTTON_TEXT_COLOR, hover_color="#CCAA00")
+        self.remove_hf_lora_button = ctk.CTkButton(self.hf_lora_button_frame, text="Remove", width=60, command=self.remove_hf_lora, fg_color="#555555", hover_color="#777777")
+
+        # LoRA Scale Slider (Now part of LoRA management)
+        self.lora_scale_label = ttk.Label(self.lora_management_frame, text="LoRA Scale:")
+        self.lora_scale_var = tk.DoubleVar(value=self.config["parameters"].get("lora_scale", 0.8)) # Use .get for safety
+
+        def update_lora_scale_value(val):
+            self.lora_scale_value_label.config(text=f"{float(val):.1f}")
+
+        self.lora_scale_slider = ttk.Scale(
+            self.lora_management_frame,
+            from_=-1.0,
+            to=3.0,
+            variable=self.lora_scale_var,
+            command=update_lora_scale_value
+        )
+        self.lora_scale_value_label = ttk.Label(self.lora_management_frame, text=f"{self.lora_scale_var.get():.1f}", width=6)
 
         self.update_model_section(self.model_section_frame) # Initial update
 
@@ -713,16 +808,39 @@ class ImageGeneratorGUI(ctk.CTk): # Inherit directly from ctk.CTk
 
         # Consistent padding (padx=5, pady=2)
         if self.service_var.get() == "replicate":
+            # Grid Replicate Model Selection
             self.replicate_model_label.grid(row=0, column=0, padx=5, pady=2, sticky="w")
             self.replicate_model_combo.grid(row=0, column=1, padx=5, pady=2, sticky="ew")
             self.add_replicate_model_button.grid(row=0, column=2, padx=5, pady=2, sticky="e")
-        else:
+            # Grid Replicate LoRA Management Frame
+            self.lora_management_frame.grid(row=1, column=0, columnspan=3, sticky="ew", padx=5, pady=(5,2))
+            # Grid Widgets *inside* the LoRA frame for Replicate
+            self.rep_lora_label.grid(in_=self.lora_management_frame, row=0, column=0, columnspan=2, sticky="w", padx=5, pady=(5,0))
+            self.rep_lora_tree.grid(in_=self.lora_management_frame, row=1, column=0, sticky="ew", padx=5, pady=2)
+            self.rep_lora_button_frame.grid(in_=self.lora_management_frame, row=1, column=1, sticky="ns", padx=5, pady=2)
+            self.add_rep_lora_button.pack(pady=2) # Pack buttons inside their frame
+            self.remove_rep_lora_button.pack(pady=2)
+            # Grid LoRA Scale Slider (Common for both services now)
+            self.lora_scale_label.grid(in_=self.lora_management_frame, row=2, column=0, sticky="w", padx=5, pady=(5,2))
+            self.lora_scale_slider.grid(in_=self.lora_management_frame, row=3, column=0, sticky="ew", padx=5, pady=2)
+            self.lora_scale_value_label.grid(in_=self.lora_management_frame, row=3, column=1, sticky="w", padx=5, pady=2)
+        else: # HuggingFace
+            # Grid HF Base Model
             self.hf_model_label.grid(row=0, column=0, padx=5, pady=2, sticky="w")
             self.hf_model_combo.grid(row=0, column=1, padx=5, pady=2, sticky="ew")
             self.add_hf_model_button.grid(row=0, column=2, padx=5, pady=2, sticky="e")
-            self.hf_lora_label.grid(row=1, column=0, padx=5, pady=2, sticky="w")
-            self.hf_lora_combo.grid(row=1, column=1, padx=5, pady=2, sticky="ew")
-            self.add_hf_lora_button.grid(row=1, column=2, padx=5, pady=2, sticky="e")
+            # Grid HF LoRA Management Frame
+            self.lora_management_frame.grid(row=1, column=0, columnspan=3, sticky="ew", padx=5, pady=(5,2))
+            # Grid Widgets *inside* the LoRA frame for HF
+            self.hf_lora_label.grid(in_=self.lora_management_frame, row=0, column=0, columnspan=2, sticky="w", padx=5, pady=(5,0))
+            self.hf_lora_tree.grid(in_=self.lora_management_frame, row=1, column=0, sticky="ew", padx=5, pady=2)
+            self.hf_lora_button_frame.grid(in_=self.lora_management_frame, row=1, column=1, sticky="ns", padx=5, pady=2)
+            self.add_hf_lora_button.pack(pady=2) # Pack buttons inside their frame
+            self.remove_hf_lora_button.pack(pady=2)
+            # Grid LoRA Scale Slider (Common for both services now)
+            self.lora_scale_label.grid(in_=self.lora_management_frame, row=2, column=0, sticky="w", padx=5, pady=(5,2))
+            self.lora_scale_slider.grid(in_=self.lora_management_frame, row=3, column=0, sticky="ew", padx=5, pady=2)
+            self.lora_scale_value_label.grid(in_=self.lora_management_frame, row=3, column=1, sticky="w", padx=5, pady=2)
 
     def create_output_section(self, parent):
         """Create the output configuration section inside the parent frame (left_panel)"""
@@ -816,9 +934,9 @@ class ImageGeneratorGUI(ctk.CTk): # Inherit directly from ctk.CTk
         output_frame = self.batch_frame.master
 
         if advanced_mode:
-            # Show negative prompt - ensure they are gridded within the correct frame
-            self.negative_prompt_label.grid(in_=prompt_frame, row=3, column=0, padx=10, pady=(10, 0), sticky="w")
-            self.negative_prompt_text.grid(in_=prompt_frame, row=4, column=0, columnspan=2, padx=10, pady=(0, 10), sticky="ew")
+            # Show negative prompt - ensure they are gridded within the correct frame (now row 3/4)
+            self.negative_prompt_label.grid(in_=prompt_frame, row=3, column=0, padx=5, pady=(5, 0), sticky="w")
+            self.negative_prompt_text.grid(in_=prompt_frame, row=4, column=0, columnspan=3, padx=5, pady=(0, 5), sticky="ew") # Span 3 columns
             # Show batch frame - ensure it's gridded within the correct frame
             self.batch_frame.grid(in_=output_frame, row=2, column=0, columnspan=3, padx=10, pady=5, sticky="ew")
         else:
@@ -935,18 +1053,26 @@ class ImageGeneratorGUI(ctk.CTk): # Inherit directly from ctk.CTk
         """Generate a single image with the current settings"""
         if self.is_generating: messagebox.showinfo("In Progress", "Image generation already in progress"); return
         try:
-            prompt = self.prompt_text.get("1.0", "end").strip()
-            if not prompt: messagebox.showinfo("Error", "Please enter a prompt"); return
-            if self.trigger_words_var.get():
-                trigger_words = "porn, nude, sex, boobs"
-                if not any(word in prompt.lower() for word in trigger_words.split(", ")): prompt = f"{prompt}, {trigger_words}"
-            negative_prompt = self.negative_prompt_text.get("1.0", "end").strip() if self.config["advanced_mode"] else self.config["parameters"]["negative_prompt"] # Use default if not advanced
-            width = int(self.width_var.get()); height = int(self.height_var.get())
-            steps = int(self.steps_var.get()); guidance = float(self.guidance_var.get())
-            lora_scale = float(self.lora_scale_var.get()); output_format = self.format_var.get()
-            model = self.replicate_model_var.get() if self.service_var.get() == "replicate" else self.hf_model_var.get()
-            lora = self.hf_lora_var.get() if self.service_var.get() == "huggingface" else None # Only relevant for HF
-            seed_str = self.seed_var.get().strip() # Get seed value
+            base_prompt = self.prompt_text.get("1.0", "end").strip()
+            if not base_prompt: messagebox.showinfo("Error", "Please enter a prompt"); return
+
+            # --- Apply Manual Trigger Words ---
+            prompt = base_prompt
+            if self.use_manual_trigger_words_var.get():
+                manual_triggers = self.manual_trigger_words_entry.get().strip()
+                if not manual_triggers:
+                    messagebox.showerror("Input Error", "Manual trigger words checkbox is enabled, but the input field is empty.")
+                    return # Stop generation
+                prompt = f"{manual_triggers}, {base_prompt}" # Prepend manual triggers
+
+            negative_prompt = self.negative_prompt_text.get("1.0", "end").strip() if self.config["advanced_mode"] else self.config["parameters"].get("negative_prompt", "") # Use .get for safety
+
+            # --- Get Global Controls ---
+            output_format = self.output_format_var.get()
+            output_quality = self.output_quality_var.get() if output_format != "png" else 95 # PNG is lossless, quality irrelevant but API might need a value
+            megapixels = int(self.megapixels_var.get())
+            go_fast = self.go_fast_var.get()
+            seed_str = self.seed_var.get().strip()
             seed = None
             if seed_str:
                 try:
@@ -955,26 +1081,99 @@ class ImageGeneratorGUI(ctk.CTk): # Inherit directly from ctk.CTk
                     messagebox.showerror("Input Error", "Seed must be an integer.")
                     return # Stop generation if seed is invalid
 
+            # --- Get Model-Specific Parameters ---
+            service = self.service_var.get()
+            model_id = self.replicate_model_var.get() if service == "replicate" else self.hf_model_var.get()
+            model_params = {}
+            if model_id in self.model_param_vars:
+                for param_name, tk_var in self.model_param_vars[model_id].items():
+                    try:
+                        val = tk_var.get()
+                        model_params[param_name] = val
+                    except Exception as e:
+                        print(f"Warning: Could not get/convert value for {param_name} of model {model_id}: {e}")
+            else:
+                print(f"Warning: Selected model '{model_id}' not found in model configurations.")
+                # Fallback: provide default parameters for missing models
+                # These are required for Replicate API and most HuggingFace models
+                model_params["width"] = 1024
+                model_params["height"] = 1024
+                model_params["num_inference_steps"] = 28
+                model_params["guidance_scale"] = 7.5
+                model_params["lora_scale"] = 0.9
+                print(f"Default parameters applied for model '{model_id}': {model_params}")
+
+            # --- Get Selected LoRAs ---
+            selected_loras_urls = []
+            selected_lora_info = None # For single Replicate LoRA
+            lora_scale = self.lora_scale_var.get() # Get LoRA scale from the global slider
+
+            if service == "replicate":
+                selected_items = self.rep_lora_tree.selection()
+                if selected_items:
+                    # Replicate often takes one LoRA URL and scale
+                    first_item = selected_items[0]
+                    lora_url = self.rep_lora_tree.item(first_item)["values"][0]
+                    # Use the global scale slider value for the selected Replicate LoRA
+                    selected_lora_info = {"url": lora_url, "scale": lora_scale}
+                    print(f"Selected Replicate LoRA: {selected_lora_info}")
+            elif service == "huggingface":
+                selected_items = self.hf_lora_tree.selection()
+                selected_loras_urls = [self.hf_lora_tree.item(item)["values"][0] for item in selected_items]
+                print(f"Selected HuggingFace LoRAs: {selected_loras_urls}")
+
+
+            # --- Prepare input_image_path before use ---
+            input_image_path = self.image_uploader.get_image_path() if hasattr(self, 'image_uploader') else None
+
+            # --- Consolidate All Parameters ---
+            final_params = {
+                "prompt": prompt,
+                "negative_prompt": negative_prompt,
+                "output_format": output_format,
+                "output_quality": output_quality,
+                "megapixels": megapixels,
+                "go_fast": go_fast,
+                "service": service, # Pass service type for thread
+                "model_id": model_id, # Pass model_id for thread
+                **model_params # Add model-specific params from the active tab
+            }
+            if seed is not None: final_params["seed"] = seed
+            if input_image_path: final_params["image"] = input_image_path
+            # Pass selected LoRA info based on service
+            if service == "replicate" and selected_lora_info:
+                final_params["lora_info"] = selected_lora_info # Pass dict with url and scale
+            elif service == "huggingface" and selected_loras_urls:
+                final_params["lora_weights"] = selected_loras_urls
+                final_params["lora_scale"] = lora_scale # Pass the global scale for HF
+
+            # --- Always inject global width/height if not present ---
+            # Use .get() for safer access in case model_params didn't provide them
+            if not final_params.get("width"):
+                final_params["width"] = self.global_width_var.get()
+            if not final_params.get("height"):
+                final_params["height"] = self.global_height_var.get()
+
+            # --- Prepare for Thread ---
             timestamp = time.strftime("%Y%m%d-%H%M%S")
             output_path = os.path.join(self.config["output_directory"], f"{timestamp}_image.{output_format}")
-            input_image_path = self.image_uploader.get_image_path() if hasattr(self, 'image_uploader') else None
 
             self.status_label.configure(text="Generating image...")
             self.is_generating = True
-            params = {"prompt": prompt, "negative_prompt": negative_prompt, "width": width, "height": height, "num_inference_steps": steps, "guidance_scale": guidance, "lora_scale": lora_scale, "output_format": output_format}
-            if seed is not None: params["seed"] = seed # Add seed to params if valid
-            if input_image_path: params["image"] = input_image_path
-            if lora and self.service_var.get() == "huggingface": params["lora"] = lora # Add lora if HF
 
-            threading.Thread(target=self._generate_image_thread, args=(params, output_path), daemon=True).start()
-            if prompt not in self.config["recent_prompts"]:
-                self.config["recent_prompts"].insert(0, prompt)
+            # --- Start Generation Thread ---
+            threading.Thread(target=self._generate_image_thread, args=(final_params, output_path), daemon=True).start()
+            # Save the *original* base prompt to history
+            if base_prompt not in self.config["recent_prompts"]:
+                self.config["recent_prompts"].insert(0, base_prompt)
                 self.config["recent_prompts"] = self.config["recent_prompts"][:20]
                 self.save_config()
         except ValueError as e:
             messagebox.showerror("Input Error", f"Invalid parameter value: {e}")
             self.is_generating = False; self.status_label.configure(text="Error")
         except Exception as e:
+            import traceback
+            print(traceback.format_exc())
             messagebox.showerror("Generation Error", f"Error starting generation: {e}")
             self.is_generating = False; self.status_label.configure(text="Error")
 
@@ -1073,23 +1272,35 @@ class ImageGeneratorGUI(ctk.CTk): # Inherit directly from ctk.CTk
             model_id = self.replicate_model_var.get()
             if not model_id: return "Replicate Error: Model not selected."
 
+            # Use .get() for safer access to parameters that might be missing for some models
             input_params = {
-                "prompt": params["prompt"],
-                "width": params["width"], "height": params["height"],
-                "num_inference_steps": params["num_inference_steps"],
-                "guidance_scale": params["guidance_scale"],
-                "negative_prompt": params.get("negative_prompt", ""),
-                "num_outputs": params.get("num_outputs", 1), # Pass num_outputs for batch
+                "prompt": params.get("prompt", ""), # Ensure prompt exists
+                "width": params.get("width"),
+                "height": params.get("height"),
+                "num_inference_steps": params.get("num_inference_steps", 28), # Default if missing
+                "guidance_scale": params.get("guidance_scale", params.get("guidance", 7.5)), # Default if missing
+                "negative_prompt": params.get("negative_prompt", ""), # Default if missing
+                "num_outputs": params.get("num_outputs", 1), # Default if missing
                 # Apply NSFW bypass techniques directly here
-                "safety_tolerance": 6,
+                "safety_tolerance": 7, # Set max tolerance
+                "apply_watermark": False, # Explicitly disable watermark
+                "disable_safety_checker": True, # Disable safety checker
             }
             # Add image only if it exists
-            if params.get("image"): input_params["image"] = params["image"]
+            if params.get("image"):
+                input_params["image"] = params["image"]
             # Add seed only if it exists
-            if params.get("seed"): input_params["seed"] = params["seed"]
+            if params.get("seed"):
+                input_params["seed"] = params["seed"]
+            # Add Replicate LoRA if provided
+            if params.get("lora_info"):
+                input_params["lora"] = params["lora_info"]["url"]
+                input_params["lora_scale"] = params["lora_info"]["scale"]
 
-            # Add specific Replicate/model params if needed
-            # input_params["go_fast"] = True # Example
+            # Add other specific Replicate/model params safely using .get()
+            # Example: input_params["go_fast"] = params.get("go_fast", True)
+            # Remove None values before sending to API
+            input_params = {k: v for k, v in input_params.items() if v is not None}
 
             print(f"Calling Replicate: {model_id} with input: { {k:v for k,v in input_params.items() if k != 'image'} }") # Log params except image data
             output = replicate.run(model_id, input=input_params)
@@ -1097,15 +1308,21 @@ class ImageGeneratorGUI(ctk.CTk): # Inherit directly from ctk.CTk
 
         except replicate.exceptions.ReplicateError as e:
             error_msg = str(e)
-            if "nsfw" in error_msg.lower() or "safety" in error_msg.lower():
+            # Check for both NSFW/Safety errors and Billing errors (just in case)
+            is_nsfw_error = "nsfw" in error_msg.lower() or "safety" in error_msg.lower()
+            is_billing_error = "billing" in error_msg.lower()
+
+            if is_nsfw_error:
                 print(f"Replicate NSFW filter triggered: {error_msg}")
-                # Retry logic
+                # Retry logic with aggressive bypass (already set tolerance to 7)
                 retry_params = input_params.copy()
-                retry_params["negative_prompt"] = f"{retry_params.get('negative_prompt', '')}, nsfw, nude, safety watermark, censored, explicit, bad quality, worst quality".strip(', ')
-                retry_params["prompt"] = retry_params["prompt"].replace("(perfectly acceptable content:1.4)", "(perfectly acceptable content:1.8)")
-                retry_params["safety_tolerance"] = 7
-                print("Retrying Replicate API call with aggressive bypass...")
+                # Add more aggressive negative prompt terms for retry
+                retry_params["negative_prompt"] = f"{retry_params.get('negative_prompt', '')}, nsfw, nude, safety watermark, censored, explicit, bad quality, worst quality, deformed, blurry".strip(', ')
+                # Optionally strengthen prompt keywords further if needed for retry
+                # retry_params["prompt"] = retry_params["prompt"].replace("(perfectly acceptable content:1.8)", "(perfectly acceptable content:2.0)")
+                print("Retrying Replicate API call with aggressive bypass (already max tolerance)...")
                 try:
+                    # Ensure retry uses the modified parameters
                     retry_output = replicate.run(model_id, input=retry_params)
                     print("Replicate retry successful.")
                     return retry_output
@@ -1191,18 +1408,31 @@ class ImageGeneratorGUI(ctk.CTk): # Inherit directly from ctk.CTk
         try:
             batch_count = int(self.batch_count_var.get())
             if batch_count <= 0: messagebox.showinfo("Error", "Invalid batch count"); return
-            prompt = self.prompt_text.get("1.0", "end").strip()
-            if not prompt: messagebox.showinfo("Error", "Please enter a prompt"); return
-            if self.trigger_words_var.get():
-                trigger_words = "porn, nude, sex, boobs"
-                if not any(word in prompt.lower() for word in trigger_words.split(", ")): prompt = f"{prompt}, {trigger_words}"
+            base_prompt = self.prompt_text.get("1.0", "end").strip()
+            if not base_prompt: messagebox.showinfo("Error", "Please enter a prompt"); return
+
+            # --- Apply Manual Trigger Words for Batch ---
+            prompt = base_prompt
+            if self.use_manual_trigger_words_var.get():
+                manual_triggers = self.manual_trigger_words_entry.get().strip()
+                if not manual_triggers:
+                    messagebox.showerror("Input Error", "Manual trigger words checkbox is enabled, but the input field is empty.")
+                    return # Stop generation
+                prompt = f"{manual_triggers}, {base_prompt}" # Prepend manual triggers
+
             negative_prompt = self.negative_prompt_text.get("1.0", "end").strip() if self.config["advanced_mode"] else self.config["parameters"]["negative_prompt"]
             width = int(self.width_var.get()); height = int(self.height_var.get())
             steps = int(self.steps_var.get()); guidance = float(self.guidance_var.get())
-            lora_scale = float(self.lora_scale_var.get()); output_format = self.format_var.get()
-            model = self.replicate_model_var.get() if self.service_var.get() == "replicate" else self.hf_model_var.get()
-            lora = self.hf_lora_var.get() if self.service_var.get() == "huggingface" else None
-            seed_str = self.seed_var.get().strip() # Get seed value for batch
+            lora_scale = float(self.lora_scale_var.get()); # Get LoRA scale
+            # Get Global Controls
+            output_format = self.output_format_var.get()
+            output_quality = self.output_quality_var.get()
+            megapixels = int(self.megapixels_var.get())
+            go_fast = self.go_fast_var.get()
+            output_quality = self.output_quality_var.get() if output_format != "png" else 95
+            megapixels = int(self.megapixels_var.get())
+            go_fast = self.go_fast_var.get()
+            seed_str = self.seed_var.get().strip()
             seed = None
             if seed_str:
                 try:
@@ -1217,14 +1447,56 @@ class ImageGeneratorGUI(ctk.CTk): # Inherit directly from ctk.CTk
 
             self.status_label.configure(text=f"Generating batch of {batch_count} images...")
             self.is_generating = True
-            params = {"prompt": prompt, "negative_prompt": negative_prompt, "width": width, "height": height, "num_inference_steps": steps, "guidance_scale": guidance, "lora_scale": lora_scale, "output_format": output_format, "num_outputs": batch_count}
-            if seed is not None: params["seed"] = seed # Add seed to params if valid for batch
-            if input_image_path: params["image"] = input_image_path
-            if lora and self.service_var.get() == "huggingface": params["lora"] = lora
+            return # Stop generation if seed is invalid
 
-            threading.Thread(target=self._generate_batch_thread, args=(params, output_paths), daemon=True).start()
-            if prompt not in self.config["recent_prompts"]:
-                self.config["recent_prompts"].insert(0, prompt)
+            # --- Get Model-Specific Parameters for Batch ---
+            service = self.service_var.get()
+            model_id = self.replicate_model_var.get() if service == "replicate" else self.hf_model_var.get()
+            model_params = {}
+            if model_id in self.model_param_vars:
+                for param_name, tk_var in self.model_param_vars[model_id].items():
+                    try:
+                        model_params[param_name] = tk_var.get()
+                    except Exception as e:
+                        print(f"Warning: Could not get value for {param_name} of model {model_id}: {e}")
+            else:
+                 print(f"Warning: Selected model '{model_id}' not found in model configurations for batch.")
+
+            # --- Get Selected LoRAs for Batch ---
+            selected_loras = []
+            if service == "huggingface":
+                 selected_items = self.hf_lora_tree.selection()
+                 selected_loras = [self.hf_lora_tree.item(item)["values"][0] for item in selected_items]
+
+            # --- Consolidate All Parameters for Batch ---
+            final_params = {
+                "prompt": prompt, "negative_prompt": negative_prompt,
+                "output_format": output_format, "output_quality": output_quality,
+                "megapixels": megapixels, "go_fast": go_fast,
+                "num_outputs": batch_count, # Add batch count
+                "service": service,
+                "model_id": model_id,
+                **model_params # Add model-specific params
+            }
+            if seed is not None: final_params["seed"] = seed # Add seed if valid for batch
+            if input_image_path: final_params["image"] = input_image_path
+            if selected_loras:
+                 final_params["lora_weights"] = selected_loras
+                 final_params["lora_scale"] = lora_scale
+
+            # --- Prepare for Batch Thread ---
+            timestamp = time.strftime("%Y%m%d-%H%M%S")
+            output_paths = [os.path.join(self.config["output_directory"], f"{timestamp}_batch{i+1}of{batch_count}.{output_format}") for i in range(batch_count)]
+            input_image_path = self.image_uploader.get_image_path() if hasattr(self, 'image_uploader') else None
+
+            self.status_label.configure(text=f"Generating batch of {batch_count} images...")
+            self.is_generating = True
+
+            # --- Start Batch Generation Thread ---
+            threading.Thread(target=self._generate_batch_thread, args=(final_params, output_paths), daemon=True).start()
+            # Save the *original* base prompt to history
+            if base_prompt not in self.config["recent_prompts"]:
+                self.config["recent_prompts"].insert(0, base_prompt)
                 self.config["recent_prompts"] = self.config["recent_prompts"][:20]
                 self.save_config()
         except ValueError as e:
@@ -1403,11 +1675,24 @@ class ImageGeneratorGUI(ctk.CTk): # Inherit directly from ctk.CTk
         model_var = tk.StringVar(); ctk.CTkEntry(dialog, textvariable=model_var, width=400).grid(row=0, column=1, padx=20, pady=(20, 10), sticky="ew")
         def save_model():
             model_id = model_var.get().strip()
-            if not model_id: messagebox.showerror("Error", "Please enter a valid model ID"); return
-            if model_id not in self.config["recent_models_replicate"]: self.config["recent_models_replicate"].append(model_id)
+            if not model_id:
+                messagebox.showerror("Error", "Please enter a valid model ID")
+                return
+            # Replicate expects owner/name:version format
+            import re
+            if not re.match(r"^[^/]+/[^:]+:[a-zA-Z0-9]+$", model_id):
+                messagebox.showwarning(
+                    "Format Warning",
+                    "This does not match the expected Replicate format (owner/name:version). "
+                    "API calls may fail unless the model reference is correct."
+                )
+            if model_id not in self.config["recent_models_replicate"]:
+                self.config["recent_models_replicate"].append(model_id)
             self.replicate_model_combo.configure(values=self.config["recent_models_replicate"])
-            self.replicate_model_var.set(model_id); self.config["last_used_model_replicate"] = model_id
-            self.save_config(); dialog.destroy()
+            self.replicate_model_var.set(model_id)
+            self.config["last_used_model_replicate"] = model_id
+            self.save_config()
+            dialog.destroy()
         ctk.CTkButton(dialog, text="Add Model", command=save_model).grid(row=1, column=0, columnspan=2, padx=20, pady=20)
 
     def add_hf_model(self):
@@ -1434,11 +1719,118 @@ class ImageGeneratorGUI(ctk.CTk): # Inherit directly from ctk.CTk
         def save_lora():
             lora_url = lora_var.get().strip()
             if not lora_url: messagebox.showerror("Error", "Please enter a valid LoRA URL"); return
-            if lora_url not in self.config["recent_loras_hf"]: self.config["recent_loras_hf"].append(lora_url)
-            self.hf_lora_combo.configure(values=self.config["recent_loras_hf"])
-            self.hf_lora_var.set(lora_url); self.config["last_used_lora_hf"] = lora_url
-            self.save_config(); dialog.destroy()
+            # Add to manager and update treeview if not already present
+            if lora_url not in self.hf_lora_manager.loras:
+                self.hf_lora_manager.add_lora(lora_url)
+                self.hf_lora_tree.insert("", tk.END, values=(lora_url, "0.90"))
+                self.config["recent_loras_hf"] = [url for url, _ in self.hf_lora_manager.get_loras()]
+                self.save_config()
+            else:
+                messagebox.showinfo("Duplicate", "This LoRA URL is already in the list.")
+            dialog.destroy()
         ctk.CTkButton(dialog, text="Add LoRA", command=save_lora).grid(row=1, column=0, columnspan=2, padx=20, pady=20)
+
+    # Placeholder methods for LoRA removal - TODO: Implement fully
+    def add_rep_lora(self):
+        """Add a new Replicate LoRA"""
+        dialog = ctk.CTkToplevel(self); dialog.title("Add Replicate LoRA"); dialog.geometry("600x150")
+        dialog.resizable(False, False); dialog.transient(self); dialog.grab_set(); dialog.focus_set()
+        ctk.CTkLabel(dialog, text="LoRA URL:", font=ctk.CTkFont(size=14)).grid(row=0, column=0, padx=20, pady=(20, 10), sticky="w")
+        lora_var = tk.StringVar(); ctk.CTkEntry(dialog, textvariable=lora_var, width=400).grid(row=0, column=1, padx=20, pady=(20, 10), sticky="ew")
+        def save_lora():
+            lora_url = lora_var.get().strip()
+            if not lora_url: messagebox.showerror("Error", "Please enter a valid LoRA URL"); return
+            if lora_url not in self.rep_lora_manager.loras:
+                self.rep_lora_manager.add_lora(lora_url)
+                self.rep_lora_tree.insert("", tk.END, values=(lora_url, "0.90"))
+                self.config["recent_loras_replicate"] = [url for url, _ in self.rep_lora_manager.get_loras()]
+                self.save_config()
+            else:
+                messagebox.showinfo("Duplicate", "This LoRA URL is already in the list.")
+            dialog.destroy()
+        ctk.CTkButton(dialog, text="Add LoRA", command=save_lora).grid(row=1, column=0, columnspan=2, padx=20, pady=20)
+
+    def remove_rep_lora(self):
+        selected_items = self.rep_lora_tree.selection()
+        if not selected_items:
+            messagebox.showwarning("Selection Error", "Please select one or more Replicate LoRAs to remove.")
+            return
+        indices = [self.rep_lora_tree.index(item) for item in selected_items]
+        for i, item in sorted(zip(indices, selected_items), reverse=True):
+            self.rep_lora_manager.remove_lora(i)
+            self.rep_lora_tree.delete(item)
+        self.config["recent_loras_replicate"] = [url for url, _ in self.rep_lora_manager.get_loras()]
+        self.save_config()
+        print(f"Removed {len(selected_items)} Replicate LoRA(s). Updated config.")
+
+    def remove_hf_lora(self):
+        selected_items = self.hf_lora_tree.selection()
+        if not selected_items:
+            messagebox.showwarning("Selection Error", "Please select one or more HuggingFace LoRAs to remove.")
+            return
+        # Remove from manager and treeview in reverse order
+        indices = [self.hf_lora_tree.index(item) for item in selected_items]
+        for i, item in sorted(zip(indices, selected_items), reverse=True):
+            self.hf_lora_manager.remove_lora(i)
+            self.hf_lora_tree.delete(item)
+        # Sync config from manager
+        self.config["recent_loras_hf"] = [url for url, _ in self.hf_lora_manager.get_loras()]
+        self.save_config()
+        print(f"Removed {len(selected_items)} HF LoRA(s). Updated config.")
+
+    def _create_param_widget(self, parent, param_name, config, row_idx):
+        """Helper to create a widget for a model parameter based on its type and config"""
+        defaults = config.get("defaults", {})
+        ranges = config.get("ranges", {})
+        options = config.get("options", {})
+        default_value = defaults.get(param_name)
+
+        ctk.CTkLabel(parent, text=f"{param_name}:", text_color=TEXT_COLOR).grid(row=row_idx, column=0, padx=5, pady=2, sticky="w")
+        widget_var = None
+
+        # Determine widget type
+        if isinstance(default_value, bool): # Checkbox
+            widget_var = tk.BooleanVar(value=default_value)
+            widget = ctk.CTkCheckBox(parent, variable=widget_var, text="", checkbox_height=18, checkbox_width=18, fg_color=BUTTON_GOLD_COLOR)
+            widget.grid(row=row_idx, column=1, columnspan=2, padx=5, pady=2, sticky="w")
+        elif param_name in options: # Dropdown
+            widget_var = tk.StringVar(value=str(default_value))
+            widget = ctk.CTkComboBox(parent, values=options[param_name], variable=widget_var, width=150) # Adjust width as needed
+            widget.grid(row=row_idx, column=1, columnspan=2, padx=5, pady=2, sticky="ew")
+        elif param_name in ranges: # Slider
+            range_info = ranges[param_name]
+            min_val, max_val = range_info[0], range_info[1]
+            step = range_info[2] if len(range_info) > 2 else 1 # Step for integer sliders
+            num_steps = int((max_val - min_val) / step) if isinstance(default_value, int) else 100 # Default steps for float
+
+            if isinstance(default_value, int):
+                widget_var = tk.IntVar(value=default_value)
+            else: # Float
+                widget_var = tk.DoubleVar(value=default_value)
+                num_steps = int((max_val - min_val) / 0.1) # Example: 0.1 step for float sliders
+
+            widget = ctk.CTkSlider(parent, from_=min_val, to=max_val, number_of_steps=num_steps, variable=widget_var)
+            widget.grid(row=row_idx, column=1, padx=5, pady=2, sticky="ew")
+            # Value label for slider
+            value_label = ctk.CTkLabel(parent, text=f"{widget_var.get():.1f}" if isinstance(widget_var, tk.DoubleVar) else str(widget_var.get()), text_color=TEXT_COLOR, width=40)
+            value_label.grid(row=row_idx, column=2, padx=5, pady=2, sticky="w")
+            widget_var.trace_add("write", lambda *args, var=widget_var, label=value_label: label.configure(text=f"{var.get():.1f}" if isinstance(var, tk.DoubleVar) else str(var.get())))
+        else: # Fallback to Entry (e.g., for string params if any)
+            widget_var = tk.StringVar(value=str(default_value) if default_value is not None else "")
+            widget = ctk.CTkEntry(parent, textvariable=widget_var)
+            widget.grid(row=row_idx, column=1, columnspan=2, padx=5, pady=2, sticky="ew")
+
+        return widget_var # Return the associated Tkinter variable
+
+    def _update_quality_slider_state(self, *args):
+        """Enable/disable output quality slider based on format"""
+        if hasattr(self, 'output_quality_slider'): # Check if widget exists
+            if self.output_format_var.get() == "png":
+                self.output_quality_slider.configure(state=tk.DISABLED)
+                self.output_quality_label.configure(state=tk.DISABLED)
+            else:
+                self.output_quality_slider.configure(state=tk.NORMAL)
+                self.output_quality_label.configure(state=tk.NORMAL)
 
 # Entry point to run the application
 if __name__ == "__main__":
