@@ -1,0 +1,3 @@
+@echo off
+echo Starting AI Image Generator with Enhanced UI...
+python app.py
