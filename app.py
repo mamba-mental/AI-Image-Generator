@@ -363,41 +363,51 @@ class ImageGeneratorGUI(ctk.CTk): # Inherit directly from ctk.CTk
         # Define event handlers *before* creating UI elements that use them
         self._define_event_handlers()
 
-        # Setup main layout grid *before* placing frames in it
-        self.setup_layout() # Calls the new layout setup
+        # Setup main layout grid
+        self.grid_columnconfigure(0, weight=1)  # Left panel
+        self.grid_columnconfigure(1, weight=4)  # Center panel 
+        self.grid_columnconfigure(2, weight=3)  # Right panel
+        self.grid_rowconfigure(0, weight=1)     # Main content row
+        self.grid_rowconfigure(1, weight=0)     # Footer row
 
         # --- Create Main Layout Frames ---
-        # Left Panel (Scrollable Config Area)
-        self.left_panel = ctk.CTkScrollableFrame(self, fg_color=APP_BG_COLOR, width=500) # Give it an initial width
-        self.left_panel.grid(row=0, column=0, sticky="nsew", padx=(5, 2), pady=(5, 2)) # Consistent padding
-        self.left_panel.grid_columnconfigure(0, weight=1) # Allow content inside to expand horizontally
+        # Left Thumbnail Panel (Fixed width)
+        self.left_thumb_panel = ctk.CTkFrame(self, width=150, fg_color=APP_BG_COLOR)
+        self.left_thumb_panel.grid(row=0, column=0, sticky="nsew", padx=(5, 2), pady=5)
+        
+        # Center Image Display Panel
+        self.center_image_panel = ctk.CTkFrame(self, fg_color=APP_BG_COLOR)
+        self.center_image_panel.grid(row=0, column=1, sticky="nsew", padx=2, pady=5)
+        self.center_image_panel.grid_rowconfigure(0, weight=1)
+        self.center_image_panel.grid_columnconfigure(0, weight=1)
 
-        # Right Panel (Image Display Area)
-        self.right_panel = ctk.CTkFrame(self, fg_color=APP_BG_COLOR)
-        self.right_panel.grid(row=0, column=1, sticky="nsew", padx=(2, 5), pady=(5, 2)) # Consistent padding
-        self.right_panel.grid_columnconfigure(0, weight=1) # Allow image display frame to expand horizontally
-        self.right_panel.grid_rowconfigure(0, weight=1)    # Allow image display frame to expand vertically
+        # Right Config Panel (Scrollable)
+        self.right_config_panel = ctk.CTkScrollableFrame(self, fg_color=APP_BG_COLOR)
+        self.right_config_panel.grid(row=0, column=2, sticky="nsew", padx=(2, 5), pady=5)
+        self.right_config_panel.grid_columnconfigure(0, weight=1)
 
-        # Status Bar (Bottom)
-        self.status_bar_frame = ctk.CTkFrame(self, fg_color=FRAME_BG_COLOR, height=30)
-        self.status_bar_frame.grid(row=1, column=0, columnspan=2, sticky="ew", padx=5, pady=(2, 5)) # Consistent padding
+        # Footer Panel
+        self.footer_panel = ctk.CTkFrame(self, fg_color=FRAME_BG_COLOR, height=40)
+        self.footer_panel.grid(row=1, column=0, columnspan=3, sticky="ew", padx=5, pady=(0, 5))
         self.status_bar_frame.grid_propagate(False) # Prevent resizing by content
 
         # --- Create UI Components inside their respective frames ---
-        # Configuration sections go into the left_panel (scrollable)
-        self.create_header(self.left_panel)
-        self.create_service_toggle(self.left_panel)
-        self.create_prompt_section(self.left_panel)
-        self.create_image_uploader(self.left_panel)
-        self.create_parameters_section(self.left_panel)
-        self.create_model_section(self.left_panel)
-        self.create_output_section(self.left_panel)
-
-        # Image display goes into the right_panel
-        self.create_image_display(self.right_panel)
-
-        # Status bar goes into the status_bar_frame (already gridded)
-        self.create_status_bar(self.status_bar_frame)
+        # Left Thumbnail Panel
+        self.create_logo_section(self.left_thumb_panel)
+        self.create_thumbnail_list(self.left_thumb_panel)
+        
+        # Center Image Panel
+        self.create_main_image_display(self.center_image_panel)
+        
+        # Right Config Panel
+        self.create_prompt_section(self.right_config_panel)
+        self.create_generation_settings(self.right_config_panel)
+        self.create_safety_speed_section(self.right_config_panel)
+        self.create_lora_section(self.right_config_panel)
+        self.create_megapixels_cost_section(self.right_config_panel)
+        
+        # Footer Panel
+        self.create_footer_controls(self.footer_panel)
 
         # Setup services *after* UI elements are created
         self.setup_services()
@@ -607,33 +617,48 @@ class ImageGeneratorGUI(ctk.CTk): # Inherit directly from ctk.CTk
         ctk.CTkButton(service_frame, text="Configure API Keys", command=self.configure_api_keys, fg_color=BUTTON_GOLD_COLOR, text_color=BUTTON_TEXT_COLOR, hover_color="#CCAA00").pack(side="right", padx=5, pady=2) # Consistent padding
 
     def create_prompt_section(self, parent):
-        """Create the prompt input section inside the parent frame (left_panel)"""
+        """Create the prompt input section in the right config panel"""
         prompt_frame = ctk.CTkFrame(parent, fg_color=FRAME_BG_COLOR)
-        prompt_frame.pack(fill="x", padx=5, pady=2) # Consistent padding
-        prompt_frame.grid_columnconfigure(1, weight=1) # Allow entry/textbox to expand
+        prompt_frame.pack(fill="x", padx=5, pady=5, ipady=5)
 
-        # --- Manual Trigger Words Section ---
-        manual_trigger_frame = ctk.CTkFrame(prompt_frame, fg_color="transparent")
-        manual_trigger_frame.grid(row=0, column=0, columnspan=2, padx=5, pady=(2,0), sticky="ew")
-        manual_trigger_frame.grid_columnconfigure(1, weight=1) # Allow entry to expand
-
-        self.use_manual_trigger_words_var = tk.BooleanVar(value=False) # Default OFF
-        ctk.CTkCheckBox(manual_trigger_frame, text="Use Manual Trigger Words:", variable=self.use_manual_trigger_words_var, text_color=TEXT_COLOR, checkbox_height=18, checkbox_width=18, fg_color=BUTTON_GOLD_COLOR).grid(row=0, column=0, padx=(0,5), pady=2, sticky="w")
-        self.manual_trigger_words_entry = ctk.CTkEntry(manual_trigger_frame, placeholder_text="Enter manual trigger words here...", text_color=TEXT_COLOR, fg_color="#333333")
-        self.manual_trigger_words_entry.grid(row=0, column=1, padx=0, pady=2, sticky="ew")
-
-        # --- Main Prompt Section ---
-        ctk.CTkLabel(prompt_frame, text="Prompt:", font=ctk.CTkFont(size=16), text_color=TEXT_COLOR).grid(row=1, column=0, padx=5, pady=(5, 0), sticky="w") # Add top padding
-        self.prompt_text = ctk.CTkTextbox(prompt_frame, height=80, wrap="word", text_color=TEXT_COLOR, fg_color="#333333")
-        self.prompt_text.grid(row=2, column=0, columnspan=2, padx=5, pady=(0, 2), sticky="ew") # Span 2 columns
+        # Main Prompt
+        self.prompt_text = ctk.CTkTextbox(prompt_frame, height=100, wrap="word", 
+                                       text_color=TEXT_COLOR, fg_color="#333333",
+                                       font=ctk.CTkFont(size=14))
+        self.prompt_text.pack(fill="x", padx=5, pady=5)
         self.prompt_text.insert("1.0", "A beautiful woman on the beach, realistic, detailed, high quality")
-        ctk.CTkButton(prompt_frame, text="History", width=120, command=self.show_prompt_history, fg_color=BUTTON_GOLD_COLOR, text_color=BUTTON_TEXT_COLOR, hover_color="#CCAA00").grid(row=2, column=2, padx=(5, 5), pady=(0, 2), sticky="ne") # Move history button to col 2
 
-        # --- Negative Prompt Section (conditionally shown) ---
-        self.negative_prompt_label = ctk.CTkLabel(prompt_frame, text="Negative Prompt:", font=ctk.CTkFont(size=16), text_color=TEXT_COLOR)
-        self.negative_prompt_text = ctk.CTkTextbox(prompt_frame, height=80, wrap="word", text_color=TEXT_COLOR, fg_color="#333333")
+        # Toggles Frame
+        toggles_frame = ctk.CTkFrame(prompt_frame, fg_color="transparent")
+        toggles_frame.pack(fill="x", padx=5, pady=5)
+        
+        # Negative Prompt Toggle
+        self.negative_toggle_var = tk.BooleanVar(value=False)
+        negative_toggle = ctk.CTkSwitch(toggles_frame, text="Use Negative Prompt",
+                                      variable=self.negative_toggle_var,
+                                      command=self.toggle_negative_prompt,
+                                      button_color=BUTTON_GOLD_COLOR)
+        negative_toggle.pack(side="left", padx=5)
+
+        # Trigger Words Toggle
+        self.trigger_toggle_var = tk.BooleanVar(value=False)
+        trigger_toggle = ctk.CTkSwitch(toggles_frame, text="Use Trigger Words",
+                                     variable=self.trigger_toggle_var,
+                                     command=self.toggle_trigger_words,
+                                     button_color=BUTTON_GOLD_COLOR)
+        trigger_toggle.pack(side="left", padx=5)
+
+        # Input Fields (initially disabled)
+        self.negative_prompt_text = ctk.CTkTextbox(prompt_frame, height=60, wrap="word",
+                                                 text_color=TEXT_COLOR, fg_color="#333333",
+                                                 state="disabled")
+        self.negative_prompt_text.pack(fill="x", padx=5, pady=5)
         self.negative_prompt_text.insert("1.0", self.config["parameters"]["negative_prompt"])
-        # Grid/forget logic handled in toggle_advanced_mode
+
+        self.trigger_words_entry = ctk.CTkEntry(prompt_frame, placeholder_text="Trigger words...",
+                                              text_color=TEXT_COLOR, fg_color="#333333",
+                                              state="disabled")
+        self.trigger_words_entry.pack(fill="x", padx=5, pady=5)
 
     def create_image_uploader(self, parent):
         """Create the image upload section inside the parent frame (left_panel)"""
