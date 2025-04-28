@@ -588,6 +588,68 @@ class ImageGeneratorGUI(ctk.CTk): # Inherit directly from ctk.CTk
     # --- UI Creation Methods ---
     # Modified to accept parent frame (left_panel or right_panel)
 
+    # --- Placeholder UI Creation Methods ---
+    # TODO: Implement the actual content for these sections based on UI spec
+
+    def create_logo_section(self, parent):
+        """Placeholder for logo section"""
+        logo_frame = ctk.CTkFrame(parent, fg_color=FRAME_BG_COLOR, height=50)
+        logo_frame.pack(fill="x", padx=5, pady=5)
+        ctk.CTkLabel(logo_frame, text="Logo Area", text_color=TEXT_COLOR).pack(expand=True)
+        print("Placeholder: create_logo_section called")
+
+    def create_thumbnail_list(self, parent):
+        """Placeholder for thumbnail list section"""
+        thumb_frame = ctk.CTkScrollableFrame(parent, fg_color=FRAME_BG_COLOR)
+        thumb_frame.pack(fill="both", expand=True, padx=5, pady=5)
+        ctk.CTkLabel(thumb_frame, text="Thumbnails", text_color=TEXT_COLOR).pack(expand=True)
+        print("Placeholder: create_thumbnail_list called")
+        # Store reference for later use if needed
+        self.thumbnail_list_frame = thumb_frame 
+
+    def create_main_image_display(self, parent):
+        """Placeholder for main image display section"""
+        # Reusing existing create_image_display logic as a base
+        self.create_image_display(parent) # Call the existing method
+        print("Placeholder: create_main_image_display called (using existing create_image_display)")
+
+    def create_generation_settings(self, parent):
+        """Placeholder for generation settings section"""
+        gen_settings_frame = ctk.CTkFrame(parent, fg_color=FRAME_BG_COLOR)
+        gen_settings_frame.pack(fill="x", padx=5, pady=5)
+        ctk.CTkLabel(gen_settings_frame, text="Generation Settings", text_color=TEXT_COLOR).pack(expand=True)
+        print("Placeholder: create_generation_settings called")
+        # Store reference if needed
+        self.generation_settings_frame = gen_settings_frame
+
+    def create_safety_speed_section(self, parent):
+        """Placeholder for safety/speed section"""
+        safety_frame = ctk.CTkFrame(parent, fg_color=FRAME_BG_COLOR)
+        safety_frame.pack(fill="x", padx=5, pady=5)
+        ctk.CTkLabel(safety_frame, text="Safety/Speed", text_color=TEXT_COLOR).pack(expand=True)
+        print("Placeholder: create_safety_speed_section called")
+
+    def create_lora_section(self, parent):
+        """Placeholder for LoRA section"""
+        # Reusing existing create_model_section logic which includes LoRA
+        self.create_model_section(parent) # Call the existing method
+        print("Placeholder: create_lora_section called (using existing create_model_section)")
+
+    def create_megapixels_cost_section(self, parent):
+        """Placeholder for megapixels/cost section"""
+        cost_frame = ctk.CTkFrame(parent, fg_color=FRAME_BG_COLOR)
+        cost_frame.pack(fill="x", padx=5, pady=5)
+        ctk.CTkLabel(cost_frame, text="Megapixels/Cost", text_color=TEXT_COLOR).pack(expand=True)
+        print("Placeholder: create_megapixels_cost_section called")
+
+    def create_footer_controls(self, parent):
+        """Placeholder for footer controls section"""
+        # Reusing existing create_status_bar logic
+        self.create_status_bar(parent) # Call the existing method
+        print("Placeholder: create_footer_controls called (using existing create_status_bar)")
+
+    # --- Actual UI Creation Methods (Keep existing ones below placeholders) ---
+
     def create_header(self, parent):
         """Create the header section inside the parent frame (left_panel)"""
         header_frame = ctk.CTkFrame(parent, fg_color=FRAME_BG_COLOR)
