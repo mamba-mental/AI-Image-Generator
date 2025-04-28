@@ -386,10 +386,10 @@ class ImageGeneratorGUI(ctk.CTk): # Inherit directly from ctk.CTk
         self.right_config_panel.grid(row=0, column=2, sticky="nsew", padx=(2, 5), pady=5)
         self.right_config_panel.grid_columnconfigure(0, weight=1)
 
-        # Footer Panel
+        # Footer Panel (Status Bar)
         self.footer_panel = ctk.CTkFrame(self, fg_color=FRAME_BG_COLOR, height=40)
         self.footer_panel.grid(row=1, column=0, columnspan=3, sticky="ew", padx=5, pady=(0, 5))
-        self.status_bar_frame.grid_propagate(False) # Prevent resizing by content
+        self.footer_panel.grid_propagate(False) # Prevent resizing by content
 
         # --- Create UI Components inside their respective frames ---
         # Left Thumbnail Panel
