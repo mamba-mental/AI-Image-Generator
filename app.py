@@ -633,7 +633,7 @@ class ImageGeneratorGUI(ctk.CTk): # Inherit directly from ctk.CTk
         toggles_frame.pack(fill="x", padx=5, pady=5)
         
         # Negative Prompt Toggle
-        self.negative_toggle_var = tk.BooleanVar(value=False)
+        self.negative_toggle_var = tk.BooleanVar(value=self.config.get("use_negative_prompt", False))
         negative_toggle = ctk.CTkSwitch(toggles_frame, text="Use Negative Prompt",
                                       variable=self.negative_toggle_var,
                                       command=self.toggle_negative_prompt,
@@ -641,24 +641,29 @@ class ImageGeneratorGUI(ctk.CTk): # Inherit directly from ctk.CTk
         negative_toggle.pack(side="left", padx=5)
 
         # Trigger Words Toggle
-        self.trigger_toggle_var = tk.BooleanVar(value=False)
+        self.trigger_toggle_var = tk.BooleanVar(value=self.config.get("use_trigger_words", False))
         trigger_toggle = ctk.CTkSwitch(toggles_frame, text="Use Trigger Words",
                                      variable=self.trigger_toggle_var,
                                      command=self.toggle_trigger_words,
                                      button_color=BUTTON_GOLD_COLOR)
         trigger_toggle.pack(side="left", padx=5)
 
-        # Input Fields (initially disabled)
+        # Input Fields (initially state based on toggle settings)
         self.negative_prompt_text = ctk.CTkTextbox(prompt_frame, height=60, wrap="word",
                                                  text_color=TEXT_COLOR, fg_color="#333333",
-                                                 state="disabled")
+                                                 state="normal" if self.negative_toggle_var.get() else "disabled")
         self.negative_prompt_text.pack(fill="x", padx=5, pady=5)
         self.negative_prompt_text.insert("1.0", self.config["parameters"]["negative_prompt"])
 
         self.trigger_words_entry = ctk.CTkEntry(prompt_frame, placeholder_text="Trigger words...",
                                               text_color=TEXT_COLOR, fg_color="#333333",
-                                              state="disabled")
+                                              state="normal" if self.trigger_toggle_var.get() else "disabled")
         self.trigger_words_entry.pack(fill="x", padx=5, pady=5)
+        
+        # If config has trigger words, populate the entry
+        if "trigger_words" in self.config:
+            self.trigger_words_entry.delete(0, "end")
+            self.trigger_words_entry.insert(0, self.config["trigger_words"])
 
     def create_image_uploader(self, parent):
         """Create the image upload section inside the parent frame (left_panel)"""
@@ -968,6 +973,36 @@ class ImageGeneratorGUI(ctk.CTk): # Inherit directly from ctk.CTk
         self.status_label.pack(side="left", padx=10, pady=5)
         self.service_info_label = ctk.CTkLabel(parent, text=f"Service: {self.config['service'].capitalize()}", font=ctk.CTkFont(size=12), text_color=TEXT_COLOR)
         self.service_info_label.pack(side="right", padx=10, pady=5)
+
+    def toggle_negative_prompt(self):
+        """Toggle the negative prompt textarea enable/disable state"""
+        is_enabled = self.negative_toggle_var.get()
+        self.config["use_negative_prompt"] = is_enabled
+        
+        # Enable or disable the negative prompt text box based on toggle state
+        if is_enabled:
+            self.negative_prompt_text.configure(state="normal")
+        else:
+            self.negative_prompt_text.configure(state="disabled")
+        
+        self.save_config()
+        
+    def toggle_trigger_words(self):
+        """Toggle the trigger words entry enable/disable state"""
+        is_enabled = self.trigger_toggle_var.get()
+        self.config["use_trigger_words"] = is_enabled
+        
+        # Enable or disable the trigger words entry based on toggle state
+        if is_enabled:
+            self.trigger_words_entry.configure(state="normal")
+            # Save current content to config
+            trigger_words = self.trigger_words_entry.get()
+            if trigger_words:
+                self.config["trigger_words"] = trigger_words
+        else:
+            self.trigger_words_entry.configure(state="disabled")
+        
+        self.save_config()
 
     def toggle_advanced_mode(self):
         """Toggle advanced mode on/off"""
