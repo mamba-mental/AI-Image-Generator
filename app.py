@@ -714,10 +714,14 @@ class ImageGeneratorGUI(ctk.CTk): # Inherit directly from ctk.CTk
         trigger_toggle.pack(side="left", padx=5)
 
         # Input Fields (initially state based on toggle settings)
+        # Add the missing label definition
+        self.negative_prompt_label = ctk.CTkLabel(prompt_frame, text="Negative Prompt:", text_color=TEXT_COLOR)
+        # Note: The .grid() call for this label happens inside toggle_advanced_mode
+
         self.negative_prompt_text = ctk.CTkTextbox(prompt_frame, height=60, wrap="word",
                                                  text_color=TEXT_COLOR, fg_color="#333333",
                                                  state="normal" if self.negative_toggle_var.get() else "disabled")
-        self.negative_prompt_text.pack(fill="x", padx=5, pady=5)
+        self.negative_prompt_text.pack(fill="x", padx=5, pady=5) # Keep pack for now, grid is handled in toggle_advanced_mode
         self.negative_prompt_text.insert("1.0", self.config["parameters"]["negative_prompt"])
 
         self.trigger_words_entry = ctk.CTkEntry(prompt_frame, placeholder_text="Trigger words...",
@@ -1088,14 +1092,14 @@ class ImageGeneratorGUI(ctk.CTk): # Inherit directly from ctk.CTk
         # Batch frame is removed, no need for output_frame lookup here
 
         if advanced_mode:
-            # Show negative prompt - ensure they are gridded within the correct frame (now row 3/4)
-            self.negative_prompt_label.grid(in_=prompt_frame, row=3, column=0, padx=5, pady=(5, 0), sticky="w")
-            self.negative_prompt_text.grid(in_=prompt_frame, row=4, column=0, columnspan=3, padx=5, pady=(0, 5), sticky="ew") # Span 3 columns
-            # Batch frame is removed, nothing to grid here
+            # Show negative prompt - Use pack/pack_forget consistent with how text box is managed
+            self.negative_prompt_label.pack(fill="x", padx=5, pady=(5,0), before=self.negative_prompt_text) # Pack label before text
+            self.negative_prompt_text.pack(fill="x", padx=5, pady=5) # Ensure text is packed
+            # Batch frame is removed, nothing to pack here
         else:
             # Hide negative prompt
-            self.negative_prompt_label.grid_forget()
-            self.negative_prompt_text.grid_forget()
+            self.negative_prompt_label.pack_forget()
+            self.negative_prompt_text.pack_forget()
             # Batch frame is removed, nothing to forget
 
         self.save_config()
