@@ -400,20 +400,22 @@ class ImageGeneratorGUI(ctk.CTk): # Inherit directly from ctk.CTk
         self.create_main_image_display(self.center_image_panel)
         
         # Right Config Panel
+        # Call create_service_toggle early as other sections depend on self.service_var
+        self.create_service_toggle(self.right_config_panel) 
         self.create_prompt_section(self.right_config_panel)
         self.create_generation_settings(self.right_config_panel)
         self.create_safety_speed_section(self.right_config_panel)
-        self.create_lora_section(self.right_config_panel)
+        self.create_lora_section(self.right_config_panel) # Depends on service_var
         self.create_megapixels_cost_section(self.right_config_panel)
         
         # Footer Panel
         self.create_footer_controls(self.footer_panel)
 
-        # Setup services *after* UI elements are created
+        # Setup services *after* UI elements are created but before initialization that might use them
         self.setup_services()
 
         # Initialize default values and visibility *after* all elements are created
-        self.initialize_default_values()
+        self.initialize_default_values() # Depends on service_var
 
         self.current_image_path = None # Path of the main displayed image
         self.generated_image_paths = [] # List to store paths of all generated images in a batch
@@ -1018,15 +1020,23 @@ class ImageGeneratorGUI(ctk.CTk): # Inherit directly from ctk.CTk
         self.image_info_label = ctk.CTkLabel(control_frame, text="No image generated yet", font=ctk.CTkFont(size=12), text_color=TEXT_COLOR)
         self.image_info_label.pack(side="right", padx=5, pady=2)
 
+        # Display initial placeholder image *after* __init__ completes
         placeholder_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), "placeholder.png")
-        try:
-            if os.path.exists(placeholder_path):
-                self.after(100, lambda: self.display_image(placeholder_path))
+        if os.path.exists(placeholder_path):
+            # Check if display_image method exists before scheduling
+            if hasattr(self, 'display_image') and callable(self.display_image):
+                 self.after(100, lambda: self.display_image(placeholder_path))
             else:
-                 self.canvas.create_text(400, 300, text="Generate an image", fill="white", font=("Arial", 14))
-        except Exception as e:
-            print(f"Error setting up placeholder: {e}")
-            self.canvas.create_text(400, 300, text="Generate an image", fill="white", font=("Arial", 14))
+                 print("Warning: display_image method not found, cannot schedule placeholder.")
+                 try:
+                     self.canvas.create_text(400, 300, text="Generate an image\n(display_image missing)", fill="orange", font=("Arial", 14))
+                 except Exception as canvas_err:
+                     print(f"Error adding text to canvas: {canvas_err}")
+        else:
+            try:
+                self.canvas.create_text(400, 300, text="Generate an image", fill="white", font=("Arial", 14))
+            except Exception as canvas_err:
+                 print(f"Error adding text to canvas: {canvas_err}")
 
     def create_status_bar(self, parent): # Parent is now self.status_bar_frame
         """Create the status bar inside the parent frame (status_bar_frame)"""
