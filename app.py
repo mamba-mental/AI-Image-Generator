@@ -346,11 +346,13 @@ class ImageGeneratorGUI(ctk.CTk): # Inherit directly from ctk.CTk
         self.config = self.load_config()
         # --- LoRAManager integration ---
         self.hf_lora_manager = LoRAManager("hf")
-        for url in self.config.get("recent_loras_hf", []):
-            self.hf_lora_manager.add_lora(url)
         self.rep_lora_manager = LoRAManager("replicate")
-        for url in self.config.get("recent_loras_replicate", []):
-            self.rep_lora_manager.add_lora(url)
+        # Load LoRAs using the new format-aware method
+        self.hf_lora_manager.load_from_config(self.config.get("recent_loras_hf", []))
+        self.rep_lora_manager.load_from_config(self.config.get("recent_loras_replicate", []))
+        # Save back to config in case migration occurred
+        self.config["recent_loras_hf"] = self.hf_lora_manager.get_loras()
+        self.config["recent_loras_replicate"] = self.rep_lora_manager.get_loras()
         # -------------------------------
 
         self.title("AI Image Generator")
@@ -403,7 +405,8 @@ class ImageGeneratorGUI(ctk.CTk): # Inherit directly from ctk.CTk
         # Initialize default values and visibility *after* all elements are created
         self.initialize_default_values()
 
-        self.current_image_path = None
+        self.current_image_path = None # Path of the main displayed image
+        self.generated_image_paths = [] # List to store paths of all generated images in a batch
         self.is_generating = False
         self.generation_count = 0
 
@@ -419,28 +422,42 @@ class ImageGeneratorGUI(ctk.CTk): # Inherit directly from ctk.CTk
             "service": "replicate",
             "last_used_model_replicate": "stability-ai/sdxl:c221b2b8ef527988fb59bf24a8b97c4561f1c671f73bd389f866bfb27c061316",
             "last_used_model_hf": "black-forest-labs/FLUX.1-dev",
-            "last_used_lora_hf": "https://huggingface.co/aifeifei798/flux-lora-uncensored/resolve/main/flux_lora_v1.safetensors",
             "parameters": {
                 "width": 1024, "height": 1024, "num_inference_steps": 50,
-                "guidance_scale": 7.5, "prompt_strength": 0.8, "lora_scale": 0.9,
+                "guidance_scale": 7.5, "prompt_strength": 0.8,
                 "negative_prompt": "deformed, bad anatomy, disfigured, poorly drawn face, mutation, mutated, extra limb, ugly, disgusting, poorly drawn hands, missing limb, floating limbs, disconnected limbs, malformed hands, blurry, watermark, watermarked, oversaturated, censored, distorted, text, low quality, worst quality"
             },
             "advanced_mode": False, "recent_prompts": [],
             "recent_models_replicate": ["stability-ai/sdxl:c221b2b8ef527988fb59bf24a8b97c4561f1c671f73bd389f866bfb27c061316"],
             "recent_models_hf": ["black-forest-labs/FLUX.1-dev"],
-            "recent_loras_hf": ["https://huggingface.co/aifeifei798/flux-lora-uncensored/resolve/main/flux_lora_v1.safetensors"],
-            "recent_loras_replicate": []
+            "recent_loras_hf": [], # Default to new format
+            "recent_loras_replicate": [] # Default to new format
         }
         try:
             if os.path.exists(config_path):
                 with open(config_path, 'r') as f:
                     config = json.load(f)
+                    # Ensure all top-level keys exist
                     for key, value in default_config.items():
-                        if key not in config: config[key] = value
-                        elif isinstance(value, dict): # Merge sub-dictionaries like parameters
+                        if key not in config:
+                            config[key] = value
+                        # Ensure sub-dictionaries exist and merge missing keys
+                        elif isinstance(value, dict) and key == "parameters":
+                            if not isinstance(config.get(key), dict):
+                                config[key] = {} # Ensure it's a dict
                             for sub_key, sub_value in value.items():
                                 if sub_key not in config[key]:
                                     config[key][sub_key] = sub_value
+                        # Ensure list keys exist
+                        elif isinstance(value, list) and key.startswith("recent_"):
+                             if key not in config or not isinstance(config[key], list):
+                                 config[key] = value
+
+                    # Remove obsolete lora_scale from parameters if present
+                    if "lora_scale" in config.get("parameters", {}):
+                        del config["parameters"]["lora_scale"]
+                        print("Removed obsolete 'lora_scale' from parameters config.")
+
                     os.makedirs(config["output_directory"], exist_ok=True)
                     return config
             else:
@@ -455,6 +472,9 @@ class ImageGeneratorGUI(ctk.CTk): # Inherit directly from ctk.CTk
     def save_config(self):
         """Save configuration to JSON file"""
         try:
+            # Ensure LoRA lists are saved in the correct format
+            self.config["recent_loras_hf"] = self.hf_lora_manager.get_loras()
+            self.config["recent_loras_replicate"] = self.rep_lora_manager.get_loras()
             with open("config.json", 'w') as f:
                 json.dump(self.config, f, indent=4)
         except Exception as e:
@@ -648,30 +668,38 @@ class ImageGeneratorGUI(ctk.CTk): # Inherit directly from ctk.CTk
         # TODO: Populate this with actual model IDs used in the dropdowns later
         model_configs = {
             "black-forest-labs/flux-dev-lora": { # Assuming this is a valid model ID
-                "params": ["prompt_strength", "num_outputs", "num_inference_steps", "guidance", "lora_scale"],
-                "defaults": {"prompt_strength": 0.8, "num_outputs": 1, "num_inference_steps": 28, "guidance": 3.0, "lora_scale": 1.0},
-                "ranges": {"prompt_strength": (0, 1), "num_outputs": (1, 4), "num_inference_steps": (1, 50), "guidance": (0, 10), "lora_scale": (-1, 3)}
+                # Removed num_outputs from model-specific params
+                "params": ["prompt_strength", "num_inference_steps", "guidance"],
+                "defaults": {"prompt_strength": 0.8, "num_inference_steps": 28, "guidance": 3.0},
+                "ranges": {"prompt_strength": (0, 1), "num_inference_steps": (1, 50), "guidance": (0, 10)}
             },
              "black-forest-labs/flux-dev": {
-                 "params": ["prompt_strength", "num_outputs", "num_inference_steps", "guidance"],
-                 "defaults": {"prompt_strength": 0.8, "num_outputs": 1, "num_inference_steps": 28, "guidance": 3.5},
-                 "ranges": {"prompt_strength": (0, 1), "num_outputs": (1, 4), "num_inference_steps": (1, 50), "guidance": (0, 10)}
+                 # Removed num_outputs from model-specific params
+                 "params": ["prompt_strength", "num_inference_steps", "guidance"],
+                 "defaults": {"prompt_strength": 0.8, "num_inference_steps": 28, "guidance": 3.5},
+                 "ranges": {"prompt_strength": (0, 1), "num_inference_steps": (1, 50), "guidance": (0, 10)}
              },
              "black-forest-labs/flux-1.1-pro-ultra": {
                  "params": ["image_prompt_strength", "aspect_ratio", "safety_tolerance", "raw"],
-                 "defaults": {"image_prompt_strength": 0.1, "aspect_ratio": "1:1", "safety_tolerance": 2, "raw": False},
-                 "ranges": {"image_prompt_strength": (0, 1), "safety_tolerance": (1, 6)},
-                 "options": {"aspect_ratio": ["1:1", "3:2", "2:3", "9:16", "16:9"]}
+                 "defaults": {"image_prompt_strength": 0.1, "aspect_ratio": "16:9", "safety_tolerance": 2, "raw": False}, # Default to 16:9
+                 "ranges": {"image_prompt_strength": (0, 1), "safety_tolerance": (1, 6)}, # Max 6
+                 "options": {
+                     "aspect_ratio": [ # Comprehensive list
+                         "1:1", "3:2", "2:3", "4:3", "3:4", "5:4", "4:5", "16:9", "9:16", "21:9", "9:21",
+                         "1.17:1 (6x7)", "1.37:1 (Academy)", "1.66:1 (Super 16mm)", "1.85:1 (VistaVision)",
+                         "2:1 (6x12)", "2.2:1 (70mm)", "2.35:1 (CinemaScope)", "2.83:1 (6x17)"
+                     ]
+                 }
              },
              "black-forest-labs/flux-1.1-pro": {
                  "params": ["width", "height", "safety_tolerance", "prompt_upsampling"],
                  "defaults": {"width": 1024, "height": 1024, "safety_tolerance": 2, "prompt_upsampling": False},
-                 "ranges": {"width": (256, 1440, 32), "height": (256, 1440, 32), "safety_tolerance": (1, 6)} # Added step 32
+                 "ranges": {"width": (256, 1440, 32), "height": (256, 1440, 32), "safety_tolerance": (1, 6)} # Max 6
              },
              "black-forest-labs/flux-pro": {
                  "params": ["width", "height", "steps", "guidance", "interval", "safety_tolerance", "prompt_upsampling"],
                  "defaults": {"width": 1024, "height": 1024, "steps": 25, "guidance": 3.0, "interval": 2, "safety_tolerance": 2, "prompt_upsampling": False},
-                 "ranges": {"width": (256, 1440, 32), "height": (256, 1440, 32), "steps": (1, 50), "guidance": (2, 5), "interval": (1, 4), "safety_tolerance": (1, 6)}
+                 "ranges": {"width": (256, 1440, 32), "height": (256, 1440, 32), "steps": (1, 50), "guidance": (2, 5), "interval": (1, 4), "safety_tolerance": (1, 6)} # Max 6
              }
             # Add other models as needed
         }
@@ -758,47 +786,25 @@ class ImageGeneratorGUI(ctk.CTk): # Inherit directly from ctk.CTk
         self.lora_management_frame = ctk.CTkFrame(self.model_section_frame, fg_color="transparent")
         self.lora_management_frame.grid_columnconfigure(0, weight=1) # Allow listbox to expand
 
-        # Replicate LoRA Widgets
-        self.rep_lora_label = ctk.CTkLabel(self.lora_management_frame, text="Replicate LoRAs:", font=ctk.CTkFont(size=14), text_color=TEXT_COLOR)
-        self.rep_lora_tree = ttk.Treeview(self.lora_management_frame, columns=("url", "scale"), show="headings", selectmode="extended", height=4)
-        self.rep_lora_tree.heading("url", text="URL")
-        self.rep_lora_tree.heading("scale", text="Scale")
-        self.rep_lora_tree.column("url", width=340, anchor="w")
-        self.rep_lora_tree.column("scale", width=60, anchor="center")
-        for url, scale in self.rep_lora_manager.get_loras():
-            self.rep_lora_tree.insert("", tk.END, values=(url, f"{scale:.2f}"))
+        # Replicate LoRA Widgets - Dynamic List Area
+        self.rep_lora_label = ctk.CTkLabel(self.lora_management_frame, text="Replicate LoRAs (Select multiple):", font=ctk.CTkFont(size=14), text_color=TEXT_COLOR)
+        # Frame to hold the dynamic list of LoRA entries
+        self.rep_lora_list_frame = ctk.CTkFrame(self.lora_management_frame, fg_color="transparent")
+        # Add/Remove buttons frame
         self.rep_lora_button_frame = ctk.CTkFrame(self.lora_management_frame, fg_color="transparent")
         self.add_rep_lora_button = ctk.CTkButton(self.rep_lora_button_frame, text="Add", width=60, command=self.add_rep_lora, fg_color=BUTTON_GOLD_COLOR, text_color=BUTTON_TEXT_COLOR, hover_color="#CCAA00")
-        self.remove_rep_lora_button = ctk.CTkButton(self.rep_lora_button_frame, text="Remove", width=60, command=self.remove_rep_lora, fg_color="#555555", hover_color="#777777")
+        # Remove button is now per-LoRA entry
 
-        # Hugging Face LoRA Widgets
-        self.hf_lora_label = ctk.CTkLabel(self.lora_management_frame, text="HuggingFace LoRAs:", font=ctk.CTkFont(size=14), text_color=TEXT_COLOR)
-        self.hf_lora_tree = ttk.Treeview(self.lora_management_frame, columns=("url", "scale"), show="headings", selectmode="extended", height=4)
-        self.hf_lora_tree.heading("url", text="URL")
-        self.hf_lora_tree.heading("scale", text="Scale")
-        self.hf_lora_tree.column("url", width=340, anchor="w")
-        self.hf_lora_tree.column("scale", width=60, anchor="center")
-        for url, scale in self.hf_lora_manager.get_loras():
-            self.hf_lora_tree.insert("", tk.END, values=(url, f"{scale:.2f}"))
+        # Hugging Face LoRA Widgets - Dynamic List Area
+        self.hf_lora_label = ctk.CTkLabel(self.lora_management_frame, text="HuggingFace LoRAs (Select multiple):", font=ctk.CTkFont(size=14), text_color=TEXT_COLOR)
+        # Frame to hold the dynamic list of HF LoRA entries
+        self.hf_lora_list_frame = ctk.CTkFrame(self.lora_management_frame, fg_color="transparent")
+        # Add/Remove buttons frame for HF
         self.hf_lora_button_frame = ctk.CTkFrame(self.lora_management_frame, fg_color="transparent")
         self.add_hf_lora_button = ctk.CTkButton(self.hf_lora_button_frame, text="Add", width=60, command=self.add_hf_lora, fg_color=BUTTON_GOLD_COLOR, text_color=BUTTON_TEXT_COLOR, hover_color="#CCAA00")
-        self.remove_hf_lora_button = ctk.CTkButton(self.hf_lora_button_frame, text="Remove", width=60, command=self.remove_hf_lora, fg_color="#555555", hover_color="#777777")
+        # Remove button is now per-LoRA entry for HF as well
 
-        # LoRA Scale Slider (Now part of LoRA management)
-        self.lora_scale_label = ttk.Label(self.lora_management_frame, text="LoRA Scale:")
-        self.lora_scale_var = tk.DoubleVar(value=self.config["parameters"].get("lora_scale", 0.8)) # Use .get for safety
-
-        def update_lora_scale_value(val):
-            self.lora_scale_value_label.config(text=f"{float(val):.1f}")
-
-        self.lora_scale_slider = ttk.Scale(
-            self.lora_management_frame,
-            from_=-1.0,
-            to=3.0,
-            variable=self.lora_scale_var,
-            command=update_lora_scale_value
-        )
-        self.lora_scale_value_label = ttk.Label(self.lora_management_frame, text=f"{self.lora_scale_var.get():.1f}", width=6)
+        # LoRA Scale Slider REMOVED - Now per-LoRA for both
 
         self.update_model_section(self.model_section_frame) # Initial update
 
@@ -813,17 +819,22 @@ class ImageGeneratorGUI(ctk.CTk): # Inherit directly from ctk.CTk
             self.replicate_model_combo.grid(row=0, column=1, padx=5, pady=2, sticky="ew")
             self.add_replicate_model_button.grid(row=0, column=2, padx=5, pady=2, sticky="e")
             # Grid Replicate LoRA Management Frame
-            self.lora_management_frame.grid(row=1, column=0, columnspan=3, sticky="ew", padx=5, pady=(5,2))
+            self.lora_management_frame.grid(row=1, column=0, columnspan=3, sticky="nsew", padx=5, pady=(5,2))
+            self.lora_management_frame.grid_rowconfigure(1, weight=1) # Allow list frame to expand if needed
+
             # Grid Widgets *inside* the LoRA frame for Replicate
             self.rep_lora_label.grid(in_=self.lora_management_frame, row=0, column=0, columnspan=2, sticky="w", padx=5, pady=(5,0))
-            self.rep_lora_tree.grid(in_=self.lora_management_frame, row=1, column=0, sticky="ew", padx=5, pady=2)
-            self.rep_lora_button_frame.grid(in_=self.lora_management_frame, row=1, column=1, sticky="ns", padx=5, pady=2)
-            self.add_rep_lora_button.pack(pady=2) # Pack buttons inside their frame
-            self.remove_rep_lora_button.pack(pady=2)
-            # Grid LoRA Scale Slider (Common for both services now)
-            self.lora_scale_label.grid(in_=self.lora_management_frame, row=2, column=0, sticky="w", padx=5, pady=(5,2))
-            self.lora_scale_slider.grid(in_=self.lora_management_frame, row=3, column=0, sticky="ew", padx=5, pady=2)
-            self.lora_scale_value_label.grid(in_=self.lora_management_frame, row=3, column=1, sticky="w", padx=5, pady=2)
+            # Grid the frame that will hold the dynamic list
+            self.rep_lora_list_frame.grid(in_=self.lora_management_frame, row=1, column=0, columnspan=2, sticky="nsew", padx=5, pady=2)
+            self.rep_lora_list_frame.grid_columnconfigure(1, weight=1) # Allow URL label to expand
+
+            # Grid the Add button frame below the list frame
+            self.rep_lora_button_frame.grid(in_=self.lora_management_frame, row=2, column=0, columnspan=2, sticky="ew", padx=5, pady=(0, 5))
+            self.add_rep_lora_button.pack(side="left", padx=5) # Pack Add button
+
+            # --- Dynamically create and grid LoRA entries ---
+            self._update_rep_lora_list_ui()
+
         else: # HuggingFace
             # Grid HF Base Model
             self.hf_model_label.grid(row=0, column=0, padx=5, pady=2, sticky="w")
@@ -833,14 +844,16 @@ class ImageGeneratorGUI(ctk.CTk): # Inherit directly from ctk.CTk
             self.lora_management_frame.grid(row=1, column=0, columnspan=3, sticky="ew", padx=5, pady=(5,2))
             # Grid Widgets *inside* the LoRA frame for HF
             self.hf_lora_label.grid(in_=self.lora_management_frame, row=0, column=0, columnspan=2, sticky="w", padx=5, pady=(5,0))
-            self.hf_lora_tree.grid(in_=self.lora_management_frame, row=1, column=0, sticky="ew", padx=5, pady=2)
-            self.hf_lora_button_frame.grid(in_=self.lora_management_frame, row=1, column=1, sticky="ns", padx=5, pady=2)
-            self.add_hf_lora_button.pack(pady=2) # Pack buttons inside their frame
-            self.remove_hf_lora_button.pack(pady=2)
-            # Grid LoRA Scale Slider (Common for both services now)
-            self.lora_scale_label.grid(in_=self.lora_management_frame, row=2, column=0, sticky="w", padx=5, pady=(5,2))
-            self.lora_scale_slider.grid(in_=self.lora_management_frame, row=3, column=0, sticky="ew", padx=5, pady=2)
-            self.lora_scale_value_label.grid(in_=self.lora_management_frame, row=3, column=1, sticky="w", padx=5, pady=2)
+            # Grid the frame that will hold the dynamic HF list
+            self.hf_lora_list_frame.grid(in_=self.lora_management_frame, row=1, column=0, columnspan=2, sticky="nsew", padx=5, pady=2)
+            self.hf_lora_list_frame.grid_columnconfigure(1, weight=1) # Allow URL label to expand
+
+            # Grid the Add button frame below the list frame for HF
+            self.hf_lora_button_frame.grid(in_=self.lora_management_frame, row=2, column=0, columnspan=2, sticky="ew", padx=5, pady=(0, 5))
+            self.add_hf_lora_button.pack(side="left", padx=5) # Pack Add button
+
+            # --- Dynamically create and grid HF LoRA entries ---
+            self._update_hf_lora_list_ui()
 
     def create_output_section(self, parent):
         """Create the output configuration section inside the parent frame (left_panel)"""
@@ -853,17 +866,18 @@ class ImageGeneratorGUI(ctk.CTk): # Inherit directly from ctk.CTk
         self.output_dir_var = tk.StringVar(value=self.config["output_directory"])
         ctk.CTkEntry(output_frame, textvariable=self.output_dir_var, width=400, state="readonly").grid(row=0, column=1, padx=5, pady=2, sticky="ew")
         ctk.CTkButton(output_frame, text="Browse", width=100, command=self.browse_output_dir, fg_color=BUTTON_GOLD_COLOR, text_color=BUTTON_TEXT_COLOR, hover_color="#CCAA00").grid(row=0, column=2, padx=5, pady=2, sticky="e")
-        ctk.CTkButton(output_frame, text="Generate Image", font=ctk.CTkFont(size=16, weight="bold"), height=40, command=self.generate_image, fg_color=BUTTON_GOLD_COLOR, text_color=BUTTON_TEXT_COLOR, hover_color="#CCAA00").grid(row=1, column=0, columnspan=3, padx=5, pady=2, sticky="ew")
 
-        # Batch generation section (created once, gridded/forgotten in toggle)
-        self.batch_frame = ctk.CTkFrame(output_frame, fg_color="transparent") # Make transparent
-        self.batch_frame.grid_columnconfigure(2, weight=1) # Allow button to align right
-        # Consistent padding (padx=5, pady=2)
-        ctk.CTkLabel(self.batch_frame, text="Number of Images:", font=ctk.CTkFont(size=14), text_color=TEXT_COLOR).grid(row=0, column=0, padx=5, pady=2, sticky="w")
-        self.batch_count_var = tk.StringVar(value="1")
-        ctk.CTkComboBox(self.batch_frame, values=["1", "2", "4", "8"], variable=self.batch_count_var, width=80).grid(row=0, column=1, padx=5, pady=2, sticky="w")
-        ctk.CTkButton(self.batch_frame, text="Generate Batch", command=self.generate_batch, fg_color=BUTTON_GOLD_COLOR, text_color=BUTTON_TEXT_COLOR, hover_color="#CCAA00").grid(row=0, column=2, padx=5, pady=2, sticky="e")
-        # Grid/forget logic handled in toggle_advanced_mode
+        # --- Number of Images Control (Consolidated) ---
+        num_images_frame = ctk.CTkFrame(output_frame, fg_color="transparent")
+        num_images_frame.grid(row=1, column=0, columnspan=3, padx=5, pady=2, sticky="ew") # Use grid layout
+        ctk.CTkLabel(num_images_frame, text="Number of Images:", font=ctk.CTkFont(size=14), text_color=TEXT_COLOR).pack(side="left", padx=(0, 5)) # Pack inside frame
+        self.num_outputs_var = tk.StringVar(value="1") # New variable for consolidated control
+        ctk.CTkComboBox(num_images_frame, values=[str(i) for i in range(1, 11)], variable=self.num_outputs_var, width=80).pack(side="left") # Pack inside frame
+
+        # --- Generate Button (Now handles single or batch) ---
+        ctk.CTkButton(output_frame, text="Generate", font=ctk.CTkFont(size=16, weight="bold"), height=40, command=self.generate_image, fg_color=BUTTON_GOLD_COLOR, text_color=BUTTON_TEXT_COLOR, hover_color="#CCAA00").grid(row=2, column=0, columnspan=3, padx=5, pady=(5, 2), sticky="ew") # Use grid layout
+
+        # Batch generation section REMOVED (no self.batch_frame needed)
 
     def create_image_display(self, parent): # Parent is now self.right_panel
         """Create the image display area inside the parent frame (right_panel)"""
@@ -895,8 +909,16 @@ class ImageGeneratorGUI(ctk.CTk): # Inherit directly from ctk.CTk
         self.canvas.bind("<Button-4>", lambda e: self.canvas.yview_scroll(-1, "units"))
         self.canvas.bind("<Button-5>", lambda e: self.canvas.yview_scroll(1, "units"))
 
-        control_frame = ctk.CTkFrame(display_frame) # Place controls below canvas frame
-        control_frame.grid(row=1, column=0, sticky="ew", padx=5, pady=(0, 2)) # Consistent padding
+        # --- Thumbnail Frame (Scrollable Horizontally) ---
+        self.thumbnail_frame = ctk.CTkScrollableFrame(display_frame, fg_color=FRAME_BG_COLOR, height=100, orientation="horizontal")
+        self.thumbnail_frame.grid(row=1, column=0, sticky="ew", padx=5, pady=(5, 2))
+        # Hide vertical scrollbar if it appears by default
+        self.thumbnail_frame._scrollbar.grid_forget()
+
+
+        # --- Control Frame (Below Thumbnails) ---
+        control_frame = ctk.CTkFrame(display_frame) # Place controls below thumbnail frame
+        control_frame.grid(row=2, column=0, sticky="ew", padx=5, pady=(0, 2)) # Consistent padding
 
         # Consistent padding and button colors
         ctk.CTkButton(control_frame, text="Save Image As", command=self.save_image_as, fg_color=BUTTON_GOLD_COLOR, text_color=BUTTON_TEXT_COLOR, hover_color="#CCAA00").pack(side="left", padx=5, pady=2)
@@ -930,42 +952,98 @@ class ImageGeneratorGUI(ctk.CTk): # Inherit directly from ctk.CTk
         # Find the correct parent frames for grid/forget operations
         # Assume prompt_text's master is the prompt_frame created in create_prompt_section
         prompt_frame = self.prompt_text.master
-        # Assume batch_frame's master is the output_frame created in create_output_section
-        output_frame = self.batch_frame.master
+        # Batch frame is removed, no need for output_frame lookup here
 
         if advanced_mode:
             # Show negative prompt - ensure they are gridded within the correct frame (now row 3/4)
             self.negative_prompt_label.grid(in_=prompt_frame, row=3, column=0, padx=5, pady=(5, 0), sticky="w")
             self.negative_prompt_text.grid(in_=prompt_frame, row=4, column=0, columnspan=3, padx=5, pady=(0, 5), sticky="ew") # Span 3 columns
-            # Show batch frame - ensure it's gridded within the correct frame
-            self.batch_frame.grid(in_=output_frame, row=2, column=0, columnspan=3, padx=10, pady=5, sticky="ew")
+            # Batch frame is removed, nothing to grid here
         else:
             # Hide negative prompt
             self.negative_prompt_label.grid_forget()
             self.negative_prompt_text.grid_forget()
-            # Hide batch frame
-            self.batch_frame.grid_forget()
+            # Batch frame is removed, nothing to forget
 
         self.save_config()
 
-    def update_image_preview(self, image_path):
-        """ Safely update the image preview in the main thread """
-        if not hasattr(self, 'canvas') or not self.canvas.winfo_exists():
-             print("Canvas does not exist, cannot update preview.")
-             return
-        try:
-             self.display_image(image_path)
-        except Exception as e:
-             print(f"Error updating image preview: {e}")
-             try:
-                  self.canvas.delete("all")
-                  self.canvas.create_text(200, 150, text=f"Error displaying image:\n{str(e)[:50]}...", fill="red")
-             except Exception: pass
+    def update_image_preview(self, image_paths):
+        """ Safely update the image preview and thumbnails in the main thread """
+        if not isinstance(image_paths, list):
+            image_paths = [image_paths] # Ensure it's a list
 
-    def display_image(self, image_path):
-        """Display an image in the canvas"""
+        if not image_paths:
+            print("No image paths provided to update preview.")
+            return
+
+        # Display the first image in the main canvas
+        first_image_path = image_paths[0]
         if not hasattr(self, 'canvas') or not self.canvas.winfo_exists():
-             print("Canvas does not exist, cannot display image.")
+             print("Canvas does not exist, cannot update main preview.")
+             # Still try to update thumbnails
+        else:
+            try:
+                 self.display_main_image(first_image_path)
+            except Exception as e:
+                 print(f"Error updating main image preview: {e}")
+                 try:
+                      self.canvas.delete("all")
+                      self.canvas.create_text(200, 150, text=f"Error displaying image:\n{str(e)[:50]}...", fill="red")
+                 except Exception: pass
+
+        # Update thumbnails
+        self.update_thumbnails(image_paths)
+
+    def update_thumbnails(self, image_paths):
+        """Clear and populate the thumbnail frame"""
+        if not hasattr(self, 'thumbnail_frame'):
+            print("Thumbnail frame not initialized.")
+            return
+
+        # Clear existing thumbnails
+        for widget in self.thumbnail_frame.winfo_children():
+            widget.destroy()
+
+        self.generated_image_paths = image_paths # Store the list
+
+        if not image_paths:
+            # Optionally display a message if no images
+            # ctk.CTkLabel(self.thumbnail_frame, text="No images generated").pack()
+            return
+
+        thumb_size = (80, 80)
+        for path in image_paths:
+            try:
+                if not os.path.exists(path): continue # Skip if file doesn't exist
+
+                img = Image.open(path)
+                img.thumbnail(thumb_size, Image.LANCZOS)
+                ctk_img = ImageTk.PhotoImage(img)
+
+                # Create a button with the thumbnail
+                thumb_button = ctk.CTkButton(
+                    self.thumbnail_frame,
+                    image=ctk_img,
+                    text="", # No text on button
+                    width=thumb_size[0],
+                    height=thumb_size[1],
+                    fg_color="transparent", # Make button background transparent
+                    command=lambda p=path: self.display_main_image(p) # Click to display
+                )
+                thumb_button._image = ctk_img # Keep reference to avoid garbage collection
+                thumb_button.pack(side="left", padx=3, pady=3)
+
+            except Exception as e:
+                print(f"Error creating thumbnail for {path}: {e}")
+                # Optionally add a placeholder for failed thumbnails
+                error_label = ctk.CTkLabel(self.thumbnail_frame, text="Error", width=thumb_size[0], height=thumb_size[1], fg_color="red")
+                error_label.pack(side="left", padx=3, pady=3)
+
+
+    def display_main_image(self, image_path):
+        """Display a single image in the main canvas"""
+        if not hasattr(self, 'canvas') or not self.canvas.winfo_exists():
+             print("Canvas does not exist, cannot display main image.")
              return
         try:
             if not os.path.exists(image_path):
@@ -1050,7 +1128,7 @@ class ImageGeneratorGUI(ctk.CTk): # Inherit directly from ctk.CTk
             self.save_config()
 
     def generate_image(self):
-        """Generate a single image with the current settings"""
+        """Generate a single image or batch with the current settings"""
         if self.is_generating: messagebox.showinfo("In Progress", "Image generation already in progress"); return
         try:
             base_prompt = self.prompt_text.get("1.0", "end").strip()
@@ -1069,9 +1147,10 @@ class ImageGeneratorGUI(ctk.CTk): # Inherit directly from ctk.CTk
 
             # --- Get Global Controls ---
             output_format = self.output_format_var.get()
-            output_quality = self.output_quality_var.get() if output_format != "png" else 95 # PNG is lossless, quality irrelevant but API might need a value
-            megapixels = int(self.megapixels_var.get())
-            go_fast = self.go_fast_var.get()
+            output_quality = self.output_quality_var.get() if output_format != "png" else 95
+            megapixels = int(self.megapixels_var.get()) # Still relevant? Maybe remove later if unused by APIs
+            go_fast = self.go_fast_var.get() # Still relevant? Maybe remove later if unused by APIs
+            num_outputs = int(self.num_outputs_var.get()) # Get from the new consolidated control
             seed_str = self.seed_var.get().strip()
             seed = None
             if seed_str:
@@ -1100,27 +1179,19 @@ class ImageGeneratorGUI(ctk.CTk): # Inherit directly from ctk.CTk
                 model_params["height"] = 1024
                 model_params["num_inference_steps"] = 28
                 model_params["guidance_scale"] = 7.5
-                model_params["lora_scale"] = 0.9
+                # model_params["lora_scale"] = 0.9 # Removed - now per-LoRA
                 print(f"Default parameters applied for model '{model_id}': {model_params}")
 
             # --- Get Selected LoRAs ---
-            selected_loras_urls = []
-            selected_lora_info = None # For single Replicate LoRA
-            lora_scale = self.lora_scale_var.get() # Get LoRA scale from the global slider
-
+            enabled_loras = [] # List of dicts {url, scale, enabled}
             if service == "replicate":
-                selected_items = self.rep_lora_tree.selection()
-                if selected_items:
-                    # Replicate often takes one LoRA URL and scale
-                    first_item = selected_items[0]
-                    lora_url = self.rep_lora_tree.item(first_item)["values"][0]
-                    # Use the global scale slider value for the selected Replicate LoRA
-                    selected_lora_info = {"url": lora_url, "scale": lora_scale}
-                    print(f"Selected Replicate LoRA: {selected_lora_info}")
+                enabled_loras = [lora for lora in self.rep_lora_manager.get_loras() if lora.get('enabled')]
+                if enabled_loras: print(f"Enabled Replicate LoRAs: {enabled_loras}")
+                else: print("No enabled Replicate LoRAs selected.")
             elif service == "huggingface":
-                selected_items = self.hf_lora_tree.selection()
-                selected_loras_urls = [self.hf_lora_tree.item(item)["values"][0] for item in selected_items]
-                print(f"Selected HuggingFace LoRAs: {selected_loras_urls}")
+                enabled_loras = [lora for lora in self.hf_lora_manager.get_loras() if lora.get('enabled')]
+                if enabled_loras: print(f"Enabled HuggingFace LoRAs: {enabled_loras}")
+                else: print("No enabled HuggingFace LoRAs selected.")
 
 
             # --- Prepare input_image_path before use ---
@@ -1132,20 +1203,27 @@ class ImageGeneratorGUI(ctk.CTk): # Inherit directly from ctk.CTk
                 "negative_prompt": negative_prompt,
                 "output_format": output_format,
                 "output_quality": output_quality,
-                "megapixels": megapixels,
-                "go_fast": go_fast,
-                "service": service, # Pass service type for thread
-                "model_id": model_id, # Pass model_id for thread
-                **model_params # Add model-specific params from the active tab
+                "megapixels": megapixels, # Keep for now
+                "go_fast": go_fast,       # Keep for now
+                "num_outputs": num_outputs, # Add the consolidated number of images
+                "service": service,
+                "model_id": model_id,
+                **model_params # Add model-specific params
             }
-            if seed is not None: final_params["seed"] = seed
+            # Ensure seed is handled correctly for single vs batch
+            if num_outputs == 1 and seed is not None:
+                 final_params["seed"] = seed
+            elif num_outputs > 1 and seed is not None:
+                 # For batch, seed usually applies to the first image or is ignored by some APIs
+                 # We'll pass it, API/thread logic needs to handle it appropriately
+                 final_params["seed"] = seed
+                 print(f"Note: Using provided seed {seed} for batch generation. Behavior depends on API.")
+            # If seed is None, it's omitted, allowing random seeds
+
             if input_image_path: final_params["image"] = input_image_path
             # Pass selected LoRA info based on service
-            if service == "replicate" and selected_lora_info:
-                final_params["lora_info"] = selected_lora_info # Pass dict with url and scale
-            elif service == "huggingface" and selected_loras_urls:
-                final_params["lora_weights"] = selected_loras_urls
-                final_params["lora_scale"] = lora_scale # Pass the global scale for HF
+            if enabled_loras:
+                final_params["enabled_loras"] = enabled_loras # Pass the list of enabled LoRA dicts
 
             # --- Always inject global width/height if not present ---
             # Use .get() for safer access in case model_params didn't provide them
@@ -1158,11 +1236,19 @@ class ImageGeneratorGUI(ctk.CTk): # Inherit directly from ctk.CTk
             timestamp = time.strftime("%Y%m%d-%H%M%S")
             output_path = os.path.join(self.config["output_directory"], f"{timestamp}_image.{output_format}")
 
-            self.status_label.configure(text="Generating image...")
             self.is_generating = True
 
-            # --- Start Generation Thread ---
-            threading.Thread(target=self._generate_image_thread, args=(final_params, output_path), daemon=True).start()
+            # --- Start Generation Thread (Handles single or batch based on num_outputs) ---
+            # Generate list of output paths if num_outputs > 1
+            output_paths = []
+            if num_outputs == 1:
+                output_paths.append(output_path)
+            else:
+                output_paths = [os.path.join(self.config["output_directory"], f"{timestamp}_batch{i+1}of{num_outputs}.{output_format}") for i in range(num_outputs)]
+
+            self.status_label.configure(text=f"Generating {num_outputs} image(s)...")
+            threading.Thread(target=self._generate_image_thread, args=(final_params, output_paths), daemon=True).start()
+
             # Save the *original* base prompt to history
             if base_prompt not in self.config["recent_prompts"]:
                 self.config["recent_prompts"].insert(0, base_prompt)
@@ -1177,78 +1263,102 @@ class ImageGeneratorGUI(ctk.CTk): # Inherit directly from ctk.CTk
             messagebox.showerror("Generation Error", f"Error starting generation: {e}")
             self.is_generating = False; self.status_label.configure(text="Error")
 
-    def _generate_image_thread(self, params, output_path):
-        """Thread function to generate the image"""
+    def _generate_image_thread(self, params, output_paths):
+        """Thread function to generate single or multiple images"""
         try:
-            result = None
-            service = self.service_var.get()
-            print(f"--- Starting Generation ({service}) ---")
-            print(f"Parameters: {params}")
+            results = [] # Store results for each image (URL, PIL Image, or Error string)
+            service = params["service"]
+            num_outputs = params.get("num_outputs", 1)
+            print(f"--- Starting Generation ({service}, {num_outputs} image(s)) ---")
+            print(f"Parameters: { {k:v for k,v in params.items() if k != 'image'} }") # Log params except image data
 
             if service == "replicate":
-                result = self._call_replicate_api(params)
+                # Replicate handles batching via num_outputs parameter
+                api_result = self._call_replicate_api(params)
+                if isinstance(api_result, list):
+                    results = api_result # List of URLs
+                elif isinstance(api_result, str) and "Error" in api_result:
+                    results = [api_result] * num_outputs # Propagate error
+                elif api_result: # Handle single URL result if num_outputs was 1
+                    results = [api_result]
+                else:
+                    results = ["Replicate Error: No result returned"] * num_outputs
+
             elif service == "huggingface":
-                result = self._call_hf_api(params)
+                # HF needs individual calls for batch simulation
+                for i in range(num_outputs):
+                    batch_params = params.copy()
+                    # Use provided seed for first image, random for subsequent, or random if no seed provided
+                    current_seed = params.get("seed") if i == 0 and "seed" in params else random.randint(0, 2**32 - 1)
+                    batch_params["seed"] = current_seed
+                    self.after(0, lambda i=i: self.status_label.configure(text=f"Generating image {i+1}/{num_outputs}..."))
+                    print(f"Calling HF for image {i+1} with seed: {current_seed}")
+                    result = self._call_hf_api(batch_params)
+                    results.append(result) # Append PIL image or error string
+                    if isinstance(result, str) and "Error" in result: print(f"Image {i+1} failed: {result}")
+                    # Optional delay? time.sleep(0.1)
             else:
-                result = "Error: Unknown service selected."
+                 # Correctly assign the error string to the results list
+                 results = ["Error: Unknown service selected."] * num_outputs
 
-            print(f"API Result ({service}): {type(result)}")
+            # Fix: Dedent this print statement to be outside the if/elif/else block
+            print(f"API calls complete. Processing {len(results)} results.")
 
-            # --- Result Handling ---
-            image_saved = False
-            if result:
+            # --- Result Handling (Iterate through results and output_paths) ---
+            successful_paths = []
+            error_messages = []
+
+            for i, result in enumerate(results):
+                if i >= len(output_paths): break # Safety check
+
+                current_output_path = output_paths[i]
+                image_saved_for_item = False
+
                 if isinstance(result, str) and result.startswith("http"): # URL Case (Replicate)
-                    print(f"Downloading image from URL: {result}")
+                    print(f"Downloading image {i+1} from URL: {result}")
                     try:
                         response = requests.get(result, timeout=30)
                         response.raise_for_status()
-                        with open(output_path, 'wb') as f: f.write(response.content)
-                        image_saved = True
-                        print(f"Image saved to: {output_path}")
-                    except requests.exceptions.RequestException as e:
-                        result = f"Error downloading image: {e}"
-                        print(result)
+                        with open(current_output_path, 'wb') as f: f.write(response.content)
+                        image_saved_for_item = True
                     except Exception as e:
-                        result = f"Error saving downloaded image: {e}"
-                        print(result)
+                        err_msg = f"Error downloading/saving image {i+1}: {e}"
+                        print(err_msg)
+                        error_messages.append(err_msg)
                 elif isinstance(result, Image.Image): # PIL Image Case (Hugging Face)
                     try:
-                        result.save(output_path)
-                        image_saved = True
-                        print(f"Image saved to: {output_path}")
+                        result.save(current_output_path)
+                        image_saved_for_item = True
                     except Exception as e:
-                        result = f"Error saving PIL image: {e}"
-                        print(result)
-                elif isinstance(result, list) and result and isinstance(result[0], str): # Replicate Batch Case (take first)
-                     print(f"Downloading first image from batch URL: {result[0]}")
-                     try:
-                         response = requests.get(result[0], timeout=30)
-                         response.raise_for_status()
-                         with open(output_path, 'wb') as f: f.write(response.content)
-                         image_saved = True
-                         print(f"First batch image saved to: {output_path}")
-                     except requests.exceptions.RequestException as e:
-                         result = f"Error downloading batch image: {e}"
-                         print(result)
-                     except Exception as e:
-                         result = f"Error saving downloaded batch image: {e}"
-                         print(result)
+                        err_msg = f"Error saving PIL image {i+1}: {e}"
+                        print(err_msg)
+                        error_messages.append(err_msg)
+                elif isinstance(result, str) and "Error" in result: # Error string from API call
+                     print(f"API Error for image {i+1}: {result}")
+                     error_messages.append(result)
+                     # Optionally create placeholder error image here if desired
 
-            # --- UI Update ---
-            if image_saved and os.path.exists(output_path):
-                self.after(0, lambda p=output_path: self.update_image_preview(p))
-                self.after(0, lambda: self.status_label.configure(text="Ready"))
-            elif isinstance(result, str) and "Error" in result: # Handle API/Download/Save errors reported as strings
-                 self.after(0, lambda err=result: self.status_label.configure(text=err[:100])) # Show truncated error
-                 self.after(0, lambda err=result: messagebox.showerror("Generation Error", err))
-            elif not result: # Handle cases where API returned None or empty
-                 error_msg = "Error: No result returned from API."
+                if image_saved_for_item and os.path.exists(current_output_path):
+                    successful_paths.append(current_output_path)
+                    print(f"Image {i+1} saved to: {current_output_path}")
+
+            # --- UI Update (After processing all results) ---
+            if successful_paths:
+                 # Update preview with the list of successful paths
+                 self.after(0, lambda paths=successful_paths: self.update_image_preview(paths))
+                 final_status = f"Generation complete ({len(successful_paths)}/{num_outputs} saved)."
+                 if error_messages:
+                     final_status += " Some errors occurred."
+                     # Optionally show first error in message box
+                     self.after(10, lambda err=error_messages[0]: messagebox.showwarning("Generation Warning", f"Some images failed:\n{err[:200]}..."))
+                 self.after(10, lambda s=final_status: self.status_label.configure(text=s))
+            elif error_messages: # Only errors occurred
+                 first_error = error_messages[0]
+                 self.after(0, lambda err=first_error: self.status_label.configure(text=f"Generation Failed: {err[:100]}"))
+                 self.after(0, lambda err=first_error: messagebox.showerror("Generation Error", err))
+            else: # No results at all
+                 error_msg = "Generation failed: No results returned."
                  print(error_msg)
-                 self.after(0, lambda: self.status_label.configure(text=error_msg))
-                 self.after(0, lambda: messagebox.showerror("Generation Error", error_msg))
-            else: # Fallback for unexpected result types or saving issues
-                 error_msg = "Error: Image not saved or invalid result."
-                 print(f"{error_msg} Result type: {type(result)}")
                  self.after(0, lambda: self.status_label.configure(text=error_msg))
                  self.after(0, lambda: messagebox.showerror("Generation Error", error_msg))
 
@@ -1260,7 +1370,7 @@ class ImageGeneratorGUI(ctk.CTk): # Inherit directly from ctk.CTk
             self.after(100, lambda: self.status_label.configure(text="Error"))
         finally:
             # Always reset generating flag in the main thread
-            self.after(100, lambda: setattr(self, 'is_generating', False)) # Use 100ms delay to ensure status updates happen
+            self.after(100, lambda: setattr(self, 'is_generating', False))
 
     def _call_replicate_api(self, params):
         """Call the Replicate API to generate an image"""
@@ -1280,22 +1390,37 @@ class ImageGeneratorGUI(ctk.CTk): # Inherit directly from ctk.CTk
                 "num_inference_steps": params.get("num_inference_steps", 28), # Default if missing
                 "guidance_scale": params.get("guidance_scale", params.get("guidance", 7.5)), # Default if missing
                 "negative_prompt": params.get("negative_prompt", ""), # Default if missing
-                "num_outputs": params.get("num_outputs", 1), # Default if missing
+                "num_outputs": params.get("num_outputs", 1), # Pass num_outputs for batch
                 # Apply NSFW bypass techniques directly here
-                "safety_tolerance": 7, # Set max tolerance
                 "apply_watermark": False, # Explicitly disable watermark
-                "disable_safety_checker": True, # Disable safety checker
+                "disable_safety_checker": True, # Explicitly disable safety checker
             }
+            # Add safety_tolerance, capping at 6
+            ui_safety_tolerance = params.get("safety_tolerance")
+            if ui_safety_tolerance is not None:
+                api_safety_tolerance = min(int(ui_safety_tolerance), 6) # Cap at 6
+                if api_safety_tolerance != int(ui_safety_tolerance):
+                    print(f"Warning: UI safety_tolerance ({ui_safety_tolerance}) exceeded max (6). Using {api_safety_tolerance} for API call.")
+                input_params["safety_tolerance"] = api_safety_tolerance
+            else:
+                 input_params["safety_tolerance"] = 6 # Default to max if not provided by UI
+
             # Add image only if it exists
             if params.get("image"):
                 input_params["image"] = params["image"]
             # Add seed only if it exists
             if params.get("seed"):
                 input_params["seed"] = params["seed"]
-            # Add Replicate LoRA if provided
-            if params.get("lora_info"):
-                input_params["lora"] = params["lora_info"]["url"]
-                input_params["lora_scale"] = params["lora_info"]["scale"]
+            # Add Replicate LoRA(s) if provided
+            if params.get("enabled_loras"):
+                 # Replicate API likely only supports one lora/lora_scale pair.
+                 # Use the first enabled LoRA from the list.
+                 first_enabled_lora = params["enabled_loras"][0]
+                 input_params["lora"] = first_enabled_lora["url"]
+                 input_params["lora_scale"] = first_enabled_lora["scale"]
+                 print(f"Applying first enabled Replicate LoRA: {input_params['lora']} with scale {input_params['lora_scale']}")
+                 if len(params["enabled_loras"]) > 1:
+                     print("Warning: Multiple Replicate LoRAs were enabled in the UI, but the API likely only supports one. Using the first one.")
 
             # Add other specific Replicate/model params safely using .get()
             # Example: input_params["go_fast"] = params.get("go_fast", True)
@@ -1360,10 +1485,24 @@ class ImageGeneratorGUI(ctk.CTk): # Inherit directly from ctk.CTk
                 "height": api_params.get("height"), # Pass height
                 "guidance_scale": api_params.get("guidance_scale"), # Pass guidance
                 "num_inference_steps": api_params.get("num_inference_steps"), # Pass steps
-                # Add seed if provided in the original params
+                # Add seed if provided
             }
             if "seed" in api_params:
                 inference_params["seed"] = api_params["seed"]
+
+            # Add LoRA parameters if provided (check HF client docs for format)
+            if api_params.get("enabled_loras"):
+                 # Placeholder: Assuming simple list of weights and single scale for now
+                 # This needs verification based on actual HF model/client capabilities
+                 # Use the first enabled LoRA for now, similar to Replicate
+                 first_enabled_lora = api_params["enabled_loras"][0]
+                 # HF client might expect 'lora_weights' as a list of URLs/IDs and 'lora_scale' as a float
+                 inference_params["lora_weights"] = [first_enabled_lora["url"]]
+                 inference_params["lora_scale"] = first_enabled_lora["scale"]
+                 print(f"Applying first enabled HF LoRA: {inference_params['lora_weights'][0]} with scale {inference_params['lora_scale']}")
+                 if len(api_params["enabled_loras"]) > 1:
+                     print("Warning: Multiple HuggingFace LoRAs were enabled in the UI, but the API client might only support one. Using the first one.")
+
 
             # Add image if present (for image-to-image models)
             # Note: HF InferenceClient might have a different method or param name for img2img
@@ -1402,211 +1541,8 @@ class ImageGeneratorGUI(ctk.CTk): # Inherit directly from ctk.CTk
             # Add more specific HF error checks here if needed
             return f"HF Error: {error_str}"
 
-    def generate_batch(self):
-        """Generate a batch of images with the current settings"""
-        if self.is_generating: messagebox.showinfo("In Progress", "Image generation already in progress"); return
-        try:
-            batch_count = int(self.batch_count_var.get())
-            if batch_count <= 0: messagebox.showinfo("Error", "Invalid batch count"); return
-            base_prompt = self.prompt_text.get("1.0", "end").strip()
-            if not base_prompt: messagebox.showinfo("Error", "Please enter a prompt"); return
-
-            # --- Apply Manual Trigger Words for Batch ---
-            prompt = base_prompt
-            if self.use_manual_trigger_words_var.get():
-                manual_triggers = self.manual_trigger_words_entry.get().strip()
-                if not manual_triggers:
-                    messagebox.showerror("Input Error", "Manual trigger words checkbox is enabled, but the input field is empty.")
-                    return # Stop generation
-                prompt = f"{manual_triggers}, {base_prompt}" # Prepend manual triggers
-
-            negative_prompt = self.negative_prompt_text.get("1.0", "end").strip() if self.config["advanced_mode"] else self.config["parameters"]["negative_prompt"]
-            width = int(self.width_var.get()); height = int(self.height_var.get())
-            steps = int(self.steps_var.get()); guidance = float(self.guidance_var.get())
-            lora_scale = float(self.lora_scale_var.get()); # Get LoRA scale
-            # Get Global Controls
-            output_format = self.output_format_var.get()
-            output_quality = self.output_quality_var.get()
-            megapixels = int(self.megapixels_var.get())
-            go_fast = self.go_fast_var.get()
-            output_quality = self.output_quality_var.get() if output_format != "png" else 95
-            megapixels = int(self.megapixels_var.get())
-            go_fast = self.go_fast_var.get()
-            seed_str = self.seed_var.get().strip()
-            seed = None
-            if seed_str:
-                try:
-                    seed = int(seed_str)
-                except ValueError:
-                    messagebox.showerror("Input Error", "Seed must be an integer.")
-                    return # Stop generation if seed is invalid
-
-            timestamp = time.strftime("%Y%m%d-%H%M%S")
-            output_paths = [os.path.join(self.config["output_directory"], f"{timestamp}_batch{i+1}of{batch_count}.{output_format}") for i in range(batch_count)]
-            input_image_path = self.image_uploader.get_image_path() if hasattr(self, 'image_uploader') else None
-
-            self.status_label.configure(text=f"Generating batch of {batch_count} images...")
-            self.is_generating = True
-            return # Stop generation if seed is invalid
-
-            # --- Get Model-Specific Parameters for Batch ---
-            service = self.service_var.get()
-            model_id = self.replicate_model_var.get() if service == "replicate" else self.hf_model_var.get()
-            model_params = {}
-            if model_id in self.model_param_vars:
-                for param_name, tk_var in self.model_param_vars[model_id].items():
-                    try:
-                        model_params[param_name] = tk_var.get()
-                    except Exception as e:
-                        print(f"Warning: Could not get value for {param_name} of model {model_id}: {e}")
-            else:
-                 print(f"Warning: Selected model '{model_id}' not found in model configurations for batch.")
-
-            # --- Get Selected LoRAs for Batch ---
-            selected_loras = []
-            if service == "huggingface":
-                 selected_items = self.hf_lora_tree.selection()
-                 selected_loras = [self.hf_lora_tree.item(item)["values"][0] for item in selected_items]
-
-            # --- Consolidate All Parameters for Batch ---
-            final_params = {
-                "prompt": prompt, "negative_prompt": negative_prompt,
-                "output_format": output_format, "output_quality": output_quality,
-                "megapixels": megapixels, "go_fast": go_fast,
-                "num_outputs": batch_count, # Add batch count
-                "service": service,
-                "model_id": model_id,
-                **model_params # Add model-specific params
-            }
-            if seed is not None: final_params["seed"] = seed # Add seed if valid for batch
-            if input_image_path: final_params["image"] = input_image_path
-            if selected_loras:
-                 final_params["lora_weights"] = selected_loras
-                 final_params["lora_scale"] = lora_scale
-
-            # --- Prepare for Batch Thread ---
-            timestamp = time.strftime("%Y%m%d-%H%M%S")
-            output_paths = [os.path.join(self.config["output_directory"], f"{timestamp}_batch{i+1}of{batch_count}.{output_format}") for i in range(batch_count)]
-            input_image_path = self.image_uploader.get_image_path() if hasattr(self, 'image_uploader') else None
-
-            self.status_label.configure(text=f"Generating batch of {batch_count} images...")
-            self.is_generating = True
-
-            # --- Start Batch Generation Thread ---
-            threading.Thread(target=self._generate_batch_thread, args=(final_params, output_paths), daemon=True).start()
-            # Save the *original* base prompt to history
-            if base_prompt not in self.config["recent_prompts"]:
-                self.config["recent_prompts"].insert(0, base_prompt)
-                self.config["recent_prompts"] = self.config["recent_prompts"][:20]
-                self.save_config()
-        except ValueError as e:
-            messagebox.showerror("Input Error", f"Invalid parameter value: {e}")
-            self.is_generating = False; self.status_label.configure(text="Error")
-        except Exception as e:
-            messagebox.showerror("Batch Generation Error", f"Error starting batch generation: {e}")
-            self.is_generating = False; self.status_label.configure(text="Error")
-
-    def _generate_batch_thread(self, params, output_paths):
-        """Thread function to generate a batch of images"""
-        try:
-            results = []
-            service = self.service_var.get()
-            num_outputs = params.get("num_outputs", 1)
-            print(f"--- Starting Batch Generation ({service}, {num_outputs} images) ---")
-
-            if service == "replicate":
-                # Replicate handles batching via num_outputs parameter
-                print(f"Calling Replicate for batch with params: { {k:v for k,v in params.items() if k != 'image'} }")
-                results = self._call_replicate_api(params) # Should return a list of URLs or an error string
-                if isinstance(results, str) and "Error" in results: # Handle API error for the whole batch
-                     print(f"Replicate batch failed: {results}")
-                     # Fill results with error messages for UI handling
-                     results = [results] * num_outputs
-                elif not isinstance(results, list): # Handle unexpected single result
-                     print(f"Warning: Replicate returned single result for batch request. Type: {type(results)}")
-                     results = [results] # Wrap in list
-
-            elif service == "huggingface":
-                # HF needs individual calls for batch simulation
-                for i in range(num_outputs):
-                    batch_params = params.copy()
-                    batch_params["seed"] = params.get("seed", random.randint(0, 2**32 - 1)) # Use provided seed or random per image
-                    self.after(0, lambda i=i: self.status_label.configure(text=f"Generating batch item {i+1}/{num_outputs}..."))
-                    print(f"Calling HF for batch item {i+1} with params: { {k:v for k,v in batch_params.items() if k != 'image'} }")
-                    result = self._call_hf_api(batch_params)
-                    results.append(result) # Append PIL image or error string
-                    if isinstance(result, str) and "Error" in result: print(f"Batch item {i+1} failed: {result}")
-                    time.sleep(0.1) # Small delay between calls if needed
-
-            else:
-                 results = ["Error: Unknown service selected."] * num_outputs
-
-            print(f"Batch API calls complete. Processing {len(results)} results.")
-            # --- Result Handling ---
-            saved_count = 0
-            first_success_path = None
-            if results:
-                if isinstance(results, list):
-                    for i, result in enumerate(results):
-                        if i >= len(output_paths): break # Safety check
-
-                        current_output_path = output_paths[i]
-                        image_saved_for_item = False
-
-                        if isinstance(result, str) and result.startswith("http"): # URL Case
-                            print(f"Downloading batch item {i+1} from URL: {result}")
-                            try:
-                                response = requests.get(result, timeout=30)
-                                response.raise_for_status()
-                                with open(current_output_path, 'wb') as f: f.write(response.content)
-                                image_saved_for_item = True
-                            except Exception as e: print(f"Error downloading/saving batch item {i+1}: {e}")
-                        elif isinstance(result, Image.Image): # PIL Image Case
-                            try:
-                                result.save(current_output_path)
-                                image_saved_for_item = True
-                            except Exception as e: print(f"Error saving PIL batch item {i+1}: {e}")
-                        elif isinstance(result, str) and "Error" in result: # Error string from API call
-                             print(f"API Error for batch item {i+1}: {result}")
-                             # Optionally create placeholder error image
-                             try:
-                                 error_img = Image.new('RGB', (512, 512), color=(200, 0, 0))
-                                 draw = ImageDraw.Draw(error_img)
-                                 font = ImageFont.load_default() # Removed semicolon from previous line
-                                 draw.text((10, 10), f"Error:\n{result[:100]}...", fill=(255,255,255), font=font)
-                                 error_img_path = current_output_path.replace(f".{params['output_format']}", "_error.png")
-                                 error_img.save(error_img_path)
-                             except Exception as img_err: print(f"Could not create error image: {img_err}")
-
-                        if image_saved_for_item and os.path.exists(current_output_path):
-                            saved_count += 1
-                            if first_success_path is None: first_success_path = current_output_path
-                            print(f"Batch item {i+1} saved to: {current_output_path}")
-
-            # --- UI Update ---
-            final_status = "Error" # Default status
-            if first_success_path:
-                 self.after(0, lambda p=first_success_path: self.update_image_preview(p))
-                 final_status = f"Batch complete ({saved_count}/{num_outputs} saved)."
-                 if saved_count < num_outputs: final_status += " Some errors occurred."
-                 self.after(10, lambda s=final_status: self.status_label.configure(text=s)) # Use slight delay for status
-            elif results and isinstance(results[0], str) and "Error" in results[0]: # If first item was an error
-                 first_error = results[0]
-                 self.after(0, lambda err=first_error: self.status_label.configure(text=f"Batch Error: {err[:100]}"))
-                 self.after(0, lambda err=first_error: messagebox.showerror("Batch Error", err))
-            else: # No successful images or empty results
-                 error_msg = "Batch failed: No images generated or saved."
-                 print(error_msg)
-                 self.after(0, lambda: self.status_label.configure(text=error_msg))
-                 self.after(0, lambda: messagebox.showerror("Batch Error", error_msg))
-
-        except Exception as e:
-            print(f"Error in batch generation thread: {e}")
-            import traceback; traceback.print_exc()
-            self.after(100, lambda err=str(e): messagebox.showerror("Batch Generation Error", f"Error during batch generation:\n{err}"))
-            self.after(100, lambda: self.status_label.configure(text="Error"))
-        finally:
-            self.after(100, lambda: setattr(self, 'is_generating', False))
+    # generate_batch method REMOVED
+    # _generate_batch_thread method REMOVED
 
     # --- Event Handlers & Callbacks ---
 
@@ -1719,18 +1655,16 @@ class ImageGeneratorGUI(ctk.CTk): # Inherit directly from ctk.CTk
         def save_lora():
             lora_url = lora_var.get().strip()
             if not lora_url: messagebox.showerror("Error", "Please enter a valid LoRA URL"); return
-            # Add to manager and update treeview if not already present
-            if lora_url not in self.hf_lora_manager.loras:
-                self.hf_lora_manager.add_lora(lora_url)
-                self.hf_lora_tree.insert("", tk.END, values=(lora_url, "0.90"))
-                self.config["recent_loras_hf"] = [url for url, _ in self.hf_lora_manager.get_loras()]
+            # Add to manager and update the dynamic HF UI list
+            if self.hf_lora_manager.add_lora(lora_url): # add_lora returns True if added
+                self.config["recent_loras_hf"] = self.hf_lora_manager.get_loras() # Save updated list of dicts
                 self.save_config()
+                self._update_hf_lora_list_ui() # Refresh the dynamic list
             else:
                 messagebox.showinfo("Duplicate", "This LoRA URL is already in the list.")
             dialog.destroy()
         ctk.CTkButton(dialog, text="Add LoRA", command=save_lora).grid(row=1, column=0, columnspan=2, padx=20, pady=20)
 
-    # Placeholder methods for LoRA removal - TODO: Implement fully
     def add_rep_lora(self):
         """Add a new Replicate LoRA"""
         dialog = ctk.CTkToplevel(self); dialog.title("Add Replicate LoRA"); dialog.geometry("600x150")
@@ -1740,43 +1674,173 @@ class ImageGeneratorGUI(ctk.CTk): # Inherit directly from ctk.CTk
         def save_lora():
             lora_url = lora_var.get().strip()
             if not lora_url: messagebox.showerror("Error", "Please enter a valid LoRA URL"); return
-            if lora_url not in self.rep_lora_manager.loras:
-                self.rep_lora_manager.add_lora(lora_url)
-                self.rep_lora_tree.insert("", tk.END, values=(lora_url, "0.90"))
-                self.config["recent_loras_replicate"] = [url for url, _ in self.rep_lora_manager.get_loras()]
+            # Add to manager and update UI
+            if self.rep_lora_manager.add_lora(lora_url): # add_lora now returns True if added
+                self.config["recent_loras_replicate"] = self.rep_lora_manager.get_loras() # Save the full dict list
                 self.save_config()
+                self._update_rep_lora_list_ui() # Refresh the dynamic list
             else:
                 messagebox.showinfo("Duplicate", "This LoRA URL is already in the list.")
             dialog.destroy()
         ctk.CTkButton(dialog, text="Add LoRA", command=save_lora).grid(row=1, column=0, columnspan=2, padx=20, pady=20)
 
-    def remove_rep_lora(self):
-        selected_items = self.rep_lora_tree.selection()
-        if not selected_items:
-            messagebox.showwarning("Selection Error", "Please select one or more Replicate LoRAs to remove.")
-            return
-        indices = [self.rep_lora_tree.index(item) for item in selected_items]
-        for i, item in sorted(zip(indices, selected_items), reverse=True):
-            self.rep_lora_manager.remove_lora(i)
-            self.rep_lora_tree.delete(item)
-        self.config["recent_loras_replicate"] = [url for url, _ in self.rep_lora_manager.get_loras()]
+    def remove_rep_lora(self, lora_url_to_remove: str):
+        """Remove a specific Replicate LoRA by its URL and update UI."""
+        print(f"Attempting to remove Replicate LoRA: {lora_url_to_remove}")
+        self.rep_lora_manager.remove_lora_by_url(lora_url_to_remove)
+        self.config["recent_loras_replicate"] = self.rep_lora_manager.get_loras() # Save updated list
         self.save_config()
-        print(f"Removed {len(selected_items)} Replicate LoRA(s). Updated config.")
+        self._update_rep_lora_list_ui() # Refresh the dynamic list
 
-    def remove_hf_lora(self):
-        selected_items = self.hf_lora_tree.selection()
-        if not selected_items:
-            messagebox.showwarning("Selection Error", "Please select one or more HuggingFace LoRAs to remove.")
-            return
-        # Remove from manager and treeview in reverse order
-        indices = [self.hf_lora_tree.index(item) for item in selected_items]
-        for i, item in sorted(zip(indices, selected_items), reverse=True):
-            self.hf_lora_manager.remove_lora(i)
-            self.hf_lora_tree.delete(item)
-        # Sync config from manager
-        self.config["recent_loras_hf"] = [url for url, _ in self.hf_lora_manager.get_loras()]
+    def remove_hf_lora(self, lora_url_to_remove: str):
+        """Remove a specific HuggingFace LoRA by its URL and update UI."""
+        print(f"Attempting to remove HuggingFace LoRA: {lora_url_to_remove}")
+        self.hf_lora_manager.remove_lora_by_url(lora_url_to_remove)
+        self.config["recent_loras_hf"] = self.hf_lora_manager.get_loras() # Save updated list
         self.save_config()
-        print(f"Removed {len(selected_items)} HF LoRA(s). Updated config.")
+        self._update_hf_lora_list_ui() # Refresh the dynamic list
+
+    # --- New Methods for Dynamic LoRA UI (Both Services) ---
+
+    def _update_rep_lora_list_ui(self):
+        """Clear and rebuild the dynamic list of Replicate LoRA controls."""
+        # Clear existing widgets in the list frame
+        for widget in self.rep_lora_list_frame.winfo_children():
+            widget.destroy()
+
+        # Rebuild the list based on the manager
+        for index, lora_data in enumerate(self.rep_lora_manager.get_loras()):
+            self._create_rep_lora_entry(self.rep_lora_list_frame, index, lora_data)
+
+    def _create_rep_lora_entry(self, parent, index, lora_data):
+        """Create a frame with controls for a single Replicate LoRA."""
+        entry_frame = ctk.CTkFrame(parent, fg_color="#303030") # Slightly different bg for entries
+        entry_frame.pack(fill="x", pady=2, padx=2)
+        entry_frame.grid_columnconfigure(1, weight=1) # Allow label to expand
+
+        # --- Checkbox (Enable/Disable) ---
+        enabled_var = tk.BooleanVar(value=lora_data.get('enabled', True))
+        def on_toggle():
+            # Allow multiple LoRAs to be enabled for Replicate
+            new_state = enabled_var.get()
+            self.rep_lora_manager.set_enabled(index, new_state)
+            self.config["recent_loras_replicate"] = self.rep_lora_manager.get_loras()
+            self.save_config()
+            # No UI refresh needed just for toggle state change
+            print(f"Replicate LoRA '{lora_data.get('url', '')}' enabled state set to: {new_state}")
+            # Update label to reflect multi-select possibility
+            self.rep_lora_label.configure(text="Replicate LoRAs (Select multiple):")
+
+        checkbox = ctk.CTkCheckBox(entry_frame, variable=enabled_var, text="", width=20, command=on_toggle, checkbox_height=18, checkbox_width=18, fg_color=BUTTON_GOLD_COLOR)
+        checkbox.grid(row=0, column=0, padx=(5, 2), pady=5, sticky="w")
+
+        # --- Label (Truncated URL) ---
+        url = lora_data.get('url', 'Invalid URL')
+        display_url = url if len(url) < 45 else url[:20] + "..." + url[-20:]
+        label = ctk.CTkLabel(entry_frame, text=display_url, anchor="w", text_color=TEXT_COLOR)
+        label.grid(row=0, column=1, padx=2, pady=5, sticky="ew")
+        # Add tooltip (requires an external library like tktooltip or manual implementation)
+        # ToolTip(label, text=url) # Example if using tktooltip
+
+        # --- Scale Slider ---
+        scale_var = tk.DoubleVar(value=lora_data.get('scale', 0.8))
+        scale_label_var = tk.StringVar(value=f"{scale_var.get():.2f}") # Separate var for label text
+
+        def on_scale_change(value):
+            scale_value = float(value)
+            scale_label_var.set(f"{scale_value:.2f}")
+            # Update manager only when slider is released (using command)
+
+        def on_scale_release(*args): # Called when slider released
+             scale_value = scale_var.get()
+             self.rep_lora_manager.set_scale(index, scale_value)
+             self.config["recent_loras_replicate"] = self.rep_lora_manager.get_loras()
+             self.save_config()
+             print(f"Saved scale for Replicate LoRA {index}: {scale_value:.2f}")
+
+
+        slider = ctk.CTkSlider(entry_frame, from_=-1.0, to=3.0, number_of_steps=40, variable=scale_var, width=100, command=on_scale_change)
+        # Bind release event to save config
+        slider.bind("<ButtonRelease-1>", on_scale_release)
+        slider.grid(row=0, column=2, padx=2, pady=5, sticky="e")
+
+        scale_label = ctk.CTkLabel(entry_frame, textvariable=scale_label_var, width=35, text_color=TEXT_COLOR)
+        scale_label.grid(row=0, column=3, padx=(0, 5), pady=5, sticky="e")
+
+        # --- Remove Button ---
+        remove_button = ctk.CTkButton(entry_frame, text="X", width=25, height=25, fg_color="#555555", hover_color="#E04040",
+                                      command=lambda u=url: self.remove_rep_lora(u))
+        remove_button.grid(row=0, column=4, padx=(0, 5), pady=5, sticky="e")
+
+    # --- New Methods for Dynamic HuggingFace LoRA UI ---
+
+    def _update_hf_lora_list_ui(self):
+        """Clear and rebuild the dynamic list of HuggingFace LoRA controls."""
+        # Clear existing widgets in the list frame
+        for widget in self.hf_lora_list_frame.winfo_children():
+            widget.destroy()
+
+        # Rebuild the list based on the manager
+        for index, lora_data in enumerate(self.hf_lora_manager.get_loras()):
+            self._create_hf_lora_entry(self.hf_lora_list_frame, index, lora_data)
+
+    def _create_hf_lora_entry(self, parent, index, lora_data):
+        """Create a frame with controls for a single HuggingFace LoRA."""
+        entry_frame = ctk.CTkFrame(parent, fg_color="#303030") # Slightly different bg for entries
+        entry_frame.pack(fill="x", pady=2, padx=2)
+        entry_frame.grid_columnconfigure(1, weight=1) # Allow label to expand
+
+        # --- Checkbox (Enable/Disable) ---
+        enabled_var = tk.BooleanVar(value=lora_data.get('enabled', True))
+        def on_toggle():
+            # Allow multiple LoRAs to be enabled for HuggingFace
+            new_state = enabled_var.get()
+            self.hf_lora_manager.set_enabled(index, new_state)
+            self.config["recent_loras_hf"] = self.hf_lora_manager.get_loras()
+            self.save_config()
+            print(f"HuggingFace LoRA '{lora_data.get('url', '')}' enabled state set to: {new_state}")
+            # Update label to reflect multi-select possibility
+            self.hf_lora_label.configure(text="HuggingFace LoRAs (Select multiple):")
+
+        checkbox = ctk.CTkCheckBox(entry_frame, variable=enabled_var, text="", width=20, command=on_toggle, checkbox_height=18, checkbox_width=18, fg_color=BUTTON_GOLD_COLOR)
+        checkbox.grid(row=0, column=0, padx=(5, 2), pady=5, sticky="w")
+
+        # --- Label (Truncated URL) ---
+        url = lora_data.get('url', 'Invalid URL')
+        display_url = url if len(url) < 45 else url[:20] + "..." + url[-20:]
+        label = ctk.CTkLabel(entry_frame, text=display_url, anchor="w", text_color=TEXT_COLOR)
+        label.grid(row=0, column=1, padx=2, pady=5, sticky="ew")
+        # Add tooltip (requires an external library like tktooltip or manual implementation)
+        # ToolTip(label, text=url) # Example if using tktooltip
+
+        # --- Scale Slider ---
+        scale_var = tk.DoubleVar(value=lora_data.get('scale', 0.8))
+        scale_label_var = tk.StringVar(value=f"{scale_var.get():.2f}") # Separate var for label text
+
+        def on_scale_change(value):
+            scale_value = float(value)
+            scale_label_var.set(f"{scale_value:.2f}")
+
+        def on_scale_release(*args): # Called when slider released
+             scale_value = scale_var.get()
+             self.hf_lora_manager.set_scale(index, scale_value)
+             self.config["recent_loras_hf"] = self.hf_lora_manager.get_loras()
+             self.save_config()
+             print(f"Saved scale for HF LoRA {index}: {scale_value:.2f}")
+
+        slider = ctk.CTkSlider(entry_frame, from_=-1.0, to=3.0, number_of_steps=40, variable=scale_var, width=100, command=on_scale_change)
+        # Bind release event to save config
+        slider.bind("<ButtonRelease-1>", on_scale_release)
+        slider.grid(row=0, column=2, padx=2, pady=5, sticky="e")
+
+        scale_label = ctk.CTkLabel(entry_frame, textvariable=scale_label_var, width=35, text_color=TEXT_COLOR)
+        scale_label.grid(row=0, column=3, padx=(0, 5), pady=5, sticky="e")
+
+        # --- Remove Button ---
+        remove_button = ctk.CTkButton(entry_frame, text="X", width=25, height=25, fg_color="#555555", hover_color="#E04040",
+                                      command=lambda u=url: self.remove_hf_lora(u))
+        remove_button.grid(row=0, column=4, padx=(0, 5), pady=5, sticky="e")
+
 
     def _create_param_widget(self, parent, param_name, config, row_idx):
         """Helper to create a widget for a model parameter based on its type and config"""
@@ -1800,18 +1864,36 @@ class ImageGeneratorGUI(ctk.CTk): # Inherit directly from ctk.CTk
         elif param_name in ranges: # Slider
             range_info = ranges[param_name]
             min_val, max_val = range_info[0], range_info[1]
+            # Ensure max_val respects the global limit for safety_tolerance
+            if param_name == "safety_tolerance":
+                max_val = min(max_val, 6) # Cap max_val at 6 for safety_tolerance slider
+
             step = range_info[2] if len(range_info) > 2 else 1 # Step for integer sliders
             num_steps = int((max_val - min_val) / step) if isinstance(default_value, int) else 100 # Default steps for float
 
-            if isinstance(default_value, int):
-                widget_var = tk.IntVar(value=default_value)
-            else: # Float
-                widget_var = tk.DoubleVar(value=default_value)
-                num_steps = int((max_val - min_val) / 0.1) # Example: 0.1 step for float sliders
+            # Ensure default value doesn't exceed the (potentially capped) max_val
+            if default_value is not None and default_value > max_val:
+                clamped_default = max_val
+                print(f"Warning: Default value {default_value} for {param_name} exceeded max {max_val}. Clamping to {clamped_default}.")
+            else:
+                clamped_default = default_value
 
+            if isinstance(clamped_default, int):
+                 widget_var = tk.IntVar(value=clamped_default)
+            elif isinstance(clamped_default, float): # Float
+                 widget_var = tk.DoubleVar(value=clamped_default)
+                 num_steps = int((max_val - min_val) / 0.1) # Example: 0.1 step for float sliders
+            else: # Handle None case or other types if necessary
+                 widget_var = tk.IntVar(value=int(max_val)) # Default to max if original default was None or invalid type
+
+            # Ensure num_steps is valid
+            if num_steps <= 0: num_steps = 1 # Prevent division by zero or negative steps
+
+            # Restore the slider creation and grid placement
             widget = ctk.CTkSlider(parent, from_=min_val, to=max_val, number_of_steps=num_steps, variable=widget_var)
             widget.grid(row=row_idx, column=1, padx=5, pady=2, sticky="ew")
-            # Value label for slider
+
+            # Value label for slider (Common for both int and float sliders)
             value_label = ctk.CTkLabel(parent, text=f"{widget_var.get():.1f}" if isinstance(widget_var, tk.DoubleVar) else str(widget_var.get()), text_color=TEXT_COLOR, width=40)
             value_label.grid(row=row_idx, column=2, padx=5, pady=2, sticky="w")
             widget_var.trace_add("write", lambda *args, var=widget_var, label=value_label: label.configure(text=f"{var.get():.1f}" if isinstance(var, tk.DoubleVar) else str(var.get())))
