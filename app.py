@@ -400,7 +400,8 @@ class ImageGeneratorGUI(ctk.CTk): # Inherit directly from ctk.CTk
         self.create_main_image_display(self.center_image_panel)
         
         # Right Config Panel
-        # Call create_service_toggle early as other sections depend on self.service_var
+        # Call create_header and create_service_toggle early as other sections depend on their variables
+        self.create_header(self.right_config_panel) # Add call to create_header
         self.create_service_toggle(self.right_config_panel) 
         self.create_prompt_section(self.right_config_panel)
         self.create_generation_settings(self.right_config_panel)
