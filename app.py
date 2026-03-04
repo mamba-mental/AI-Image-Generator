@@ -97,12 +97,12 @@ class ImageUploader:
         url_frame = ctk.CTkFrame(controls_frame, fg_color=FRAME_BG_COLOR)
         self.url_entry = ctk.CTkEntry(url_frame, width=200, placeholder_text="Image URL") # Use CTkEntry
         self.url_entry.pack(side=tk.LEFT, fill="x", expand=True, padx=(0, 5))
-        url_load_btn = ctk.CTkButton(url_frame, text="Load URL", width=80, command=self.load_from_url, fg_color=BUTTON_GOLD_COLOR, text_color=BUTTON_TEXT_COLOR, hover_color="#CCAA00")
+        url_load_btn = ctk.CTkButton(url_frame, text="Load URL", width=80, command=self.load_from_url, fg_color=ACCENT_COLOR, text_color=BUTTON_TEXT_COLOR, hover_color=ACCENT_HOVER)
         url_load_btn.pack(side=tk.RIGHT)
         url_frame.pack(fill="x", pady=5)
 
         # File browse button
-        browse_btn = ctk.CTkButton(controls_frame, text="Browse for Image", command=self.browse_image, fg_color=BUTTON_GOLD_COLOR, text_color=BUTTON_TEXT_COLOR, hover_color="#CCAA00")
+        browse_btn = ctk.CTkButton(controls_frame, text="Browse for Image", command=self.browse_image, fg_color=ACCENT_COLOR, text_color=BUTTON_TEXT_COLOR, hover_color=ACCENT_HOVER)
         browse_btn.pack(fill="x", pady=5)
 
         # Drop area label
@@ -290,11 +290,21 @@ class ImageUploader:
         return self.image_path
 
 # --- UI Styling ---
-APP_BG_COLOR = "#181818"
-FRAME_BG_COLOR = "#232323"
+APP_BG_COLOR = "#000000"
+FRAME_BG_COLOR = "#0a0a0a"
+SURFACE_ELEVATED = "#111111"
+INPUT_BG_COLOR = "#151515"
 TEXT_COLOR = "#FFFFFF"
-BUTTON_GOLD_COLOR = "#FFD700"
-BUTTON_TEXT_COLOR = "#000000"
+TEXT_SECONDARY = "#888888"
+ACCENT_COLOR = "#8B5CF6"
+ACCENT_HOVER = "#A78BFA"
+BUTTON_PRIMARY_FG = "#8B5CF6"
+BUTTON_SECONDARY_FG = "#1a1a1a"
+BUTTON_TEXT_COLOR = "#FFFFFF"
+BORDER_COLOR = "#1a1a1a"
+SUCCESS_COLOR = "#4ADE80"
+WARNING_COLOR = "#FBBF24"
+ERROR_COLOR = "#F87171"
 
 # Set appearance mode and default theme (Keep dark mode for base)
 ctk.set_appearance_mode("Dark")
@@ -363,6 +373,9 @@ class ImageGeneratorGUI(ctk.CTk): # Inherit directly from ctk.CTk
         self.minsize(900, 600)
         self.configure(fg_color=APP_BG_COLOR)
 
+        # Initialize model_param_vars early (populated by create_parameters_section)
+        self.model_param_vars = {}
+
         # Define event handlers *before* creating UI elements that use them
         self._define_event_handlers()
 
@@ -404,13 +417,12 @@ class ImageGeneratorGUI(ctk.CTk): # Inherit directly from ctk.CTk
         
         # Right Config Panel
         # Call create_header and create_service_toggle early as other sections depend on their variables
-        self.create_header(self.right_config_panel) # Add call to create_header
-        self.create_service_toggle(self.right_config_panel) 
+        self.create_header(self.right_config_panel)
+        self.create_service_toggle(self.right_config_panel)
         self.create_prompt_section(self.right_config_panel)
-        self.create_generation_settings(self.right_config_panel)
-        self.create_safety_speed_section(self.right_config_panel)
+        self.create_parameters_section(self.right_config_panel)
         self.create_lora_section(self.right_config_panel) # Depends on service_var
-        self.create_megapixels_cost_section(self.right_config_panel)
+        self.create_output_section(self.right_config_panel) # Generate button + output dir
         
         # Footer Panel
         self.create_footer_controls(self.footer_panel)
@@ -643,21 +655,6 @@ class ImageGeneratorGUI(ctk.CTk): # Inherit directly from ctk.CTk
         self.create_image_display(parent) # Call the existing method
         print("Placeholder: create_main_image_display called (using existing create_image_display)")
 
-    def create_generation_settings(self, parent):
-        """Placeholder for generation settings section"""
-        gen_settings_frame = ctk.CTkFrame(parent, fg_color=FRAME_BG_COLOR)
-        gen_settings_frame.pack(fill="x", padx=5, pady=5)
-        ctk.CTkLabel(gen_settings_frame, text="Generation Settings", text_color=TEXT_COLOR).pack(expand=True)
-        print("Placeholder: create_generation_settings called")
-        # Store reference if needed
-        self.generation_settings_frame = gen_settings_frame
-
-    def create_safety_speed_section(self, parent):
-        """Placeholder for safety/speed section"""
-        safety_frame = ctk.CTkFrame(parent, fg_color=FRAME_BG_COLOR)
-        safety_frame.pack(fill="x", padx=5, pady=5)
-        ctk.CTkLabel(safety_frame, text="Safety/Speed", text_color=TEXT_COLOR).pack(expand=True)
-        print("Placeholder: create_safety_speed_section called")
 
     def create_lora_section(self, parent):
         """Placeholder for LoRA section"""
@@ -665,12 +662,6 @@ class ImageGeneratorGUI(ctk.CTk): # Inherit directly from ctk.CTk
         self.create_model_section(parent) # Call the existing method
         print("Placeholder: create_lora_section called (using existing create_model_section)")
 
-    def create_megapixels_cost_section(self, parent):
-        """Placeholder for megapixels/cost section"""
-        cost_frame = ctk.CTkFrame(parent, fg_color=FRAME_BG_COLOR)
-        cost_frame.pack(fill="x", padx=5, pady=5)
-        ctk.CTkLabel(cost_frame, text="Megapixels/Cost", text_color=TEXT_COLOR).pack(expand=True)
-        print("Placeholder: create_megapixels_cost_section called")
 
     def create_footer_controls(self, parent):
         """Placeholder for footer controls section"""
@@ -689,7 +680,7 @@ class ImageGeneratorGUI(ctk.CTk): # Inherit directly from ctk.CTk
         title_label.pack(side="left", padx=5, pady=2) # Consistent padding
 
         self.advanced_mode_var = tk.BooleanVar(value=self.config["advanced_mode"])
-        advanced_mode_switch = ctk.CTkSwitch(header_frame, text="Advanced Mode", variable=self.advanced_mode_var, command=self.toggle_advanced_mode, text_color=TEXT_COLOR, button_color=BUTTON_GOLD_COLOR, progress_color=APP_BG_COLOR)
+        advanced_mode_switch = ctk.CTkSwitch(header_frame, text="Advanced Mode", variable=self.advanced_mode_var, command=self.toggle_advanced_mode, text_color=TEXT_COLOR, button_color=ACCENT_COLOR, progress_color=ACCENT_COLOR)
         advanced_mode_switch.pack(side="right", padx=5, pady=2) # Consistent padding
 
     def create_service_toggle(self, parent):
@@ -699,9 +690,9 @@ class ImageGeneratorGUI(ctk.CTk): # Inherit directly from ctk.CTk
 
         ctk.CTkLabel(service_frame, text="Select Service:", font=ctk.CTkFont(size=16), text_color=TEXT_COLOR).pack(side="left", padx=5, pady=2) # Consistent padding
         self.service_var = tk.StringVar(value=self.config["service"])
-        ctk.CTkRadioButton(service_frame, text="Replicate API", variable=self.service_var, value="replicate", command=self.on_service_change, text_color=TEXT_COLOR, fg_color=BUTTON_GOLD_COLOR, hover_color="#CCAA00").pack(side="left", padx=5, pady=2) # Consistent padding
-        ctk.CTkRadioButton(service_frame, text="Hugging Face", variable=self.service_var, value="huggingface", command=self.on_service_change, text_color=TEXT_COLOR, fg_color=BUTTON_GOLD_COLOR, hover_color="#CCAA00").pack(side="left", padx=5, pady=2) # Consistent padding
-        ctk.CTkRadioButton(service_frame, text="Gemini", variable=self.service_var, value="gemini", command=self.on_service_change, text_color=TEXT_COLOR, fg_color=BUTTON_GOLD_COLOR, hover_color="#CCAA00").pack(side="left", padx=5, pady=2)
+        ctk.CTkRadioButton(service_frame, text="Replicate API", variable=self.service_var, value="replicate", command=self.on_service_change, text_color=TEXT_COLOR, fg_color=ACCENT_COLOR, hover_color=ACCENT_HOVER).pack(side="left", padx=5, pady=2) # Consistent padding
+        ctk.CTkRadioButton(service_frame, text="Hugging Face", variable=self.service_var, value="huggingface", command=self.on_service_change, text_color=TEXT_COLOR, fg_color=ACCENT_COLOR, hover_color=ACCENT_HOVER).pack(side="left", padx=5, pady=2) # Consistent padding
+        ctk.CTkRadioButton(service_frame, text="Gemini", variable=self.service_var, value="gemini", command=self.on_service_change, text_color=TEXT_COLOR, fg_color=ACCENT_COLOR, hover_color=ACCENT_HOVER).pack(side="left", padx=5, pady=2)
         # Initialize status labels (setup_services will update them based on key presence)
         self.replicate_status = ctk.CTkLabel(service_frame, text="Checking...", text_color="grey", font=ctk.CTkFont(size=12))
         self.replicate_status.pack(side="left", padx=(0, 5), pady=2)
@@ -709,7 +700,7 @@ class ImageGeneratorGUI(ctk.CTk): # Inherit directly from ctk.CTk
         self.huggingface_status.pack(side="left", padx=(0, 5), pady=2)
         self.gemini_status = ctk.CTkLabel(service_frame, text="Checking...", text_color="grey", font=ctk.CTkFont(size=12))
         self.gemini_status.pack(side="left", padx=(0, 5), pady=2)
-        ctk.CTkButton(service_frame, text="Configure API Keys", command=self.configure_api_keys, fg_color=BUTTON_GOLD_COLOR, text_color=BUTTON_TEXT_COLOR, hover_color="#CCAA00").pack(side="right", padx=5, pady=2) # Consistent padding
+        ctk.CTkButton(service_frame, text="Configure API Keys", command=self.configure_api_keys, fg_color=ACCENT_COLOR, text_color=BUTTON_TEXT_COLOR, hover_color=ACCENT_HOVER).pack(side="right", padx=5, pady=2) # Consistent padding
 
     def create_prompt_section(self, parent):
         """Create the prompt input section in the right config panel"""
@@ -718,7 +709,7 @@ class ImageGeneratorGUI(ctk.CTk): # Inherit directly from ctk.CTk
 
         # Main Prompt
         self.prompt_text = ctk.CTkTextbox(prompt_frame, height=100, wrap="word", 
-                                       text_color=TEXT_COLOR, fg_color="#333333",
+                                       text_color=TEXT_COLOR, fg_color=INPUT_BG_COLOR,
                                        font=ctk.CTkFont(size=14))
         self.prompt_text.pack(fill="x", padx=5, pady=5)
         self.prompt_text.insert("1.0", "A beautiful woman on the beach, realistic, detailed, high quality")
@@ -732,7 +723,7 @@ class ImageGeneratorGUI(ctk.CTk): # Inherit directly from ctk.CTk
         negative_toggle = ctk.CTkSwitch(toggles_frame, text="Use Negative Prompt",
                                       variable=self.negative_toggle_var,
                                       command=self.toggle_negative_prompt,
-                                      button_color=BUTTON_GOLD_COLOR)
+                                      button_color=ACCENT_COLOR)
         negative_toggle.pack(side="left", padx=5)
 
         # Trigger Words Toggle
@@ -740,7 +731,7 @@ class ImageGeneratorGUI(ctk.CTk): # Inherit directly from ctk.CTk
         trigger_toggle = ctk.CTkSwitch(toggles_frame, text="Use Trigger Words",
                                      variable=self.trigger_toggle_var,
                                      command=self.toggle_trigger_words,
-                                     button_color=BUTTON_GOLD_COLOR)
+                                     button_color=ACCENT_COLOR)
         trigger_toggle.pack(side="left", padx=5)
 
         # Input Fields (initially state based on toggle settings)
@@ -749,13 +740,13 @@ class ImageGeneratorGUI(ctk.CTk): # Inherit directly from ctk.CTk
         # Note: The .grid() call for this label happens inside toggle_advanced_mode
 
         self.negative_prompt_text = ctk.CTkTextbox(prompt_frame, height=60, wrap="word",
-                                                 text_color=TEXT_COLOR, fg_color="#333333",
+                                                 text_color=TEXT_COLOR, fg_color=INPUT_BG_COLOR,
                                                  state="normal" if self.negative_toggle_var.get() else "disabled")
         self.negative_prompt_text.pack(fill="x", padx=5, pady=5) # Keep pack for now, grid is handled in toggle_advanced_mode
         self.negative_prompt_text.insert("1.0", self.config["parameters"]["negative_prompt"])
 
         self.trigger_words_entry = ctk.CTkEntry(prompt_frame, placeholder_text="Trigger words...",
-                                              text_color=TEXT_COLOR, fg_color="#333333",
+                                              text_color=TEXT_COLOR, fg_color=INPUT_BG_COLOR,
                                               state="normal" if self.trigger_toggle_var.get() else "disabled")
         self.trigger_words_entry.pack(fill="x", padx=5, pady=5)
         
@@ -904,20 +895,20 @@ class ImageGeneratorGUI(ctk.CTk): # Inherit directly from ctk.CTk
         self.replicate_model_label = ctk.CTkLabel(self.model_section_frame, text="Replicate Model:", font=ctk.CTkFont(size=16), text_color=TEXT_COLOR)
         self.replicate_model_var = tk.StringVar(value=self.config["last_used_model_replicate"])
         self.replicate_model_combo = ctk.CTkComboBox(self.model_section_frame, values=self.config["recent_models_replicate"], variable=self.replicate_model_var, width=400, state="readonly")
-        self.add_replicate_model_button = ctk.CTkButton(self.model_section_frame, text="Add Model", width=100, command=self.add_replicate_model, fg_color=BUTTON_GOLD_COLOR, text_color=BUTTON_TEXT_COLOR, hover_color="#CCAA00")
+        self.add_replicate_model_button = ctk.CTkButton(self.model_section_frame, text="Add Model", width=100, command=self.add_replicate_model, fg_color=ACCENT_COLOR, text_color=BUTTON_TEXT_COLOR, hover_color=ACCENT_HOVER)
 
         # Hugging Face widgets (created once, gridded/forgotten in update)
         self.hf_model_label = ctk.CTkLabel(self.model_section_frame, text="HF Base Model:", font=ctk.CTkFont(size=16), text_color=TEXT_COLOR)
         self.hf_model_var = tk.StringVar(value=self.config["last_used_model_hf"])
         self.hf_model_combo = ctk.CTkComboBox(self.model_section_frame, values=self.config["recent_models_hf"], variable=self.hf_model_var, width=400, state="readonly")
-        self.add_hf_model_button = ctk.CTkButton(self.model_section_frame, text="Add Model", width=100, command=self.add_hf_model, fg_color=BUTTON_GOLD_COLOR, text_color=BUTTON_TEXT_COLOR, hover_color="#CCAA00")
+        self.add_hf_model_button = ctk.CTkButton(self.model_section_frame, text="Add Model", width=100, command=self.add_hf_model, fg_color=ACCENT_COLOR, text_color=BUTTON_TEXT_COLOR, hover_color=ACCENT_HOVER)
 
         # Gemini widgets (created once, gridded/forgotten in update)
         self.gemini_model_label = ctk.CTkLabel(self.model_section_frame, text="Gemini Model:", font=ctk.CTkFont(size=16), text_color=TEXT_COLOR)
         gemini_models = self.config.get("recent_models_gemini", ["gemini-2.5-flash-image"])
         self.gemini_model_var = tk.StringVar(value=self.config.get("last_used_model_gemini", "gemini-2.5-flash-image"))
         self.gemini_model_combo = ctk.CTkComboBox(self.model_section_frame, values=gemini_models, variable=self.gemini_model_var, width=400, state="readonly")
-        self.add_gemini_model_button = ctk.CTkButton(self.model_section_frame, text="Add Model", width=100, command=self.add_gemini_model, fg_color=BUTTON_GOLD_COLOR, text_color=BUTTON_TEXT_COLOR, hover_color="#CCAA00")
+        self.add_gemini_model_button = ctk.CTkButton(self.model_section_frame, text="Add Model", width=100, command=self.add_gemini_model, fg_color=ACCENT_COLOR, text_color=BUTTON_TEXT_COLOR, hover_color=ACCENT_HOVER)
         # Gemini info label
         self.gemini_info_label = ctk.CTkLabel(self.model_section_frame, text="Gemini: Free tier, ~500 images/day per key. No LoRA support.", font=ctk.CTkFont(size=12), text_color="grey")
 
@@ -931,7 +922,7 @@ class ImageGeneratorGUI(ctk.CTk): # Inherit directly from ctk.CTk
         self.rep_lora_list_frame = ctk.CTkFrame(self.lora_management_frame, fg_color="transparent")
         # Add/Remove buttons frame
         self.rep_lora_button_frame = ctk.CTkFrame(self.lora_management_frame, fg_color="transparent")
-        self.add_rep_lora_button = ctk.CTkButton(self.rep_lora_button_frame, text="Add", width=60, command=self.add_rep_lora, fg_color=BUTTON_GOLD_COLOR, text_color=BUTTON_TEXT_COLOR, hover_color="#CCAA00")
+        self.add_rep_lora_button = ctk.CTkButton(self.rep_lora_button_frame, text="Add", width=60, command=self.add_rep_lora, fg_color=ACCENT_COLOR, text_color=BUTTON_TEXT_COLOR, hover_color=ACCENT_HOVER)
         # Remove button is now per-LoRA entry
 
         # Hugging Face LoRA Widgets - Dynamic List Area
@@ -940,7 +931,7 @@ class ImageGeneratorGUI(ctk.CTk): # Inherit directly from ctk.CTk
         self.hf_lora_list_frame = ctk.CTkFrame(self.lora_management_frame, fg_color="transparent")
         # Add/Remove buttons frame for HF
         self.hf_lora_button_frame = ctk.CTkFrame(self.lora_management_frame, fg_color="transparent")
-        self.add_hf_lora_button = ctk.CTkButton(self.hf_lora_button_frame, text="Add", width=60, command=self.add_hf_lora, fg_color=BUTTON_GOLD_COLOR, text_color=BUTTON_TEXT_COLOR, hover_color="#CCAA00")
+        self.add_hf_lora_button = ctk.CTkButton(self.hf_lora_button_frame, text="Add", width=60, command=self.add_hf_lora, fg_color=ACCENT_COLOR, text_color=BUTTON_TEXT_COLOR, hover_color=ACCENT_HOVER)
         # Remove button is now per-LoRA entry for HF as well
 
         # LoRA Scale Slider REMOVED - Now per-LoRA for both
@@ -1012,7 +1003,7 @@ class ImageGeneratorGUI(ctk.CTk): # Inherit directly from ctk.CTk
         ctk.CTkLabel(output_frame, text="Output Directory:", font=ctk.CTkFont(size=16), text_color=TEXT_COLOR).grid(row=0, column=0, padx=5, pady=2, sticky="w")
         self.output_dir_var = tk.StringVar(value=self.config["output_directory"])
         ctk.CTkEntry(output_frame, textvariable=self.output_dir_var, width=400, state="readonly").grid(row=0, column=1, padx=5, pady=2, sticky="ew")
-        ctk.CTkButton(output_frame, text="Browse", width=100, command=self.browse_output_dir, fg_color=BUTTON_GOLD_COLOR, text_color=BUTTON_TEXT_COLOR, hover_color="#CCAA00").grid(row=0, column=2, padx=5, pady=2, sticky="e")
+        ctk.CTkButton(output_frame, text="Browse", width=100, command=self.browse_output_dir, fg_color=ACCENT_COLOR, text_color=BUTTON_TEXT_COLOR, hover_color=ACCENT_HOVER).grid(row=0, column=2, padx=5, pady=2, sticky="e")
 
         # --- Number of Images Control (Consolidated) ---
         num_images_frame = ctk.CTkFrame(output_frame, fg_color="transparent")
@@ -1022,7 +1013,7 @@ class ImageGeneratorGUI(ctk.CTk): # Inherit directly from ctk.CTk
         ctk.CTkComboBox(num_images_frame, values=[str(i) for i in range(1, 11)], variable=self.num_outputs_var, width=80).pack(side="left") # Pack inside frame
 
         # --- Generate Button (Now handles single or batch) ---
-        ctk.CTkButton(output_frame, text="Generate", font=ctk.CTkFont(size=16, weight="bold"), height=40, command=self.generate_image, fg_color=BUTTON_GOLD_COLOR, text_color=BUTTON_TEXT_COLOR, hover_color="#CCAA00").grid(row=2, column=0, columnspan=3, padx=5, pady=(5, 2), sticky="ew") # Use grid layout
+        ctk.CTkButton(output_frame, text="Generate", font=ctk.CTkFont(size=16, weight="bold"), height=40, command=self.generate_image, fg_color=ACCENT_COLOR, text_color=BUTTON_TEXT_COLOR, hover_color=ACCENT_HOVER).grid(row=2, column=0, columnspan=3, padx=5, pady=(5, 2), sticky="ew") # Use grid layout
 
         # Batch generation section REMOVED (no self.batch_frame needed)
 
@@ -1068,8 +1059,8 @@ class ImageGeneratorGUI(ctk.CTk): # Inherit directly from ctk.CTk
         control_frame.grid(row=2, column=0, sticky="ew", padx=5, pady=(0, 2)) # Consistent padding
 
         # Consistent padding and button colors
-        ctk.CTkButton(control_frame, text="Save Image As", command=self.save_image_as, fg_color=BUTTON_GOLD_COLOR, text_color=BUTTON_TEXT_COLOR, hover_color="#CCAA00").pack(side="left", padx=5, pady=2)
-        ctk.CTkButton(control_frame, text="Open Output Folder", command=self.open_output_folder, fg_color=BUTTON_GOLD_COLOR, text_color=BUTTON_TEXT_COLOR, hover_color="#CCAA00").pack(side="left", padx=5, pady=2)
+        ctk.CTkButton(control_frame, text="Save Image As", command=self.save_image_as, fg_color=ACCENT_COLOR, text_color=BUTTON_TEXT_COLOR, hover_color=ACCENT_HOVER).pack(side="left", padx=5, pady=2)
+        ctk.CTkButton(control_frame, text="Open Output Folder", command=self.open_output_folder, fg_color=ACCENT_COLOR, text_color=BUTTON_TEXT_COLOR, hover_color=ACCENT_HOVER).pack(side="left", padx=5, pady=2)
         self.image_info_label = ctk.CTkLabel(control_frame, text="No image generated yet", font=ctk.CTkFont(size=12), text_color=TEXT_COLOR)
         self.image_info_label.pack(side="right", padx=5, pady=2)
 
@@ -1225,6 +1216,14 @@ class ImageGeneratorGUI(ctk.CTk): # Inherit directly from ctk.CTk
                 error_label.pack(side="left", padx=3, pady=3)
 
 
+    def display_image(self, image_path):
+        """Display an image on the main canvas (alias for display_main_image).
+
+        Args:
+            image_path: Path to the image file to display.
+        """
+        self.display_main_image(image_path)
+
     def display_main_image(self, image_path):
         """Display a single image in the main canvas"""
         if not hasattr(self, 'canvas') or not self.canvas.winfo_exists():
@@ -1321,8 +1320,8 @@ class ImageGeneratorGUI(ctk.CTk): # Inherit directly from ctk.CTk
 
             # --- Apply Manual Trigger Words ---
             prompt = base_prompt
-            if self.use_manual_trigger_words_var.get():
-                manual_triggers = self.manual_trigger_words_entry.get().strip()
+            if self.trigger_toggle_var.get():
+                manual_triggers = self.trigger_words_entry.get().strip()
                 if not manual_triggers:
                     messagebox.showerror("Input Error", "Manual trigger words checkbox is enabled, but the input field is empty.")
                     return # Stop generation
@@ -2056,7 +2055,7 @@ class ImageGeneratorGUI(ctk.CTk): # Inherit directly from ctk.CTk
             # Update label to reflect multi-select possibility
             self.rep_lora_label.configure(text="Replicate LoRAs (Select multiple):")
 
-        checkbox = ctk.CTkCheckBox(entry_frame, variable=enabled_var, text="", width=20, command=on_toggle, checkbox_height=18, checkbox_width=18, fg_color=BUTTON_GOLD_COLOR)
+        checkbox = ctk.CTkCheckBox(entry_frame, variable=enabled_var, text="", width=20, command=on_toggle, checkbox_height=18, checkbox_width=18, fg_color=ACCENT_COLOR)
         checkbox.grid(row=0, column=0, padx=(5, 2), pady=5, sticky="w")
 
         # --- Label (Truncated URL) ---
@@ -2127,7 +2126,7 @@ class ImageGeneratorGUI(ctk.CTk): # Inherit directly from ctk.CTk
             # Update label to reflect multi-select possibility
             self.hf_lora_label.configure(text="HuggingFace LoRAs (Select multiple):")
 
-        checkbox = ctk.CTkCheckBox(entry_frame, variable=enabled_var, text="", width=20, command=on_toggle, checkbox_height=18, checkbox_width=18, fg_color=BUTTON_GOLD_COLOR)
+        checkbox = ctk.CTkCheckBox(entry_frame, variable=enabled_var, text="", width=20, command=on_toggle, checkbox_height=18, checkbox_width=18, fg_color=ACCENT_COLOR)
         checkbox.grid(row=0, column=0, padx=(5, 2), pady=5, sticky="w")
 
         # --- Label (Truncated URL) ---
@@ -2180,7 +2179,7 @@ class ImageGeneratorGUI(ctk.CTk): # Inherit directly from ctk.CTk
         # Determine widget type
         if isinstance(default_value, bool): # Checkbox
             widget_var = tk.BooleanVar(value=default_value)
-            widget = ctk.CTkCheckBox(parent, variable=widget_var, text="", checkbox_height=18, checkbox_width=18, fg_color=BUTTON_GOLD_COLOR)
+            widget = ctk.CTkCheckBox(parent, variable=widget_var, text="", checkbox_height=18, checkbox_width=18, fg_color=ACCENT_COLOR)
             widget.grid(row=row_idx, column=1, columnspan=2, padx=5, pady=2, sticky="w")
         elif param_name in options: # Dropdown
             widget_var = tk.StringVar(value=str(default_value))
