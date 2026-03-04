@@ -5,6 +5,9 @@ import json
 import time
 import random # Added for batch seed generation
 import threading
+import base64
+import ssl
+import urllib.request
 import tkinter as tk
 from tkinter import ttk, filedialog, messagebox
 from PIL import Image, ImageTk, ImageDraw, ImageFont
@@ -440,9 +443,17 @@ class ImageGeneratorGUI(ctk.CTk): # Inherit directly from ctk.CTk
                 "guidance_scale": 7.5, "prompt_strength": 0.8,
                 "negative_prompt": "deformed, bad anatomy, disfigured, poorly drawn face, mutation, mutated, extra limb, ugly, disgusting, poorly drawn hands, missing limb, floating limbs, disconnected limbs, malformed hands, blurry, watermark, watermarked, oversaturated, censored, distorted, text, low quality, worst quality"
             },
+            "gemini_api_key": os.environ.get("GEMINI_API_KEY", ""),
+            "last_used_model_gemini": "gemini-2.5-flash-image",
             "advanced_mode": False, "recent_prompts": [],
             "recent_models_replicate": ["stability-ai/sdxl:c221b2b8ef527988fb59bf24a8b97c4561f1c671f73bd389f866bfb27c061316"],
             "recent_models_hf": ["black-forest-labs/FLUX.1-dev"],
+            "recent_models_gemini": [
+                "gemini-2.0-flash-exp-image-generation",
+                "gemini-2.5-flash-image",
+                "gemini-3-pro-image-preview",
+                "gemini-3.1-flash-image-preview"
+            ],
             "recent_loras_hf": [], # Default to new format
             "recent_loras_replicate": [] # Default to new format
         }
@@ -507,19 +518,24 @@ class ImageGeneratorGUI(ctk.CTk): # Inherit directly from ctk.CTk
         # Prioritize keys from config (set by UI) over environment variables (from .env)
         config_replicate_key = self.config.get("replicate_api_key", "")
         config_hf_token = self.config.get("huggingface_token", "")
+        config_gemini_key = self.config.get("gemini_api_key", "")
 
         env_replicate_key = os.environ.get("REPLICATE_API_TOKEN")
         env_hf_token = os.environ.get("HUGGINGFACE_TOKEN")
+        env_gemini_key = os.environ.get("GEMINI_API_KEY")
 
         # Use config key if available and not a placeholder, otherwise try env var, else empty
         final_replicate_key = config_replicate_key if config_replicate_key and "YOUR_REPLICATE_API_TOKEN" not in config_replicate_key else env_replicate_key or ""
         final_hf_token = config_hf_token if config_hf_token and "YOUR_HUGGINGFACE_TOKEN" not in config_hf_token else env_hf_token or ""
+        final_gemini_key = config_gemini_key if config_gemini_key and "YOUR_GEMINI_API_KEY" not in config_gemini_key else env_gemini_key or ""
 
         # Update config if we ended up using a valid env var when config was empty/placeholder
         if not config_replicate_key or "YOUR_REPLICATE_API_TOKEN" in config_replicate_key:
             if final_replicate_key: self.config["replicate_api_key"] = final_replicate_key
         if not config_hf_token or "YOUR_HUGGINGFACE_TOKEN" in config_hf_token:
             if final_hf_token: self.config["huggingface_token"] = final_hf_token
+        if not config_gemini_key or "YOUR_GEMINI_API_KEY" in config_gemini_key:
+            if final_gemini_key: self.config["gemini_api_key"] = final_gemini_key
 
         # Set other env vars needed by libraries/logic (Keep these as they are)
         os.environ["FLUX_DISABLE_SAFETY"] = "true"
@@ -529,20 +545,25 @@ class ImageGeneratorGUI(ctk.CTk): # Inherit directly from ctk.CTk
         # Ensure they reflect the final determined values
         os.environ["REPLICATE_API_TOKEN"] = final_replicate_key
         os.environ["HUGGINGFACE_TOKEN"] = final_hf_token
-        print(f"API Key Setup: Replicate Key Loaded: {bool(final_replicate_key)}, HF Token Loaded: {bool(final_hf_token)}")
+        os.environ["GEMINI_API_KEY"] = final_gemini_key
+        print(f"API Key Setup: Replicate Key Loaded: {bool(final_replicate_key)}, HF Token Loaded: {bool(final_hf_token)}, Gemini Key Loaded: {bool(final_gemini_key)}")
 
         # Initialize service status based on final key availability
         self.service_clients = {
             "replicate": {"initialized": bool(final_replicate_key)},
-            "huggingface": {"initialized": bool(final_hf_token)}
+            "huggingface": {"initialized": bool(final_hf_token)},
+            "gemini": {"initialized": bool(final_gemini_key)}
         }
         # Update UI status labels if they exist (might be called before UI creation)
         if hasattr(self, 'replicate_status'):
-             self.replicate_status.configure(text="✅ Ready" if self.service_clients["replicate"]["initialized"] else "⚠️ Key Missing",
+             self.replicate_status.configure(text="Ready" if self.service_clients["replicate"]["initialized"] else "Key Missing",
                                              text_color="green" if self.service_clients["replicate"]["initialized"] else "orange")
         if hasattr(self, 'huggingface_status'):
-             self.huggingface_status.configure(text="✅ Ready" if self.service_clients["huggingface"]["initialized"] else "⚠️ Key Missing",
+             self.huggingface_status.configure(text="Ready" if self.service_clients["huggingface"]["initialized"] else "Key Missing",
                                                text_color="green" if self.service_clients["huggingface"]["initialized"] else "orange")
+        if hasattr(self, 'gemini_status'):
+             self.gemini_status.configure(text="Ready (Free)" if self.service_clients["gemini"]["initialized"] else "Key Missing",
+                                          text_color="green" if self.service_clients["gemini"]["initialized"] else "orange")
 
     # --- Define Event Handlers Before UI Creation ---
     def _define_event_handlers(self):
@@ -559,7 +580,7 @@ class ImageGeneratorGUI(ctk.CTk): # Inherit directly from ctk.CTk
 
         def configure_api_keys_internal():
             dialog = ctk.CTkToplevel(self)
-            dialog.title("Configure API Keys"); dialog.geometry("500x200")
+            dialog.title("Configure API Keys"); dialog.geometry("500x280")
             dialog.resizable(False, False); dialog.transient(self); dialog.grab_set(); dialog.focus_set()
             ctk.CTkLabel(dialog, text="Replicate API Key:", font=ctk.CTkFont(size=14)).grid(row=0, column=0, padx=20, pady=(20, 10), sticky="w")
             replicate_key_var = tk.StringVar(value=self.config.get("replicate_api_key", ""))
@@ -567,14 +588,20 @@ class ImageGeneratorGUI(ctk.CTk): # Inherit directly from ctk.CTk
             ctk.CTkLabel(dialog, text="Hugging Face Token:", font=ctk.CTkFont(size=14)).grid(row=1, column=0, padx=20, pady=10, sticky="w")
             hf_token_var = tk.StringVar(value=self.config.get("huggingface_token", ""))
             ctk.CTkEntry(dialog, textvariable=hf_token_var, width=300).grid(row=1, column=1, padx=20, pady=10, sticky="ew")
+            ctk.CTkLabel(dialog, text="Gemini API Key:", font=ctk.CTkFont(size=14)).grid(row=2, column=0, padx=20, pady=10, sticky="w")
+            gemini_key_var = tk.StringVar(value=self.config.get("gemini_api_key", ""))
+            ctk.CTkEntry(dialog, textvariable=gemini_key_var, width=300).grid(row=2, column=1, padx=20, pady=10, sticky="ew")
+            ctk.CTkLabel(dialog, text="(Free tier - get key at ai.google.dev)", font=ctk.CTkFont(size=11), text_color="grey").grid(row=3, column=1, padx=20, pady=(0, 5), sticky="w")
 
             # Define save_keys function *before* the button uses it
             def save_keys():
                 # Update config AND environment variables when keys are saved in the dialog
                 self.config["replicate_api_key"] = replicate_key_var.get()
                 self.config["huggingface_token"] = hf_token_var.get()
+                self.config["gemini_api_key"] = gemini_key_var.get()
                 os.environ["REPLICATE_API_TOKEN"] = self.config["replicate_api_key"] # Update env var
                 os.environ["HUGGINGFACE_TOKEN"] = self.config["huggingface_token"] # Update env var
+                os.environ["GEMINI_API_KEY"] = self.config["gemini_api_key"] # Update env var
                 self.save_config()
 
                 # Re-check service readiness and update UI status
@@ -583,7 +610,7 @@ class ImageGeneratorGUI(ctk.CTk): # Inherit directly from ctk.CTk
                 dialog.destroy() # Destroy the dialog after saving
 
             # Create the button *after* save_keys is defined
-            ctk.CTkButton(dialog, text="Save", command=save_keys).grid(row=2, column=0, columnspan=2, padx=20, pady=20)
+            ctk.CTkButton(dialog, text="Save", command=save_keys).grid(row=4, column=0, columnspan=2, padx=20, pady=20)
 
         self.configure_api_keys = configure_api_keys_internal
 
@@ -674,11 +701,14 @@ class ImageGeneratorGUI(ctk.CTk): # Inherit directly from ctk.CTk
         self.service_var = tk.StringVar(value=self.config["service"])
         ctk.CTkRadioButton(service_frame, text="Replicate API", variable=self.service_var, value="replicate", command=self.on_service_change, text_color=TEXT_COLOR, fg_color=BUTTON_GOLD_COLOR, hover_color="#CCAA00").pack(side="left", padx=5, pady=2) # Consistent padding
         ctk.CTkRadioButton(service_frame, text="Hugging Face", variable=self.service_var, value="huggingface", command=self.on_service_change, text_color=TEXT_COLOR, fg_color=BUTTON_GOLD_COLOR, hover_color="#CCAA00").pack(side="left", padx=5, pady=2) # Consistent padding
+        ctk.CTkRadioButton(service_frame, text="Gemini", variable=self.service_var, value="gemini", command=self.on_service_change, text_color=TEXT_COLOR, fg_color=BUTTON_GOLD_COLOR, hover_color="#CCAA00").pack(side="left", padx=5, pady=2)
         # Initialize status labels (setup_services will update them based on key presence)
         self.replicate_status = ctk.CTkLabel(service_frame, text="Checking...", text_color="grey", font=ctk.CTkFont(size=12))
-        self.replicate_status.pack(side="left", padx=(0, 10), pady=2)
+        self.replicate_status.pack(side="left", padx=(0, 5), pady=2)
         self.huggingface_status = ctk.CTkLabel(service_frame, text="Checking...", text_color="grey", font=ctk.CTkFont(size=12))
-        self.huggingface_status.pack(side="left", padx=0, pady=2)
+        self.huggingface_status.pack(side="left", padx=(0, 5), pady=2)
+        self.gemini_status = ctk.CTkLabel(service_frame, text="Checking...", text_color="grey", font=ctk.CTkFont(size=12))
+        self.gemini_status.pack(side="left", padx=(0, 5), pady=2)
         ctk.CTkButton(service_frame, text="Configure API Keys", command=self.configure_api_keys, fg_color=BUTTON_GOLD_COLOR, text_color=BUTTON_TEXT_COLOR, hover_color="#CCAA00").pack(side="right", padx=5, pady=2) # Consistent padding
 
     def create_prompt_section(self, parent):
@@ -881,6 +911,16 @@ class ImageGeneratorGUI(ctk.CTk): # Inherit directly from ctk.CTk
         self.hf_model_var = tk.StringVar(value=self.config["last_used_model_hf"])
         self.hf_model_combo = ctk.CTkComboBox(self.model_section_frame, values=self.config["recent_models_hf"], variable=self.hf_model_var, width=400, state="readonly")
         self.add_hf_model_button = ctk.CTkButton(self.model_section_frame, text="Add Model", width=100, command=self.add_hf_model, fg_color=BUTTON_GOLD_COLOR, text_color=BUTTON_TEXT_COLOR, hover_color="#CCAA00")
+
+        # Gemini widgets (created once, gridded/forgotten in update)
+        self.gemini_model_label = ctk.CTkLabel(self.model_section_frame, text="Gemini Model:", font=ctk.CTkFont(size=16), text_color=TEXT_COLOR)
+        gemini_models = self.config.get("recent_models_gemini", ["gemini-2.5-flash-image"])
+        self.gemini_model_var = tk.StringVar(value=self.config.get("last_used_model_gemini", "gemini-2.5-flash-image"))
+        self.gemini_model_combo = ctk.CTkComboBox(self.model_section_frame, values=gemini_models, variable=self.gemini_model_var, width=400, state="readonly")
+        self.add_gemini_model_button = ctk.CTkButton(self.model_section_frame, text="Add Model", width=100, command=self.add_gemini_model, fg_color=BUTTON_GOLD_COLOR, text_color=BUTTON_TEXT_COLOR, hover_color="#CCAA00")
+        # Gemini info label
+        self.gemini_info_label = ctk.CTkLabel(self.model_section_frame, text="Gemini: Free tier, ~500 images/day per key. No LoRA support.", font=ctk.CTkFont(size=12), text_color="grey")
+
         # --- LoRA Management (Common Structure) ---
         self.lora_management_frame = ctk.CTkFrame(self.model_section_frame, fg_color="transparent")
         self.lora_management_frame.grid_columnconfigure(0, weight=1) # Allow listbox to expand
@@ -934,7 +974,7 @@ class ImageGeneratorGUI(ctk.CTk): # Inherit directly from ctk.CTk
             # --- Dynamically create and grid LoRA entries ---
             self._update_rep_lora_list_ui()
 
-        else: # HuggingFace
+        elif self.service_var.get() == "huggingface":
             # Grid HF Base Model
             self.hf_model_label.grid(row=0, column=0, padx=5, pady=2, sticky="w")
             self.hf_model_combo.grid(row=0, column=1, padx=5, pady=2, sticky="ew")
@@ -953,6 +993,14 @@ class ImageGeneratorGUI(ctk.CTk): # Inherit directly from ctk.CTk
 
             # --- Dynamically create and grid HF LoRA entries ---
             self._update_hf_lora_list_ui()
+
+        else: # Gemini
+            # Grid Gemini Model Selection
+            self.gemini_model_label.grid(row=0, column=0, padx=5, pady=2, sticky="w")
+            self.gemini_model_combo.grid(row=0, column=1, padx=5, pady=2, sticky="ew")
+            self.add_gemini_model_button.grid(row=0, column=2, padx=5, pady=2, sticky="e")
+            # Gemini info label (no LoRA support)
+            self.gemini_info_label.grid(row=1, column=0, columnspan=3, padx=5, pady=2, sticky="w")
 
     def create_output_section(self, parent):
         """Create the output configuration section inside the parent frame (left_panel)"""
@@ -1299,7 +1347,12 @@ class ImageGeneratorGUI(ctk.CTk): # Inherit directly from ctk.CTk
 
             # --- Get Model-Specific Parameters ---
             service = self.service_var.get()
-            model_id = self.replicate_model_var.get() if service == "replicate" else self.hf_model_var.get()
+            if service == "replicate":
+                model_id = self.replicate_model_var.get()
+            elif service == "huggingface":
+                model_id = self.hf_model_var.get()
+            else:  # gemini
+                model_id = self.gemini_model_var.get()
             model_params = {}
             if model_id in self.model_param_vars:
                 for param_name, tk_var in self.model_param_vars[model_id].items():
@@ -1434,6 +1487,17 @@ class ImageGeneratorGUI(ctk.CTk): # Inherit directly from ctk.CTk
                     results.append(result) # Append PIL image or error string
                     if isinstance(result, str) and "Error" in result: print(f"Image {i+1} failed: {result}")
                     # Optional delay? time.sleep(0.1)
+
+            elif service == "gemini":
+                # Gemini needs individual calls for batch simulation
+                for i in range(num_outputs):
+                    batch_params = params.copy()
+                    self.after(0, lambda i=i: self.status_label.configure(text=f"Generating image {i+1}/{num_outputs} (Gemini)..."))
+                    print(f"Calling Gemini for image {i+1}")
+                    result = self._call_gemini_api(batch_params)
+                    results.append(result) # Append PIL image or error string
+                    if isinstance(result, str) and "Error" in result: print(f"Image {i+1} failed: {result}")
+
             else:
                  # Correctly assign the error string to the results list
                  results = ["Error: Unknown service selected."] * num_outputs
@@ -1678,6 +1742,98 @@ class ImageGeneratorGUI(ctk.CTk): # Inherit directly from ctk.CTk
             # Add more specific HF error checks here if needed
             return f"HF Error: {error_str}"
 
+    def _call_gemini_api(self, params):
+        """Call the Google Gemini API to generate an image.
+
+        Uses the generateContent endpoint with responseModalities: ["TEXT", "IMAGE"].
+        Returns a PIL Image on success or an error string on failure.
+        Free tier: ~500 images/day per API key.
+        """
+        try:
+            gemini_key = self.config.get("gemini_api_key", "") or os.environ.get("GEMINI_API_KEY", "")
+            if not gemini_key:
+                return "Gemini Error: API Key not configured. Set GEMINI_API_KEY in .env or configure via UI."
+
+            model_id = params.get("model_id", "gemini-2.5-flash-image")
+            prompt_text = params.get("prompt", "")
+            if not prompt_text:
+                return "Gemini Error: No prompt provided."
+
+            # Build the full prompt with image generation instruction
+            full_prompt = f"Generate an image: {prompt_text}"
+
+            # Add aspect ratio hint if width/height suggest non-square
+            width = params.get("width", 1024)
+            height = params.get("height", 1024)
+            if width and height and width != height:
+                if width > height:
+                    full_prompt += f". Landscape aspect ratio approximately {width}:{height}."
+                else:
+                    full_prompt += f". Portrait aspect ratio approximately {width}:{height}."
+
+            # Build the API request
+            url = f"https://generativelanguage.googleapis.com/v1beta/models/{model_id}:generateContent?key={gemini_key}"
+
+            request_body = {
+                "contents": [{"parts": [{"text": full_prompt}]}],
+                "generationConfig": {"responseModalities": ["TEXT", "IMAGE"]}
+            }
+
+            body_bytes = json.dumps(request_body).encode("utf-8")
+
+            ctx = ssl.create_default_context()
+            req = urllib.request.Request(url, data=body_bytes, method="POST")
+            req.add_header("Content-Type", "application/json")
+
+            print(f"Calling Gemini API: {model_id}")
+            print(f"Prompt: {full_prompt[:200]}...")
+
+            resp = urllib.request.urlopen(req, context=ctx, timeout=120)
+            data = json.loads(resp.read())
+
+            # Parse the response for image data
+            for candidate in data.get("candidates", []):
+                for part in candidate.get("content", {}).get("parts", []):
+                    if "inlineData" in part:
+                        img_base64 = part["inlineData"]["data"]
+                        mime_type = part["inlineData"].get("mimeType", "image/png")
+                        img_bytes = base64.b64decode(img_base64)
+
+                        # Convert to PIL Image
+                        pil_image = Image.open(io.BytesIO(img_bytes))
+                        print(f"Gemini image received: {pil_image.width}x{pil_image.height}, {mime_type}, {len(img_bytes)} bytes")
+                        return pil_image
+
+            # Check for text-only response (model refused to generate image)
+            text_parts = []
+            for candidate in data.get("candidates", []):
+                for part in candidate.get("content", {}).get("parts", []):
+                    if "text" in part:
+                        text_parts.append(part["text"])
+
+            if text_parts:
+                refusal_text = " ".join(text_parts)[:300]
+                print(f"Gemini returned text instead of image: {refusal_text}")
+                return f"Gemini Error: Model returned text instead of image - {refusal_text}"
+
+            return "Gemini Error: No image data in response."
+
+        except urllib.error.HTTPError as e:
+            error_body = e.read().decode("utf-8", errors="replace") if e.fp else ""
+            if e.code == 429:
+                return f"Gemini Error: Rate limit exceeded (429). Try a different API key or wait for quota reset at midnight Pacific. {error_body[:200]}"
+            elif e.code == 400:
+                return f"Gemini Error: Bad request (400). {error_body[:300]}"
+            else:
+                return f"Gemini Error: HTTP {e.code} - {error_body[:300]}"
+        except urllib.error.URLError as e:
+            return f"Gemini Error: Connection failed - {str(e)}"
+        except json.JSONDecodeError as e:
+            return f"Gemini Error: Failed to parse API response - {str(e)}"
+        except Exception as e:
+            import traceback; traceback.print_exc()
+            return f"Gemini Error: {str(e)}"
+
     # generate_batch method REMOVED
     # _generate_batch_thread method REMOVED
 
@@ -1694,7 +1850,7 @@ class ImageGeneratorGUI(ctk.CTk): # Inherit directly from ctk.CTk
     def configure_api_keys(self):
         """Open a dialog to configure API keys"""
         dialog = ctk.CTkToplevel(self)
-        dialog.title("Configure API Keys"); dialog.geometry("500x200")
+        dialog.title("Configure API Keys"); dialog.geometry("500x280")
         dialog.resizable(False, False); dialog.transient(self); dialog.grab_set(); dialog.focus_set()
         ctk.CTkLabel(dialog, text="Replicate API Key:", font=ctk.CTkFont(size=14)).grid(row=0, column=0, padx=20, pady=(20, 10), sticky="w")
         replicate_key_var = tk.StringVar(value=self.config.get("replicate_api_key", ""))
@@ -1702,18 +1858,30 @@ class ImageGeneratorGUI(ctk.CTk): # Inherit directly from ctk.CTk
         ctk.CTkLabel(dialog, text="Hugging Face Token:", font=ctk.CTkFont(size=14)).grid(row=1, column=0, padx=20, pady=10, sticky="w")
         hf_token_var = tk.StringVar(value=self.config.get("huggingface_token", ""))
         ctk.CTkEntry(dialog, textvariable=hf_token_var, width=300).grid(row=1, column=1, padx=20, pady=10, sticky="ew")
+        ctk.CTkLabel(dialog, text="Gemini API Key:", font=ctk.CTkFont(size=14)).grid(row=2, column=0, padx=20, pady=10, sticky="w")
+        gemini_key_var = tk.StringVar(value=self.config.get("gemini_api_key", ""))
+        ctk.CTkEntry(dialog, textvariable=gemini_key_var, width=300).grid(row=2, column=1, padx=20, pady=10, sticky="ew")
+        ctk.CTkLabel(dialog, text="(Free tier - get key at ai.google.dev)", font=ctk.CTkFont(size=11), text_color="grey").grid(row=3, column=1, padx=20, pady=(0, 5), sticky="w")
         def save_keys():
             self.config["replicate_api_key"] = replicate_key_var.get()
             self.config["huggingface_token"] = hf_token_var.get()
+            self.config["gemini_api_key"] = gemini_key_var.get()
             os.environ["REPLICATE_API_TOKEN"] = self.config["replicate_api_key"]
             os.environ["HUGGINGFACE_TOKEN"] = self.config["huggingface_token"]
+            os.environ["GEMINI_API_KEY"] = self.config["gemini_api_key"]
             self.save_config()
-            hf_ready = bool(self.config.get("huggingface_token"))
-            # Check if huggingface_status exists before configuring
+            # Update status labels
+            if hasattr(self, 'replicate_status'):
+                rep_ready = bool(self.config.get("replicate_api_key"))
+                self.replicate_status.configure(text="Ready" if rep_ready else "Key Missing", text_color="green" if rep_ready else "orange")
             if hasattr(self, 'huggingface_status'):
-                self.huggingface_status.configure(text="✅ Ready" if hf_ready else "⚠️ Not Initialized", text_color="green" if hf_ready else "orange")
+                hf_ready = bool(self.config.get("huggingface_token"))
+                self.huggingface_status.configure(text="Ready" if hf_ready else "Key Missing", text_color="green" if hf_ready else "orange")
+            if hasattr(self, 'gemini_status'):
+                gemini_ready = bool(self.config.get("gemini_api_key"))
+                self.gemini_status.configure(text="Ready (Free)" if gemini_ready else "Key Missing", text_color="green" if gemini_ready else "orange")
             dialog.destroy()
-        ctk.CTkButton(dialog, text="Save", command=save_keys).grid(row=2, column=0, columnspan=2, padx=20, pady=20)
+        ctk.CTkButton(dialog, text="Save", command=save_keys).grid(row=4, column=0, columnspan=2, padx=20, pady=20)
 
 
     def initialize_default_values(self):
@@ -1782,6 +1950,26 @@ class ImageGeneratorGUI(ctk.CTk): # Inherit directly from ctk.CTk
             self.hf_model_var.set(model_id); self.config["last_used_model_hf"] = model_id
             self.save_config(); dialog.destroy()
         ctk.CTkButton(dialog, text="Add Model", command=save_model).grid(row=1, column=0, columnspan=2, padx=20, pady=20)
+
+    def add_gemini_model(self):
+        """Add a new Gemini model"""
+        dialog = ctk.CTkToplevel(self); dialog.title("Add Gemini Model"); dialog.geometry("600x200")
+        dialog.resizable(False, False); dialog.transient(self); dialog.grab_set(); dialog.focus_set()
+        ctk.CTkLabel(dialog, text="Model ID:", font=ctk.CTkFont(size=14)).grid(row=0, column=0, padx=20, pady=(20, 10), sticky="w")
+        model_var = tk.StringVar(); ctk.CTkEntry(dialog, textvariable=model_var, width=400).grid(row=0, column=1, padx=20, pady=(20, 10), sticky="ew")
+        ctk.CTkLabel(dialog, text="Available: gemini-2.0-flash-exp-image-generation, gemini-2.5-flash-image,\n"
+                     "gemini-3-pro-image-preview, gemini-3.1-flash-image-preview",
+                     font=ctk.CTkFont(size=11), text_color="grey").grid(row=1, column=0, columnspan=2, padx=20, pady=(0, 5), sticky="w")
+        def save_model():
+            model_id = model_var.get().strip()
+            if not model_id: messagebox.showerror("Error", "Please enter a valid Gemini model ID"); return
+            if "recent_models_gemini" not in self.config:
+                self.config["recent_models_gemini"] = []
+            if model_id not in self.config["recent_models_gemini"]: self.config["recent_models_gemini"].append(model_id)
+            self.gemini_model_combo.configure(values=self.config["recent_models_gemini"])
+            self.gemini_model_var.set(model_id); self.config["last_used_model_gemini"] = model_id
+            self.save_config(); dialog.destroy()
+        ctk.CTkButton(dialog, text="Add Model", command=save_model).grid(row=2, column=0, columnspan=2, padx=20, pady=20)
 
     def add_hf_lora(self):
         """Add a new Hugging Face LoRA"""

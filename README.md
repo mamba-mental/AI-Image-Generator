@@ -1,13 +1,14 @@
-# AI Image Generator with Hugging Face & Replicate API
+# AI Image Generator with Hugging Face, Replicate & Gemini API
 
-This project provides tools to generate images using Stability AI's SDXL model with the flux-lora-uncensored LoRA via the Replicate API. The implementation offers both a simple command-line interface and a more feature-rich GUI application.
+Multi-backend AI image generator with a Python/Tkinter GUI. Supports Replicate API, Hugging Face Inference API, and Google Gemini image generation (free tier).
 
 ## Features
 
-- Generate high-quality images using the Replicate API
-- Automatic integration with the flux-lora-uncensored LoRA
+- **Three generation backends:** Replicate API, Hugging Face, and Google Gemini
+- **Gemini integration:** Free tier with ~500 images/day per key, no credit card required
+- Automatic integration with the flux-lora-uncensored LoRA (Replicate/HF)
 - Support for customizing generation parameters (size, steps, guidance scale)
-- Optional trigger words for the uncensored model
+- Optional trigger words for uncensored models
 - Command-line interface for quick generation
 - GUI application with advanced features and batch processing
 
@@ -31,7 +32,10 @@ You need to provide your own API keys. Create a `.env` file in the project root:
 ```
 REPLICATE_API_TOKEN=your_replicate_api_key_here
 HUGGINGFACE_TOKEN=your_huggingface_token_here
+GEMINI_API_KEY=your_gemini_api_key_here
 ```
+
+**Gemini API Key (Free):** Get one at [ai.google.dev](https://ai.google.dev) -- no credit card required, ~500 free images/day.
 
 You can also configure keys through:
 - The GUI application: Use the "Configure API Keys" button in the application interface
@@ -76,7 +80,8 @@ The GUI application offers additional features:
 - Negative prompt customization
 - Batch image generation
 - Image saving and history tracking
-- Support for multiple models and services
+- Support for multiple models and services (Replicate, Hugging Face, Gemini)
+- Gemini models: gemini-2.5-flash-image (recommended), gemini-3-pro-image-preview (highest quality), gemini-3.1-flash-image-preview
 
 ## Working with Uncensored Models
 

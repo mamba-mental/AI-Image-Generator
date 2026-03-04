@@ -1,8 +1,10 @@
 {
     "replicate_api_key": "",
     "huggingface_token": "",
+    "gemini_api_key": "",
     "output_directory": "C:\\GitHub_Projects\\2025.0421 - Hugging Face_Replicate API Image Gen\\generated_images",
     "service": "replicate",
+    "last_used_model_gemini": "gemini-2.5-flash-image",
     "last_used_model_replicate": "stability-ai/stable-diffusion",
     "last_used_model_hf": "CultriX/flux-nsfw-highress",
     "last_used_lora_hf": "huggingface.co/CultriX/flux-nsfw-highress",
@@ -86,5 +88,11 @@
             "enabled": false
         }
     ],
-    "recent_loras_replicate": []
+    "recent_loras_replicate": [],
+    "recent_models_gemini": [
+        "gemini-2.0-flash-exp-image-generation",
+        "gemini-2.5-flash-image",
+        "gemini-3-pro-image-preview",
+        "gemini-3.1-flash-image-preview"
+    ]
 }
