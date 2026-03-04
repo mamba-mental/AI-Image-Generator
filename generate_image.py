@@ -12,9 +12,9 @@ from pathlib import Path
 import replicate
 from PIL import Image
 
-# Constants
-REPLICATE_API_KEY = "REDACTED_REPLICATE_KEY_1"
-HUGGING_FACE_TOKEN = "REDACTED_HF_TOKEN"
+# Constants — load from environment variables or .env file
+REPLICATE_API_KEY = os.environ.get("REPLICATE_API_TOKEN", "")
+HUGGING_FACE_TOKEN = os.environ.get("HUGGINGFACE_TOKEN", "")
 DEFAULT_MODEL = "stability-ai/sdxl:c221b2b8ef527988fb59bf24a8b97c4561f1c671f73bd389f866bfb27c061316"
 DEFAULT_NEGATIVE_PROMPT = "deformed, bad anatomy, disfigured, poorly drawn face, mutation, mutated, extra limb, ugly, disgusting, poorly drawn hands, missing limb, floating limbs, disconnected limbs, malformed hands, blurry, watermark, watermarked, oversaturated, censored, distorted, text, low quality, worst quality"
 

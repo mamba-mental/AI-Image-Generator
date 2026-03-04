@@ -1,5 +1,24 @@
+# Environment variables (API keys)
+.env
+.env.*
+
 # Ignore generated images
 generated_images/
 
 # Ignore Python cache files
 __pycache__/
+*.pyc
+*.pyo
+
+# Logs
+*.log
+logs/
+
+# IDE / Editor
+.vscode/
+.idea/
+
+# OS files
+desktop.ini
+Thumbs.db
+.DS_Store

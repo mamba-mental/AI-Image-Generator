@@ -15,8 +15,8 @@ This project provides tools to generate images using Stability AI's SDXL model w
 
 1. Clone this repository:
 ```bash
-git clone https://github.com/yourusername/ai-image-generator.git
-cd ai-image-generator
+git clone https://github.com/mamba-mental/AI-Image-Generator.git
+cd AI-Image-Generator
 ```
 
 2. Install the required dependencies:
@@ -26,14 +26,16 @@ pip install -r requirements.txt
 
 ## Configuration
 
-The application comes pre-configured with the provided API keys:
+You need to provide your own API keys. Create a `.env` file in the project root:
 
-- Replicate API Key: `REDACTED_REPLICATE_KEY_1`
-- Hugging Face Token: `REDACTED_HF_TOKEN`
+```
+REPLICATE_API_TOKEN=your_replicate_api_key_here
+HUGGINGFACE_TOKEN=your_huggingface_token_here
+```
 
-If you need to use different API keys, you can modify them in:
-- The command-line script: Edit the constants at the top of `generate_image.py`
+You can also configure keys through:
 - The GUI application: Use the "Configure API Keys" button in the application interface
+- The command-line script: Set the environment variables above
 
 ## Usage
 

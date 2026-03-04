@@ -429,8 +429,8 @@ class ImageGeneratorGUI(ctk.CTk): # Inherit directly from ctk.CTk
         """Load configuration from JSON file or create default if not exists"""
         config_path = "config.json"
         default_config = {
-            "replicate_api_key": "REDACTED_REPLICATE_KEY_1",
-            "huggingface_token": "REDACTED_HF_TOKEN",
+            "replicate_api_key": os.environ.get("REPLICATE_API_TOKEN", ""),
+            "huggingface_token": os.environ.get("HUGGINGFACE_TOKEN", ""),
             "output_directory": os.path.join(os.path.dirname(os.path.abspath(__file__)), "generated_images"),
             "service": "replicate",
             "last_used_model_replicate": "stability-ai/sdxl:c221b2b8ef527988fb59bf24a8b97c4561f1c671f73bd389f866bfb27c061316",

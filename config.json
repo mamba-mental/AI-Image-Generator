@@ -1,6 +1,6 @@
 {
-    "replicate_api_key": "REDACTED_REPLICATE_KEY_2",
-    "huggingface_token": "REDACTED_HF_TOKEN",
+    "replicate_api_key": "",
+    "huggingface_token": "",
     "output_directory": "C:\\GitHub_Projects\\2025.0421 - Hugging Face_Replicate API Image Gen\\generated_images",
     "service": "replicate",
     "last_used_model_replicate": "stability-ai/stable-diffusion",
