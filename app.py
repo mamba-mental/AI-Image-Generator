@@ -368,9 +368,9 @@ class ImageGeneratorGUI(ctk.CTk): # Inherit directly from ctk.CTk
         self.config["recent_loras_replicate"] = self.rep_lora_manager.get_loras()
         # -------------------------------
 
-        self.title("AI Image Generator")
+        self.title("AI Studio Void")
         self.geometry("1200x800")
-        self.minsize(900, 600)
+        self.minsize(900, 700)
         self.configure(fg_color=APP_BG_COLOR)
 
         # Initialize model_param_vars early (populated by create_parameters_section)
@@ -379,51 +379,65 @@ class ImageGeneratorGUI(ctk.CTk): # Inherit directly from ctk.CTk
         # Define event handlers *before* creating UI elements that use them
         self._define_event_handlers()
 
-        # Setup main layout grid
-        self.grid_columnconfigure(0, weight=1)  # Left panel
-        self.grid_columnconfigure(1, weight=4)  # Center panel 
-        self.grid_columnconfigure(2, weight=3)  # Right panel
-        self.grid_rowconfigure(0, weight=1)     # Main content row
-        self.grid_rowconfigure(1, weight=0)     # Footer row
+        # Setup main layout grid: 2 columns (control panel + gallery), 2 rows (main + footer)
+        self.grid_columnconfigure(0, weight=0, minsize=380)  # Left control panel (fixed 380px)
+        self.grid_columnconfigure(1, weight=1)               # Right gallery panel (fills remaining)
+        self.grid_rowconfigure(0, weight=1)                   # Main content row
+        self.grid_rowconfigure(1, weight=0)                   # Footer row
 
         # --- Create Main Layout Frames ---
-        # Left Thumbnail Panel (Fixed width)
-        self.left_thumb_panel = ctk.CTkFrame(self, width=150, fg_color=APP_BG_COLOR)
-        self.left_thumb_panel.grid(row=0, column=0, sticky="nsew", padx=(5, 2), pady=5)
-        
-        # Center Image Display Panel
-        self.center_image_panel = ctk.CTkFrame(self, fg_color=APP_BG_COLOR)
-        self.center_image_panel.grid(row=0, column=1, sticky="nsew", padx=2, pady=5)
-        self.center_image_panel.grid_rowconfigure(0, weight=1)
-        self.center_image_panel.grid_columnconfigure(0, weight=1)
 
-        # Right Config Panel (Scrollable)
-        self.right_config_panel = ctk.CTkScrollableFrame(self, fg_color=APP_BG_COLOR)
-        self.right_config_panel.grid(row=0, column=2, sticky="nsew", padx=(2, 5), pady=5)
-        self.right_config_panel.grid_columnconfigure(0, weight=1)
+        # Left Control Panel (fixed 380px, #0a0a0a, contains scrollable + sticky bottom)
+        self.left_control_panel = ctk.CTkFrame(self, width=380, fg_color=FRAME_BG_COLOR,
+                                                border_width=0)
+        self.left_control_panel.grid(row=0, column=0, sticky="nsew")
+        self.left_control_panel.grid_propagate(False)  # Enforce fixed width
+        self.left_control_panel.grid_rowconfigure(0, weight=1)  # Scrollable area expands
+        self.left_control_panel.grid_rowconfigure(1, weight=0)  # Sticky bottom stays fixed
+        self.left_control_panel.grid_columnconfigure(0, weight=1)
+
+        # Scrollable content area (inside left panel)
+        self.left_scrollable = ctk.CTkScrollableFrame(self.left_control_panel, fg_color=FRAME_BG_COLOR,
+                                                       scrollbar_button_color="#2a2a2a",
+                                                       scrollbar_button_hover_color="#3a3a3a")
+        self.left_scrollable.grid(row=0, column=0, sticky="nsew")
+        self.left_scrollable.grid_columnconfigure(0, weight=1)
+
+        # Sticky bottom frame (generate button + progress bar, NOT scrollable)
+        self.left_sticky_bottom = ctk.CTkFrame(self.left_control_panel, fg_color=FRAME_BG_COLOR,
+                                                border_width=1, border_color=BORDER_COLOR)
+        self.left_sticky_bottom.grid(row=1, column=0, sticky="ew")
+        self.left_sticky_bottom.grid_columnconfigure(0, weight=1)
+
+        # Right Gallery Panel (fills remaining space, true black)
+        self.right_gallery_panel = ctk.CTkFrame(self, fg_color=APP_BG_COLOR)
+        self.right_gallery_panel.grid(row=0, column=1, sticky="nsew")
+        self.right_gallery_panel.grid_rowconfigure(0, weight=1)  # Image display expands
+        self.right_gallery_panel.grid_rowconfigure(1, weight=0)  # Metadata bar
+        self.right_gallery_panel.grid_rowconfigure(2, weight=0)  # Thumbnail strip
+        self.right_gallery_panel.grid_columnconfigure(0, weight=1)
 
         # Footer Panel (Status Bar)
-        self.footer_panel = ctk.CTkFrame(self, fg_color=FRAME_BG_COLOR, height=40)
-        self.footer_panel.grid(row=1, column=0, columnspan=3, sticky="ew", padx=5, pady=(0, 5))
-        self.footer_panel.grid_propagate(False) # Prevent resizing by content
+        self.footer_panel = ctk.CTkFrame(self, fg_color=FRAME_BG_COLOR, height=32)
+        self.footer_panel.grid(row=1, column=0, columnspan=2, sticky="ew")
+        self.footer_panel.grid_propagate(False)
 
         # --- Create UI Components inside their respective frames ---
-        # Left Thumbnail Panel
-        self.create_logo_section(self.left_thumb_panel)
-        self.create_thumbnail_list(self.left_thumb_panel)
-        
-        # Center Image Panel
-        self.create_main_image_display(self.center_image_panel)
-        
-        # Right Config Panel
-        # Call create_header and create_service_toggle early as other sections depend on their variables
-        self.create_header(self.right_config_panel)
-        self.create_service_toggle(self.right_config_panel)
-        self.create_prompt_section(self.right_config_panel)
-        self.create_parameters_section(self.right_config_panel)
-        self.create_lora_section(self.right_config_panel) # Depends on service_var
-        self.create_output_section(self.right_config_panel) # Generate button + output dir
-        
+
+        # Left Control Panel (scrollable area)
+        self.create_header(self.left_scrollable)
+        self.create_service_toggle(self.left_scrollable)
+        self.create_prompt_section(self.left_scrollable)
+        self.create_parameters_section(self.left_scrollable)
+        self.create_lora_section(self.left_scrollable)
+        self.create_output_section(self.left_scrollable)
+
+        # Left Control Panel (sticky bottom - generate button)
+        self.create_generate_section(self.left_sticky_bottom)
+
+        # Right Gallery Panel
+        self.create_main_image_display(self.right_gallery_panel)
+
         # Footer Panel
         self.create_footer_controls(self.footer_panel)
 
@@ -584,9 +598,14 @@ class ImageGeneratorGUI(ctk.CTk): # Inherit directly from ctk.CTk
             service = self.service_var.get()
             self.config["service"] = service
             self.update_model_section(self.model_section_frame) # Pass parent frame
-            # Check if service_info_label exists before configuring
+            # Update status bar labels
             if hasattr(self, 'service_info_label'):
-                self.service_info_label.configure(text=f"Service: {service.capitalize()}")
+                self.service_info_label.configure(text=f"{service.capitalize()}")
+            if hasattr(self, 'status_label'):
+                self.status_label.configure(text=f"Connected to {service.capitalize()}")
+            # Update service status display in left panel
+            if hasattr(self, '_update_service_status_display'):
+                self._update_service_status_display()
             self.save_config()
         self.on_service_change = on_service_change_internal
 
@@ -673,82 +692,146 @@ class ImageGeneratorGUI(ctk.CTk): # Inherit directly from ctk.CTk
 
     def create_header(self, parent):
         """Create the header section inside the parent frame (left_panel)"""
-        header_frame = ctk.CTkFrame(parent, fg_color=FRAME_BG_COLOR)
-        header_frame.pack(fill="x", padx=5, pady=(5, 2)) # Consistent padding
+        header_frame = ctk.CTkFrame(parent, fg_color=FRAME_BG_COLOR, height=48)
+        header_frame.pack(fill="x", padx=12, pady=(12, 4))
 
-        title_label = ctk.CTkLabel(header_frame, text="AI Image Generator", font=ctk.CTkFont(size=24, weight="bold"), text_color=TEXT_COLOR)
-        title_label.pack(side="left", padx=5, pady=2) # Consistent padding
+        # Sparkle icon (unicode) + title
+        sparkle_label = ctk.CTkLabel(header_frame, text="\u2728", font=ctk.CTkFont(size=18),
+                                      text_color=ACCENT_COLOR)
+        sparkle_label.pack(side="left", padx=(4, 6), pady=4)
 
+        title_label = ctk.CTkLabel(header_frame, text="AI Studio Void",
+                                    font=ctk.CTkFont(size=18, weight="bold"),
+                                    text_color=TEXT_COLOR)
+        title_label.pack(side="left", padx=0, pady=4)
+
+        # Settings button (right-aligned)
+        settings_button = ctk.CTkButton(header_frame, text="\u2699", width=32, height=32,
+                                         font=ctk.CTkFont(size=16),
+                                         fg_color="transparent", hover_color="#1a1a1a",
+                                         text_color=TEXT_SECONDARY,
+                                         command=self.configure_api_keys)
+        settings_button.pack(side="right", padx=4, pady=4)
+
+        # Advanced mode var (still needed for toggle_advanced_mode logic)
         self.advanced_mode_var = tk.BooleanVar(value=self.config["advanced_mode"])
-        advanced_mode_switch = ctk.CTkSwitch(header_frame, text="Advanced Mode", variable=self.advanced_mode_var, command=self.toggle_advanced_mode, text_color=TEXT_COLOR, button_color=ACCENT_COLOR, progress_color=ACCENT_COLOR)
-        advanced_mode_switch.pack(side="right", padx=5, pady=2) # Consistent padding
 
     def create_service_toggle(self, parent):
-        """Create the service toggle section inside the parent frame (left_panel)"""
-        service_frame = ctk.CTkFrame(parent, fg_color=FRAME_BG_COLOR)
-        service_frame.pack(fill="x", padx=5, pady=2) # Consistent padding
+        """Create the service toggle section as a segmented control"""
+        service_frame = ctk.CTkFrame(parent, fg_color="transparent")
+        service_frame.pack(fill="x", padx=12, pady=(8, 4))
 
-        ctk.CTkLabel(service_frame, text="Select Service:", font=ctk.CTkFont(size=16), text_color=TEXT_COLOR).pack(side="left", padx=5, pady=2) # Consistent padding
         self.service_var = tk.StringVar(value=self.config["service"])
-        ctk.CTkRadioButton(service_frame, text="Replicate API", variable=self.service_var, value="replicate", command=self.on_service_change, text_color=TEXT_COLOR, fg_color=ACCENT_COLOR, hover_color=ACCENT_HOVER).pack(side="left", padx=5, pady=2) # Consistent padding
-        ctk.CTkRadioButton(service_frame, text="Hugging Face", variable=self.service_var, value="huggingface", command=self.on_service_change, text_color=TEXT_COLOR, fg_color=ACCENT_COLOR, hover_color=ACCENT_HOVER).pack(side="left", padx=5, pady=2) # Consistent padding
-        ctk.CTkRadioButton(service_frame, text="Gemini", variable=self.service_var, value="gemini", command=self.on_service_change, text_color=TEXT_COLOR, fg_color=ACCENT_COLOR, hover_color=ACCENT_HOVER).pack(side="left", padx=5, pady=2)
-        # Initialize status labels (setup_services will update them based on key presence)
-        self.replicate_status = ctk.CTkLabel(service_frame, text="Checking...", text_color="grey", font=ctk.CTkFont(size=12))
-        self.replicate_status.pack(side="left", padx=(0, 5), pady=2)
-        self.huggingface_status = ctk.CTkLabel(service_frame, text="Checking...", text_color="grey", font=ctk.CTkFont(size=12))
-        self.huggingface_status.pack(side="left", padx=(0, 5), pady=2)
-        self.gemini_status = ctk.CTkLabel(service_frame, text="Checking...", text_color="grey", font=ctk.CTkFont(size=12))
-        self.gemini_status.pack(side="left", padx=(0, 5), pady=2)
-        ctk.CTkButton(service_frame, text="Configure API Keys", command=self.configure_api_keys, fg_color=ACCENT_COLOR, text_color=BUTTON_TEXT_COLOR, hover_color=ACCENT_HOVER).pack(side="right", padx=5, pady=2) # Consistent padding
+
+        # Segmented button for service selection
+        self.service_segmented = ctk.CTkSegmentedButton(
+            service_frame,
+            values=["replicate", "huggingface", "gemini"],
+            variable=self.service_var,
+            command=lambda val: self.on_service_change(),
+            fg_color=SURFACE_ELEVATED,
+            selected_color=ACCENT_COLOR,
+            selected_hover_color=ACCENT_HOVER,
+            unselected_color=SURFACE_ELEVATED,
+            unselected_hover_color="#1a1a1a",
+            text_color=TEXT_COLOR,
+            text_color_disabled=TEXT_SECONDARY,
+            font=ctk.CTkFont(size=12, weight="bold"),
+            height=36,
+            corner_radius=8,
+            border_width=1
+        )
+        self.service_segmented.pack(fill="x", pady=2)
+
+        # Hidden status labels (still needed by setup_services for updates)
+        self.replicate_status = ctk.CTkLabel(service_frame, text="", text_color="grey",
+                                              font=ctk.CTkFont(size=10))
+        self.huggingface_status = ctk.CTkLabel(service_frame, text="", text_color="grey",
+                                                font=ctk.CTkFont(size=10))
+        self.gemini_status = ctk.CTkLabel(service_frame, text="", text_color="grey",
+                                           font=ctk.CTkFont(size=10))
+        # Show only the active service status
+        self._update_service_status_display()
+
+    def _update_service_status_display(self):
+        """Show status text for the currently selected service only"""
+        if not hasattr(self, 'replicate_status'):
+            return
+        service = self.service_var.get()
+        # Hide all first
+        self.replicate_status.pack_forget()
+        self.huggingface_status.pack_forget()
+        self.gemini_status.pack_forget()
+        # Show the active one
+        if service == "replicate":
+            self.replicate_status.pack(fill="x", padx=4, pady=(2, 0))
+        elif service == "huggingface":
+            self.huggingface_status.pack(fill="x", padx=4, pady=(2, 0))
+        else:
+            self.gemini_status.pack(fill="x", padx=4, pady=(2, 0))
 
     def create_prompt_section(self, parent):
-        """Create the prompt input section in the right config panel"""
-        prompt_frame = ctk.CTkFrame(parent, fg_color=FRAME_BG_COLOR)
-        prompt_frame.pack(fill="x", padx=5, pady=5, ipady=5)
+        """Create the prompt input section"""
+        prompt_frame = ctk.CTkFrame(parent, fg_color="transparent")
+        prompt_frame.pack(fill="x", padx=12, pady=(8, 4))
 
-        # Main Prompt
-        self.prompt_text = ctk.CTkTextbox(prompt_frame, height=100, wrap="word", 
-                                       text_color=TEXT_COLOR, fg_color=INPUT_BG_COLOR,
-                                       font=ctk.CTkFont(size=14))
-        self.prompt_text.pack(fill="x", padx=5, pady=5)
+        # Prompt label
+        ctk.CTkLabel(prompt_frame, text="Prompt",
+                     font=ctk.CTkFont(size=12, weight="bold"),
+                     text_color="#cccccc").pack(anchor="w", padx=0, pady=(0, 4))
+
+        # Main Prompt (monospace, 120px min height)
+        self.prompt_text = ctk.CTkTextbox(prompt_frame, height=120, wrap="word",
+                                       text_color=TEXT_COLOR, fg_color=SURFACE_ELEVATED,
+                                       border_width=1, border_color=BORDER_COLOR,
+                                       corner_radius=8,
+                                       font=ctk.CTkFont(family="Consolas", size=13))
+        self.prompt_text.pack(fill="x", padx=0, pady=0)
         self.prompt_text.insert("1.0", "A beautiful woman on the beach, realistic, detailed, high quality")
 
-        # Toggles Frame
+        # Negative Prompt label with "Optional" tag
+        neg_label_frame = ctk.CTkFrame(prompt_frame, fg_color="transparent")
+        neg_label_frame.pack(fill="x", padx=0, pady=(12, 4))
+        self.negative_prompt_label = ctk.CTkLabel(neg_label_frame, text="Negative Prompt",
+                                                   font=ctk.CTkFont(size=12, weight="bold"),
+                                                   text_color="#cccccc")
+        self.negative_prompt_label.pack(side="left")
+        ctk.CTkLabel(neg_label_frame, text="Optional",
+                     font=ctk.CTkFont(size=10),
+                     text_color=TEXT_SECONDARY).pack(side="right")
+
+        # Negative Prompt textbox (80px, monospace)
+        self.negative_toggle_var = tk.BooleanVar(value=self.config.get("use_negative_prompt", True))
+        self.negative_prompt_text = ctk.CTkTextbox(prompt_frame, height=80, wrap="word",
+                                                 text_color=TEXT_COLOR, fg_color=SURFACE_ELEVATED,
+                                                 border_width=1, border_color=BORDER_COLOR,
+                                                 corner_radius=8,
+                                                 font=ctk.CTkFont(family="Consolas", size=13))
+        self.negative_prompt_text.pack(fill="x", padx=0, pady=0)
+        self.negative_prompt_text.insert("1.0", self.config["parameters"]["negative_prompt"])
+
+        # Toggles Frame (trigger words)
         toggles_frame = ctk.CTkFrame(prompt_frame, fg_color="transparent")
-        toggles_frame.pack(fill="x", padx=5, pady=5)
-        
-        # Negative Prompt Toggle
-        self.negative_toggle_var = tk.BooleanVar(value=self.config.get("use_negative_prompt", False))
-        negative_toggle = ctk.CTkSwitch(toggles_frame, text="Use Negative Prompt",
-                                      variable=self.negative_toggle_var,
-                                      command=self.toggle_negative_prompt,
-                                      button_color=ACCENT_COLOR)
-        negative_toggle.pack(side="left", padx=5)
+        toggles_frame.pack(fill="x", padx=0, pady=(8, 0))
 
         # Trigger Words Toggle
         self.trigger_toggle_var = tk.BooleanVar(value=self.config.get("use_trigger_words", False))
         trigger_toggle = ctk.CTkSwitch(toggles_frame, text="Use Trigger Words",
                                      variable=self.trigger_toggle_var,
                                      command=self.toggle_trigger_words,
-                                     button_color=ACCENT_COLOR)
-        trigger_toggle.pack(side="left", padx=5)
-
-        # Input Fields (initially state based on toggle settings)
-        # Add the missing label definition
-        self.negative_prompt_label = ctk.CTkLabel(prompt_frame, text="Negative Prompt:", text_color=TEXT_COLOR)
-        # Note: The .grid() call for this label happens inside toggle_advanced_mode
-
-        self.negative_prompt_text = ctk.CTkTextbox(prompt_frame, height=60, wrap="word",
-                                                 text_color=TEXT_COLOR, fg_color=INPUT_BG_COLOR,
-                                                 state="normal" if self.negative_toggle_var.get() else "disabled")
-        self.negative_prompt_text.pack(fill="x", padx=5, pady=5) # Keep pack for now, grid is handled in toggle_advanced_mode
-        self.negative_prompt_text.insert("1.0", self.config["parameters"]["negative_prompt"])
+                                     button_color=ACCENT_COLOR,
+                                     progress_color=ACCENT_COLOR,
+                                     font=ctk.CTkFont(size=11),
+                                     text_color=TEXT_SECONDARY)
+        trigger_toggle.pack(side="left", padx=0)
 
         self.trigger_words_entry = ctk.CTkEntry(prompt_frame, placeholder_text="Trigger words...",
-                                              text_color=TEXT_COLOR, fg_color=INPUT_BG_COLOR,
+                                              text_color=TEXT_COLOR, fg_color=SURFACE_ELEVATED,
+                                              border_width=1, border_color=BORDER_COLOR,
+                                              corner_radius=6, height=32,
+                                              font=ctk.CTkFont(size=12),
                                               state="normal" if self.trigger_toggle_var.get() else "disabled")
-        self.trigger_words_entry.pack(fill="x", padx=5, pady=5)
+        self.trigger_words_entry.pack(fill="x", padx=0, pady=(4, 0))
         
         # If config has trigger words, populate the entry
         if "trigger_words" in self.config:
@@ -762,26 +845,72 @@ class ImageGeneratorGUI(ctk.CTk): # Inherit directly from ctk.CTk
         # No need to call grid/pack here as it's done in ImageUploader.__init__
 
     def create_parameters_section(self, parent):
-        """Create the parameters section inside the parent frame (left_panel)"""
-        parameters_frame = ctk.CTkFrame(parent, fg_color=FRAME_BG_COLOR)
-        parameters_frame.pack(fill="x", padx=10, pady=5) # Use pack
+        """Create the parameters section inside a parameter card"""
+        # Parameter card with #111111 bg, rounded corners, border
+        parameters_frame = ctk.CTkFrame(parent, fg_color=SURFACE_ELEVATED,
+                                         corner_radius=8, border_width=1,
+                                         border_color=BORDER_COLOR)
+        parameters_frame.pack(fill="x", padx=12, pady=(8, 4))
 
-        ctk.CTkLabel(parameters_frame, text="Parameters:", font=ctk.CTkFont(size=16), text_color=TEXT_COLOR).pack(anchor="w", padx=10, pady=(10,5))
+        # Header row: "Parameters" + Reset button
+        param_header = ctk.CTkFrame(parameters_frame, fg_color="transparent")
+        param_header.pack(fill="x", padx=12, pady=(12, 8))
+        ctk.CTkLabel(param_header, text="Parameters",
+                     font=ctk.CTkFont(size=13, weight="bold"),
+                     text_color="#cccccc").pack(side="left")
 
-        # --- Global Width/Height Controls ---
+        def reset_parameters():
+            self.global_width_var.set(1024)
+            self.global_height_var.set(1024)
+            self.seed_var.set("")
+            self.output_format_var.set("webp")
+            self.output_quality_var.set(80)
+            self.megapixels_var.set("1")
+            self.go_fast_var.set(True)
+
+        ctk.CTkButton(param_header, text="Reset", width=50, height=24,
+                       font=ctk.CTkFont(size=11),
+                       fg_color="transparent", hover_color="#1a1a1a",
+                       text_color=TEXT_SECONDARY, border_width=0,
+                       command=reset_parameters).pack(side="right")
+
+        # Separator under header
+        ctk.CTkFrame(parameters_frame, fg_color=BORDER_COLOR, height=1).pack(fill="x", padx=12, pady=(0, 8))
+
+        # --- Aspect Ratio / Size Controls ---
+        size_label = ctk.CTkLabel(parameters_frame, text="Aspect Ratio",
+                                   font=ctk.CTkFont(size=11),
+                                   text_color=TEXT_SECONDARY)
+        size_label.pack(anchor="w", padx=12, pady=(0, 4))
+
         global_dim_frame = ctk.CTkFrame(parameters_frame, fg_color="transparent")
-        global_dim_frame.pack(fill="x", padx=10, pady=(0, 5))
-        ctk.CTkLabel(global_dim_frame, text="Width:", text_color=TEXT_COLOR).grid(row=0, column=0, padx=5, pady=2, sticky="w")
+        global_dim_frame.pack(fill="x", padx=12, pady=(0, 8))
+        global_dim_frame.grid_columnconfigure(1, weight=1)
+        global_dim_frame.grid_columnconfigure(3, weight=1)
+        ctk.CTkLabel(global_dim_frame, text="W:", text_color=TEXT_SECONDARY,
+                     font=ctk.CTkFont(size=11)).grid(row=0, column=0, padx=(0, 4), pady=2, sticky="w")
         self.global_width_var = tk.IntVar(value=1024)
-        ctk.CTkEntry(global_dim_frame, textvariable=self.global_width_var, width=80).grid(row=0, column=1, padx=5, pady=2, sticky="w")
-        ctk.CTkLabel(global_dim_frame, text="Height:", text_color=TEXT_COLOR).grid(row=0, column=2, padx=5, pady=2, sticky="w")
+        ctk.CTkEntry(global_dim_frame, textvariable=self.global_width_var, width=70,
+                     height=32, fg_color="#1a1a1a", border_color="#2a2a2a",
+                     border_width=1, corner_radius=4,
+                     font=ctk.CTkFont(family="Consolas", size=12)).grid(row=0, column=1, padx=(0, 8), pady=2, sticky="w")
+        ctk.CTkLabel(global_dim_frame, text="H:", text_color=TEXT_SECONDARY,
+                     font=ctk.CTkFont(size=11)).grid(row=0, column=2, padx=(0, 4), pady=2, sticky="w")
         self.global_height_var = tk.IntVar(value=1024)
-        ctk.CTkEntry(global_dim_frame, textvariable=self.global_height_var, width=80).grid(row=0, column=3, padx=5, pady=2, sticky="w")
+        ctk.CTkEntry(global_dim_frame, textvariable=self.global_height_var, width=70,
+                     height=32, fg_color="#1a1a1a", border_color="#2a2a2a",
+                     border_width=1, corner_radius=4,
+                     font=ctk.CTkFont(family="Consolas", size=12)).grid(row=0, column=3, padx=0, pady=2, sticky="w")
 
         # --- Model-Specific Parameters ---
         # Create the main notebook for model tabs
-        self.model_param_notebook = ctk.CTkTabview(parameters_frame, fg_color=FRAME_BG_COLOR)
-        self.model_param_notebook.pack(fill="x", expand=True, padx=10, pady=10)
+        self.model_param_notebook = ctk.CTkTabview(parameters_frame, fg_color=SURFACE_ELEVATED,
+                                                     segmented_button_fg_color="#1a1a1a",
+                                                     segmented_button_selected_color=ACCENT_COLOR,
+                                                     segmented_button_selected_hover_color=ACCENT_HOVER,
+                                                     segmented_button_unselected_color="#1a1a1a",
+                                                     segmented_button_unselected_hover_color="#252525")
+        self.model_param_notebook.pack(fill="x", expand=True, padx=8, pady=(0, 4))
         self.model_param_tabs = {} # To store frames for each model tab
 
         # Define model configurations (matching the prompt)
@@ -844,73 +973,163 @@ class ImageGeneratorGUI(ctk.CTk): # Inherit directly from ctk.CTk
                 )
                 row_idx += 1
 
-        # --- Global Controls Section (Now separate, below model tabs) ---
-        global_frame = ctk.CTkFrame(parameters_frame, fg_color=FRAME_BG_COLOR)
-        global_frame.pack(fill="x", padx=10, pady=(15, 5)) # Add padding above
-        global_frame.grid_columnconfigure(1, weight=1) # Allow controls to expand
+        # --- Seed Input (inside parameter card) ---
+        seed_frame = ctk.CTkFrame(parameters_frame, fg_color="transparent")
+        seed_frame.pack(fill="x", padx=12, pady=(4, 8))
+        ctk.CTkLabel(seed_frame, text="Seed", text_color=TEXT_SECONDARY,
+                     font=ctk.CTkFont(size=11)).pack(anchor="w", pady=(0, 4))
+        seed_input_frame = ctk.CTkFrame(seed_frame, fg_color="transparent")
+        seed_input_frame.pack(fill="x")
+        self.seed_var = tk.StringVar(value="")
+        self.seed_entry = ctk.CTkEntry(seed_input_frame, textvariable=self.seed_var,
+                                        placeholder_text="Random (-1)", height=32,
+                                        fg_color="#1a1a1a", border_color="#2a2a2a",
+                                        border_width=1, corner_radius=4,
+                                        font=ctk.CTkFont(family="Consolas", size=12))
+        self.seed_entry.pack(side="left", fill="x", expand=True, padx=(0, 4))
+        # Random seed button
+        ctk.CTkButton(seed_input_frame, text="\U0001F3B2", width=32, height=32,
+                       fg_color="#1a1a1a", hover_color="#252525",
+                       border_width=1, border_color="#2a2a2a",
+                       corner_radius=4, font=ctk.CTkFont(size=14),
+                       command=lambda: self.seed_var.set(str(random.randint(0, 2**32 - 1)))
+                       ).pack(side="right")
 
-        ctk.CTkLabel(global_frame, text="Global Controls:", font=ctk.CTkFont(size=16, weight="bold"), text_color=TEXT_COLOR).grid(row=0, column=0, columnspan=3, padx=5, pady=(0,5), sticky="w")
-
-        # Seed
-        ctk.CTkLabel(global_frame, text="Seed:", text_color=TEXT_COLOR).grid(row=1, column=0, padx=5, pady=2, sticky="w")
-        self.seed_var = tk.StringVar(value="") # Initialize empty
-        self.seed_entry = ctk.CTkEntry(global_frame, textvariable=self.seed_var, width=120, placeholder_text="Optional (integer)")
-        self.seed_entry.grid(row=1, column=1, columnspan=2, padx=5, pady=2, sticky="w")
+        # --- Global Controls (below parameter card, separate section) ---
+        global_frame = ctk.CTkFrame(parameters_frame, fg_color="transparent")
+        global_frame.pack(fill="x", padx=12, pady=(4, 12))
+        global_frame.grid_columnconfigure(1, weight=1)
 
         # Output Format
-        ctk.CTkLabel(global_frame, text="Output Format:", text_color=TEXT_COLOR).grid(row=2, column=0, padx=5, pady=2, sticky="w")
-        self.output_format_var = tk.StringVar(value=self.config.get("output_format", "webp")) # Default webp
-        self.output_format_combo = ctk.CTkComboBox(global_frame, values=["webp", "png", "jpg"], variable=self.output_format_var, width=100, command=self._update_quality_slider_state)
-        self.output_format_combo.grid(row=2, column=1, columnspan=2, padx=5, pady=2, sticky="w")
+        ctk.CTkLabel(global_frame, text="Format:", text_color=TEXT_SECONDARY,
+                     font=ctk.CTkFont(size=11)).grid(row=0, column=0, padx=(0, 8), pady=3, sticky="w")
+        self.output_format_var = tk.StringVar(value=self.config.get("output_format", "webp"))
+        self.output_format_combo = ctk.CTkComboBox(global_frame, values=["webp", "png", "jpg"],
+                                                     variable=self.output_format_var, width=90,
+                                                     height=28, corner_radius=4,
+                                                     fg_color="#1a1a1a", border_color="#2a2a2a",
+                                                     button_color="#1a1a1a",
+                                                     dropdown_fg_color=SURFACE_ELEVATED,
+                                                     font=ctk.CTkFont(size=11),
+                                                     command=self._update_quality_slider_state)
+        self.output_format_combo.grid(row=0, column=1, padx=0, pady=3, sticky="w")
 
-        # Output Quality
-        ctk.CTkLabel(global_frame, text="Output Quality:", text_color=TEXT_COLOR).grid(row=3, column=0, padx=5, pady=2, sticky="w")
-        self.output_quality_var = tk.IntVar(value=self.config.get("output_quality", 80)) # Default 80
-        self.output_quality_slider = ctk.CTkSlider(global_frame, from_=0, to=100, number_of_steps=100, variable=self.output_quality_var)
-        self.output_quality_slider.grid(row=3, column=1, padx=5, pady=2, sticky="ew")
-        self.output_quality_label = ctk.CTkLabel(global_frame, text=f"{self.output_quality_var.get()}", text_color=TEXT_COLOR, width=35)
-        self.output_quality_label.grid(row=3, column=2, padx=5, pady=2, sticky="w")
+        # Output Quality (slider with value badge)
+        ctk.CTkLabel(global_frame, text="Quality:", text_color=TEXT_SECONDARY,
+                     font=ctk.CTkFont(size=11)).grid(row=1, column=0, padx=(0, 8), pady=3, sticky="w")
+        quality_row = ctk.CTkFrame(global_frame, fg_color="transparent")
+        quality_row.grid(row=1, column=1, padx=0, pady=3, sticky="ew")
+        quality_row.grid_columnconfigure(0, weight=1)
+        self.output_quality_var = tk.IntVar(value=self.config.get("output_quality", 80))
+        self.output_quality_slider = ctk.CTkSlider(quality_row, from_=0, to=100,
+                                                     number_of_steps=100,
+                                                     variable=self.output_quality_var,
+                                                     fg_color="#1a1a1a",
+                                                     progress_color=ACCENT_COLOR,
+                                                     button_color="#FFFFFF",
+                                                     button_hover_color=ACCENT_HOVER,
+                                                     height=14)
+        self.output_quality_slider.grid(row=0, column=0, padx=(0, 6), sticky="ew")
+        # Value badge
+        self.output_quality_label = ctk.CTkLabel(quality_row,
+                                                  text=f"{self.output_quality_var.get()}",
+                                                  text_color="#cccccc", width=36, height=22,
+                                                  fg_color="#1a1a1a", corner_radius=4,
+                                                  font=ctk.CTkFont(family="Consolas", size=11))
+        self.output_quality_label.grid(row=0, column=1, padx=0, sticky="e")
         self.output_quality_var.trace_add("write", lambda *args: self.output_quality_label.configure(text=f"{self.output_quality_var.get()}"))
-        self._update_quality_slider_state() # Set initial state
+        self._update_quality_slider_state()
 
         # Megapixels
-        ctk.CTkLabel(global_frame, text="Megapixels:", text_color=TEXT_COLOR).grid(row=4, column=0, padx=5, pady=2, sticky="w")
-        self.megapixels_var = tk.StringVar(value=str(self.config.get("megapixels", "1"))) # Default 1
-        ctk.CTkComboBox(global_frame, values=[str(i) for i in range(1, 9)], variable=self.megapixels_var, width=100).grid(row=4, column=1, columnspan=2, padx=5, pady=2, sticky="w")
+        ctk.CTkLabel(global_frame, text="Megapixels:", text_color=TEXT_SECONDARY,
+                     font=ctk.CTkFont(size=11)).grid(row=2, column=0, padx=(0, 8), pady=3, sticky="w")
+        self.megapixels_var = tk.StringVar(value=str(self.config.get("megapixels", "1")))
+        ctk.CTkComboBox(global_frame, values=[str(i) for i in range(1, 9)],
+                        variable=self.megapixels_var, width=70, height=28,
+                        corner_radius=4, fg_color="#1a1a1a", border_color="#2a2a2a",
+                        button_color="#1a1a1a", dropdown_fg_color=SURFACE_ELEVATED,
+                        font=ctk.CTkFont(size=11)).grid(row=2, column=1, padx=0, pady=3, sticky="w")
 
         # Go Fast
-        self.go_fast_var = tk.BooleanVar(value=self.config.get("go_fast", True)) # Default ON
-        ctk.CTkCheckBox(global_frame, text="Go Fast (where available)", variable=self.go_fast_var, text_color=TEXT_COLOR).grid(row=5, column=0, columnspan=3, padx=5, pady=2, sticky="w")
+        self.go_fast_var = tk.BooleanVar(value=self.config.get("go_fast", True))
+        ctk.CTkCheckBox(global_frame, text="Go Fast", variable=self.go_fast_var,
+                        text_color=TEXT_SECONDARY, fg_color=ACCENT_COLOR,
+                        hover_color=ACCENT_HOVER, checkbox_height=16, checkbox_width=16,
+                        font=ctk.CTkFont(size=11)).grid(row=3, column=0, columnspan=2, padx=0, pady=3, sticky="w")
 
         # TODO: Add logic to show/hide model tabs based on selected service (Replicate/HF)
         # TODO: Add logic to load/save model-specific params from/to config
 
     def create_model_section(self, parent):
         """Create the model selection section inside the parent frame (left_panel)"""
-        self.model_section_frame = ctk.CTkFrame(parent, fg_color=FRAME_BG_COLOR) # Store the frame reference
-        self.model_section_frame.pack(fill="x", padx=5, pady=2) # Consistent padding
+        # Model selector label
+        ctk.CTkLabel(parent, text="Model", font=ctk.CTkFont(size=12, weight="bold"),
+                     text_color="#cccccc").pack(anchor="w", padx=12, pady=(8, 4))
+
+        self.model_section_frame = ctk.CTkFrame(parent, fg_color="transparent")
+        self.model_section_frame.pack(fill="x", padx=12, pady=(0, 4))
         self.model_section_frame.grid_columnconfigure(1, weight=1)
 
         # Replicate widgets (created once, gridded/forgotten in update)
-        self.replicate_model_label = ctk.CTkLabel(self.model_section_frame, text="Replicate Model:", font=ctk.CTkFont(size=16), text_color=TEXT_COLOR)
+        self.replicate_model_label = ctk.CTkLabel(self.model_section_frame, text="Model:",
+                                                    font=ctk.CTkFont(size=11), text_color=TEXT_SECONDARY)
         self.replicate_model_var = tk.StringVar(value=self.config["last_used_model_replicate"])
-        self.replicate_model_combo = ctk.CTkComboBox(self.model_section_frame, values=self.config["recent_models_replicate"], variable=self.replicate_model_var, width=400, state="readonly")
-        self.add_replicate_model_button = ctk.CTkButton(self.model_section_frame, text="Add Model", width=100, command=self.add_replicate_model, fg_color=ACCENT_COLOR, text_color=BUTTON_TEXT_COLOR, hover_color=ACCENT_HOVER)
+        self.replicate_model_combo = ctk.CTkComboBox(self.model_section_frame,
+                                                       values=self.config["recent_models_replicate"],
+                                                       variable=self.replicate_model_var, width=250,
+                                                       height=32, corner_radius=6,
+                                                       fg_color=SURFACE_ELEVATED, border_color=BORDER_COLOR,
+                                                       button_color=BORDER_COLOR,
+                                                       dropdown_fg_color=SURFACE_ELEVATED,
+                                                       font=ctk.CTkFont(size=11),
+                                                       state="readonly")
+        self.add_replicate_model_button = ctk.CTkButton(self.model_section_frame, text="+", width=32, height=32,
+                                                          corner_radius=6, fg_color=BUTTON_SECONDARY_FG,
+                                                          border_width=1, border_color="#333333",
+                                                          hover_color="#252525", text_color=TEXT_COLOR,
+                                                          command=self.add_replicate_model)
 
-        # Hugging Face widgets (created once, gridded/forgotten in update)
-        self.hf_model_label = ctk.CTkLabel(self.model_section_frame, text="HF Base Model:", font=ctk.CTkFont(size=16), text_color=TEXT_COLOR)
+        # Hugging Face widgets
+        self.hf_model_label = ctk.CTkLabel(self.model_section_frame, text="Model:",
+                                            font=ctk.CTkFont(size=11), text_color=TEXT_SECONDARY)
         self.hf_model_var = tk.StringVar(value=self.config["last_used_model_hf"])
-        self.hf_model_combo = ctk.CTkComboBox(self.model_section_frame, values=self.config["recent_models_hf"], variable=self.hf_model_var, width=400, state="readonly")
-        self.add_hf_model_button = ctk.CTkButton(self.model_section_frame, text="Add Model", width=100, command=self.add_hf_model, fg_color=ACCENT_COLOR, text_color=BUTTON_TEXT_COLOR, hover_color=ACCENT_HOVER)
+        self.hf_model_combo = ctk.CTkComboBox(self.model_section_frame,
+                                                values=self.config["recent_models_hf"],
+                                                variable=self.hf_model_var, width=250,
+                                                height=32, corner_radius=6,
+                                                fg_color=SURFACE_ELEVATED, border_color=BORDER_COLOR,
+                                                button_color=BORDER_COLOR,
+                                                dropdown_fg_color=SURFACE_ELEVATED,
+                                                font=ctk.CTkFont(size=11),
+                                                state="readonly")
+        self.add_hf_model_button = ctk.CTkButton(self.model_section_frame, text="+", width=32, height=32,
+                                                    corner_radius=6, fg_color=BUTTON_SECONDARY_FG,
+                                                    border_width=1, border_color="#333333",
+                                                    hover_color="#252525", text_color=TEXT_COLOR,
+                                                    command=self.add_hf_model)
 
-        # Gemini widgets (created once, gridded/forgotten in update)
-        self.gemini_model_label = ctk.CTkLabel(self.model_section_frame, text="Gemini Model:", font=ctk.CTkFont(size=16), text_color=TEXT_COLOR)
+        # Gemini widgets
+        self.gemini_model_label = ctk.CTkLabel(self.model_section_frame, text="Model:",
+                                                font=ctk.CTkFont(size=11), text_color=TEXT_SECONDARY)
         gemini_models = self.config.get("recent_models_gemini", ["gemini-2.5-flash-image"])
         self.gemini_model_var = tk.StringVar(value=self.config.get("last_used_model_gemini", "gemini-2.5-flash-image"))
-        self.gemini_model_combo = ctk.CTkComboBox(self.model_section_frame, values=gemini_models, variable=self.gemini_model_var, width=400, state="readonly")
-        self.add_gemini_model_button = ctk.CTkButton(self.model_section_frame, text="Add Model", width=100, command=self.add_gemini_model, fg_color=ACCENT_COLOR, text_color=BUTTON_TEXT_COLOR, hover_color=ACCENT_HOVER)
+        self.gemini_model_combo = ctk.CTkComboBox(self.model_section_frame, values=gemini_models,
+                                                    variable=self.gemini_model_var, width=250,
+                                                    height=32, corner_radius=6,
+                                                    fg_color=SURFACE_ELEVATED, border_color=BORDER_COLOR,
+                                                    button_color=BORDER_COLOR,
+                                                    dropdown_fg_color=SURFACE_ELEVATED,
+                                                    font=ctk.CTkFont(size=11),
+                                                    state="readonly")
+        self.add_gemini_model_button = ctk.CTkButton(self.model_section_frame, text="+", width=32, height=32,
+                                                       corner_radius=6, fg_color=BUTTON_SECONDARY_FG,
+                                                       border_width=1, border_color="#333333",
+                                                       hover_color="#252525", text_color=TEXT_COLOR,
+                                                       command=self.add_gemini_model)
         # Gemini info label
-        self.gemini_info_label = ctk.CTkLabel(self.model_section_frame, text="Gemini: Free tier, ~500 images/day per key. No LoRA support.", font=ctk.CTkFont(size=12), text_color="grey")
+        self.gemini_info_label = ctk.CTkLabel(self.model_section_frame,
+                                               text="Free tier, ~500 images/day. No LoRA.",
+                                               font=ctk.CTkFont(size=10), text_color=TEXT_SECONDARY)
 
         # --- LoRA Management (Common Structure) ---
         self.lora_management_frame = ctk.CTkFrame(self.model_section_frame, fg_color="transparent")
@@ -994,41 +1213,65 @@ class ImageGeneratorGUI(ctk.CTk): # Inherit directly from ctk.CTk
             self.gemini_info_label.grid(row=1, column=0, columnspan=3, padx=5, pady=2, sticky="w")
 
     def create_output_section(self, parent):
-        """Create the output configuration section inside the parent frame (left_panel)"""
-        output_frame = ctk.CTkFrame(parent, fg_color=FRAME_BG_COLOR)
-        output_frame.pack(fill="x", padx=5, pady=2) # Consistent padding
+        """Create the output configuration section (no generate button - that's in sticky bottom)"""
+        output_frame = ctk.CTkFrame(parent, fg_color="transparent")
+        output_frame.pack(fill="x", padx=12, pady=(8, 4))
         output_frame.grid_columnconfigure(1, weight=1)
 
-        # Consistent padding (padx=5, pady=2)
-        ctk.CTkLabel(output_frame, text="Output Directory:", font=ctk.CTkFont(size=16), text_color=TEXT_COLOR).grid(row=0, column=0, padx=5, pady=2, sticky="w")
+        # Output directory row
+        ctk.CTkLabel(output_frame, text="Output:", text_color=TEXT_SECONDARY,
+                     font=ctk.CTkFont(size=11)).grid(row=0, column=0, padx=(0, 6), pady=3, sticky="w")
         self.output_dir_var = tk.StringVar(value=self.config["output_directory"])
-        ctk.CTkEntry(output_frame, textvariable=self.output_dir_var, width=400, state="readonly").grid(row=0, column=1, padx=5, pady=2, sticky="ew")
-        ctk.CTkButton(output_frame, text="Browse", width=100, command=self.browse_output_dir, fg_color=ACCENT_COLOR, text_color=BUTTON_TEXT_COLOR, hover_color=ACCENT_HOVER).grid(row=0, column=2, padx=5, pady=2, sticky="e")
+        ctk.CTkEntry(output_frame, textvariable=self.output_dir_var, height=28,
+                     state="readonly", fg_color="#1a1a1a", border_color="#2a2a2a",
+                     border_width=1, corner_radius=4,
+                     font=ctk.CTkFont(size=10)).grid(row=0, column=1, padx=0, pady=3, sticky="ew")
+        ctk.CTkButton(output_frame, text="...", width=28, height=28,
+                       corner_radius=4, fg_color=BUTTON_SECONDARY_FG,
+                       border_width=1, border_color="#333333",
+                       hover_color="#252525", text_color=TEXT_COLOR,
+                       command=self.browse_output_dir).grid(row=0, column=2, padx=(4, 0), pady=3, sticky="e")
 
-        # --- Number of Images Control (Consolidated) ---
-        num_images_frame = ctk.CTkFrame(output_frame, fg_color="transparent")
-        num_images_frame.grid(row=1, column=0, columnspan=3, padx=5, pady=2, sticky="ew") # Use grid layout
-        ctk.CTkLabel(num_images_frame, text="Number of Images:", font=ctk.CTkFont(size=14), text_color=TEXT_COLOR).pack(side="left", padx=(0, 5)) # Pack inside frame
-        self.num_outputs_var = tk.StringVar(value="1") # New variable for consolidated control
-        ctk.CTkComboBox(num_images_frame, values=[str(i) for i in range(1, 11)], variable=self.num_outputs_var, width=80).pack(side="left") # Pack inside frame
+        # Number of images
+        ctk.CTkLabel(output_frame, text="Count:", text_color=TEXT_SECONDARY,
+                     font=ctk.CTkFont(size=11)).grid(row=1, column=0, padx=(0, 6), pady=3, sticky="w")
+        self.num_outputs_var = tk.StringVar(value="1")
+        ctk.CTkComboBox(output_frame, values=[str(i) for i in range(1, 11)],
+                        variable=self.num_outputs_var, width=70, height=28,
+                        corner_radius=4, fg_color="#1a1a1a", border_color="#2a2a2a",
+                        button_color="#1a1a1a", dropdown_fg_color=SURFACE_ELEVATED,
+                        font=ctk.CTkFont(size=11)).grid(row=1, column=1, padx=0, pady=3, sticky="w")
 
-        # --- Generate Button (Now handles single or batch) ---
-        ctk.CTkButton(output_frame, text="Generate", font=ctk.CTkFont(size=16, weight="bold"), height=40, command=self.generate_image, fg_color=ACCENT_COLOR, text_color=BUTTON_TEXT_COLOR, hover_color=ACCENT_HOVER).grid(row=2, column=0, columnspan=3, padx=5, pady=(5, 2), sticky="ew") # Use grid layout
+    def create_generate_section(self, parent):
+        """Create the sticky generate button and progress bar at bottom of left panel"""
+        # Generate button - full width, violet, 48px height
+        self.generate_button = ctk.CTkButton(
+            parent, text="GENERATE",
+            font=ctk.CTkFont(size=15, weight="bold"),
+            height=48, corner_radius=8,
+            fg_color=ACCENT_COLOR, text_color=BUTTON_TEXT_COLOR,
+            hover_color=ACCENT_HOVER,
+            command=self.generate_image
+        )
+        self.generate_button.pack(fill="x", padx=12, pady=(12, 4))
 
-        # Batch generation section REMOVED (no self.batch_frame needed)
+        # Progress bar (4px, hidden until generating)
+        self.progress_bar = ctk.CTkProgressBar(
+            parent, height=4, corner_radius=2,
+            fg_color="#1a1a1a", progress_color=ACCENT_COLOR,
+            mode="indeterminate"
+        )
+        self.progress_bar.pack(fill="x", padx=12, pady=(0, 12))
+        self.progress_bar.set(0)
+        self.progress_bar.pack_forget()  # Hidden by default
 
-    def create_image_display(self, parent): # Parent is now self.right_panel
-        """Create the image display area inside the parent frame (right_panel)"""
-        # Use grid within the right_panel
-        display_frame = ctk.CTkFrame(parent, fg_color=FRAME_BG_COLOR)
-        display_frame.grid(row=0, column=0, sticky="nsew", padx=5, pady=2) # Consistent padding
-        display_frame.grid_columnconfigure(0, weight=1)
-        display_frame.grid_rowconfigure(0, weight=1) # Allow canvas_frame to expand
-
-        self.canvas_frame = ctk.CTkFrame(display_frame)
-        self.canvas_frame.grid(row=0, column=0, sticky="nsew", padx=5, pady=5) # Inner padding for canvas
+    def create_image_display(self, parent):
+        """Create the image display area inside the right gallery panel"""
+        # Main image display area (centered on void black)
+        self.canvas_frame = ctk.CTkFrame(parent, fg_color=APP_BG_COLOR, corner_radius=0)
+        self.canvas_frame.grid(row=0, column=0, sticky="nsew", padx=0, pady=0)
         self.canvas_frame.grid_columnconfigure(0, weight=1)
-        self.canvas_frame.grid_rowconfigure(0, weight=1) # Allow canvas to expand
+        self.canvas_frame.grid_rowconfigure(0, weight=1)
 
         self.canvas = tk.Canvas(self.canvas_frame, bg=APP_BG_COLOR, bd=0, highlightthickness=0)
         self.canvas.grid(row=0, column=0, sticky="nsew")
@@ -1047,48 +1290,92 @@ class ImageGeneratorGUI(ctk.CTk): # Inherit directly from ctk.CTk
         self.canvas.bind("<Button-4>", lambda e: self.canvas.yview_scroll(-1, "units"))
         self.canvas.bind("<Button-5>", lambda e: self.canvas.yview_scroll(1, "units"))
 
-        # --- Thumbnail Frame (Scrollable Horizontally) ---
-        self.thumbnail_frame = ctk.CTkScrollableFrame(display_frame, fg_color=FRAME_BG_COLOR, height=100, orientation="horizontal")
-        self.thumbnail_frame.grid(row=1, column=0, sticky="ew", padx=5, pady=(5, 2))
-        # Hide vertical scrollbar if it appears by default
-        self.thumbnail_frame._scrollbar.grid_forget()
+        # --- Image Metadata Bar ---
+        self.metadata_frame = ctk.CTkFrame(parent, fg_color="#050505", height=32, corner_radius=0)
+        self.metadata_frame.grid(row=1, column=0, sticky="ew", padx=0, pady=0)
+        self.metadata_frame.grid_propagate(False)
 
+        self.image_info_label = ctk.CTkLabel(self.metadata_frame,
+                                              text="No image generated yet",
+                                              font=ctk.CTkFont(family="Consolas", size=11),
+                                              text_color=TEXT_SECONDARY)
+        self.image_info_label.pack(expand=True, pady=4)
 
-        # --- Control Frame (Below Thumbnails) ---
-        control_frame = ctk.CTkFrame(display_frame) # Place controls below thumbnail frame
-        control_frame.grid(row=2, column=0, sticky="ew", padx=5, pady=(0, 2)) # Consistent padding
+        # --- Thumbnail Strip (horizontal, 80px height, #050505 bg) ---
+        thumb_strip_frame = ctk.CTkFrame(parent, fg_color="#050505", height=96,
+                                          corner_radius=0, border_width=1,
+                                          border_color=BORDER_COLOR)
+        thumb_strip_frame.grid(row=2, column=0, sticky="ew", padx=0, pady=0)
+        thumb_strip_frame.grid_propagate(False)
+        thumb_strip_frame.grid_columnconfigure(0, weight=1)
+        thumb_strip_frame.grid_rowconfigure(0, weight=1)
 
-        # Consistent padding and button colors
-        ctk.CTkButton(control_frame, text="Save Image As", command=self.save_image_as, fg_color=ACCENT_COLOR, text_color=BUTTON_TEXT_COLOR, hover_color=ACCENT_HOVER).pack(side="left", padx=5, pady=2)
-        ctk.CTkButton(control_frame, text="Open Output Folder", command=self.open_output_folder, fg_color=ACCENT_COLOR, text_color=BUTTON_TEXT_COLOR, hover_color=ACCENT_HOVER).pack(side="left", padx=5, pady=2)
-        self.image_info_label = ctk.CTkLabel(control_frame, text="No image generated yet", font=ctk.CTkFont(size=12), text_color=TEXT_COLOR)
-        self.image_info_label.pack(side="right", padx=5, pady=2)
+        self.thumbnail_frame = ctk.CTkScrollableFrame(thumb_strip_frame,
+                                                        fg_color="#050505", height=80,
+                                                        orientation="horizontal",
+                                                        scrollbar_button_color="#2a2a2a",
+                                                        scrollbar_button_hover_color="#3a3a3a")
+        self.thumbnail_frame.grid(row=0, column=0, sticky="nsew", padx=4, pady=4)
+        # Hide vertical scrollbar
+        try:
+            self.thumbnail_frame._scrollbar.grid_forget()
+        except Exception:
+            pass
 
-        # Display initial placeholder image *after* __init__ completes
+        # Open Folder button at end of thumbnail strip
+        open_folder_btn = ctk.CTkButton(thumb_strip_frame, text="\U0001F4C2", width=64, height=64,
+                                          corner_radius=4, fg_color=FRAME_BG_COLOR,
+                                          border_width=1, border_color="#333333",
+                                          hover_color="#1a1a1a", text_color=TEXT_SECONDARY,
+                                          font=ctk.CTkFont(size=18),
+                                          command=self.open_output_folder)
+        open_folder_btn.grid(row=0, column=1, padx=(0, 8), pady=8, sticky="e")
+
+        # Display initial placeholder
         placeholder_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), "placeholder.png")
         if os.path.exists(placeholder_path):
-            # Check if display_image method exists before scheduling
             if hasattr(self, 'display_image') and callable(self.display_image):
                  self.after(100, lambda: self.display_image(placeholder_path))
             else:
-                 print("Warning: display_image method not found, cannot schedule placeholder.")
                  try:
-                     self.canvas.create_text(400, 300, text="Generate an image\n(display_image missing)", fill="orange", font=("Arial", 14))
+                     self.canvas.create_text(400, 300, text="Generate an image", fill="#555555", font=("Consolas", 14))
                  except Exception as canvas_err:
                      print(f"Error adding text to canvas: {canvas_err}")
         else:
             try:
-                self.canvas.create_text(400, 300, text="Generate an image", fill="white", font=("Arial", 14))
+                self.canvas.create_text(400, 300, text="Generate an image", fill="#555555", font=("Consolas", 14))
             except Exception as canvas_err:
                  print(f"Error adding text to canvas: {canvas_err}")
 
-    def create_status_bar(self, parent): # Parent is now self.status_bar_frame
-        """Create the status bar inside the parent frame (status_bar_frame)"""
-        # Use pack as status_bar_frame is already gridded at the bottom
-        self.status_label = ctk.CTkLabel(parent, text="Ready", font=ctk.CTkFont(size=12), text_color=TEXT_COLOR)
-        self.status_label.pack(side="left", padx=10, pady=5)
-        self.service_info_label = ctk.CTkLabel(parent, text=f"Service: {self.config['service'].capitalize()}", font=ctk.CTkFont(size=12), text_color=TEXT_COLOR)
-        self.service_info_label.pack(side="right", padx=10, pady=5)
+    def create_status_bar(self, parent):
+        """Create the status bar matching the Stitch design"""
+        # Left section: connection status dot + service name
+        left_status = ctk.CTkFrame(parent, fg_color="transparent")
+        left_status.pack(side="left", padx=(8, 0), pady=0)
+
+        self.status_dot = ctk.CTkLabel(left_status, text="\u25CF", width=12,
+                                        font=ctk.CTkFont(size=8),
+                                        text_color=SUCCESS_COLOR)
+        self.status_dot.pack(side="left", padx=(0, 4))
+
+        self.status_label = ctk.CTkLabel(left_status,
+                                          text=f"Connected to {self.config['service'].capitalize()}",
+                                          font=ctk.CTkFont(family="Consolas", size=11),
+                                          text_color=TEXT_SECONDARY)
+        self.status_label.pack(side="left")
+
+        # Center section: model info
+        self.service_info_label = ctk.CTkLabel(parent,
+                                                text=f"{self.config['service'].capitalize()}",
+                                                font=ctk.CTkFont(family="Consolas", size=11),
+                                                text_color=TEXT_SECONDARY)
+        self.service_info_label.pack(side="left", padx=16)
+
+        # Right section: generation count
+        self.gen_count_label = ctk.CTkLabel(parent, text="0 generated",
+                                             font=ctk.CTkFont(family="Consolas", size=11),
+                                             text_color=TEXT_SECONDARY)
+        self.gen_count_label.pack(side="right", padx=(0, 8))
 
     def toggle_negative_prompt(self):
         """Toggle the negative prompt textarea enable/disable state"""
@@ -1121,26 +1408,11 @@ class ImageGeneratorGUI(ctk.CTk): # Inherit directly from ctk.CTk
         self.save_config()
 
     def toggle_advanced_mode(self):
-        """Toggle advanced mode on/off"""
+        """Toggle advanced mode on/off (negative prompt is always visible in new layout)"""
         advanced_mode = self.advanced_mode_var.get()
         self.config["advanced_mode"] = advanced_mode
-
-        # Find the correct parent frames for grid/forget operations
-        # Assume prompt_text's master is the prompt_frame created in create_prompt_section
-        prompt_frame = self.prompt_text.master
-        # Batch frame is removed, no need for output_frame lookup here
-
-        if advanced_mode:
-            # Show negative prompt - Use pack/pack_forget consistent with how text box is managed
-            self.negative_prompt_label.pack(fill="x", padx=5, pady=(5,0), before=self.negative_prompt_text) # Pack label before text
-            self.negative_prompt_text.pack(fill="x", padx=5, pady=5) # Ensure text is packed
-            # Batch frame is removed, nothing to pack here
-        else:
-            # Hide negative prompt
-            self.negative_prompt_label.pack_forget()
-            self.negative_prompt_text.pack_forget()
-            # Batch frame is removed, nothing to forget
-
+        # In the new 2-column layout, negative prompt is always visible
+        # This method is kept for config compatibility
         self.save_config()
 
     def update_image_preview(self, image_paths):
@@ -1171,7 +1443,7 @@ class ImageGeneratorGUI(ctk.CTk): # Inherit directly from ctk.CTk
         self.update_thumbnails(image_paths)
 
     def update_thumbnails(self, image_paths):
-        """Clear and populate the thumbnail frame"""
+        """Clear and populate the thumbnail frame with 64x64 rounded thumbnails"""
         if not hasattr(self, 'thumbnail_frame'):
             print("Thumbnail frame not initialized.")
             return
@@ -1180,40 +1452,57 @@ class ImageGeneratorGUI(ctk.CTk): # Inherit directly from ctk.CTk
         for widget in self.thumbnail_frame.winfo_children():
             widget.destroy()
 
-        self.generated_image_paths = image_paths # Store the list
+        self.generated_image_paths = image_paths
+        self._thumb_buttons = []  # Track for selected state
 
         if not image_paths:
-            # Optionally display a message if no images
-            # ctk.CTkLabel(self.thumbnail_frame, text="No images generated").pack()
             return
 
-        thumb_size = (80, 80)
-        for path in image_paths:
+        thumb_size = (64, 64)
+        for i, path in enumerate(image_paths):
             try:
-                if not os.path.exists(path): continue # Skip if file doesn't exist
+                if not os.path.exists(path): continue
 
                 img = Image.open(path)
                 img.thumbnail(thumb_size, Image.LANCZOS)
                 ctk_img = ImageTk.PhotoImage(img)
 
-                # Create a button with the thumbnail
+                # First thumbnail gets violet border (selected), rest get subtle border
+                is_selected = (i == 0)
                 thumb_button = ctk.CTkButton(
                     self.thumbnail_frame,
                     image=ctk_img,
-                    text="", # No text on button
+                    text="",
                     width=thumb_size[0],
                     height=thumb_size[1],
-                    fg_color="transparent", # Make button background transparent
-                    command=lambda p=path: self.display_main_image(p) # Click to display
+                    corner_radius=4,
+                    border_width=2,
+                    border_color=ACCENT_COLOR if is_selected else BORDER_COLOR,
+                    fg_color=SURFACE_ELEVATED,
+                    hover_color="#1a1a1a",
+                    command=lambda p=path, idx=i: self._select_thumbnail(p, idx)
                 )
-                thumb_button._image = ctk_img # Keep reference to avoid garbage collection
-                thumb_button.pack(side="left", padx=3, pady=3)
+                thumb_button._image = ctk_img
+                thumb_button.pack(side="left", padx=3, pady=4)
+                self._thumb_buttons.append(thumb_button)
 
             except Exception as e:
                 print(f"Error creating thumbnail for {path}: {e}")
-                # Optionally add a placeholder for failed thumbnails
-                error_label = ctk.CTkLabel(self.thumbnail_frame, text="Error", width=thumb_size[0], height=thumb_size[1], fg_color="red")
-                error_label.pack(side="left", padx=3, pady=3)
+                error_label = ctk.CTkLabel(self.thumbnail_frame, text="Err",
+                                           width=thumb_size[0], height=thumb_size[1],
+                                           fg_color=ERROR_COLOR, corner_radius=4)
+                error_label.pack(side="left", padx=3, pady=4)
+
+    def _select_thumbnail(self, path, index):
+        """Select a thumbnail and highlight it with violet border"""
+        self.display_main_image(path)
+        # Update border colors
+        if hasattr(self, '_thumb_buttons'):
+            for i, btn in enumerate(self._thumb_buttons):
+                try:
+                    btn.configure(border_color=ACCENT_COLOR if i == index else BORDER_COLOR)
+                except Exception:
+                    pass
 
 
     def display_image(self, image_path):
@@ -1327,7 +1616,8 @@ class ImageGeneratorGUI(ctk.CTk): # Inherit directly from ctk.CTk
                     return # Stop generation
                 prompt = f"{manual_triggers}, {base_prompt}" # Prepend manual triggers
 
-            negative_prompt = self.negative_prompt_text.get("1.0", "end").strip() if self.config["advanced_mode"] else self.config["parameters"].get("negative_prompt", "") # Use .get for safety
+            # Negative prompt is always visible in the new layout
+            negative_prompt = self.negative_prompt_text.get("1.0", "end").strip()
 
             # --- Get Global Controls ---
             output_format = self.output_format_var.get()
@@ -1426,6 +1716,10 @@ class ImageGeneratorGUI(ctk.CTk): # Inherit directly from ctk.CTk
             output_path = os.path.join(self.config["output_directory"], f"{timestamp}_image.{output_format}")
 
             self.is_generating = True
+            # Show progress bar
+            if hasattr(self, 'progress_bar'):
+                self.progress_bar.pack(fill="x", padx=12, pady=(0, 12))
+                self.progress_bar.start()
 
             # --- Start Generation Thread (Handles single or batch based on num_outputs) ---
             # Generate list of output paths if num_outputs > 1
@@ -1546,6 +1840,7 @@ class ImageGeneratorGUI(ctk.CTk): # Inherit directly from ctk.CTk
             if successful_paths:
                  # Update preview with the list of successful paths
                  self.after(0, lambda paths=successful_paths: self.update_image_preview(paths))
+                 self.generation_count += len(successful_paths)
                  final_status = f"Generation complete ({len(successful_paths)}/{num_outputs} saved)."
                  if error_messages:
                      final_status += " Some errors occurred."
@@ -1569,8 +1864,15 @@ class ImageGeneratorGUI(ctk.CTk): # Inherit directly from ctk.CTk
             self.after(100, lambda err=str(e): messagebox.showerror("Generation Error", f"Error during generation:\n{err}"))
             self.after(100, lambda: self.status_label.configure(text="Error"))
         finally:
-            # Always reset generating flag in the main thread
-            self.after(100, lambda: setattr(self, 'is_generating', False))
+            # Always reset generating flag and hide progress bar in the main thread
+            def _reset_generation_state():
+                self.is_generating = False
+                if hasattr(self, 'progress_bar'):
+                    self.progress_bar.stop()
+                    self.progress_bar.pack_forget()
+                if hasattr(self, 'gen_count_label'):
+                    self.gen_count_label.configure(text=f"{self.generation_count} generated")
+            self.after(100, _reset_generation_state)
 
     def _call_replicate_api(self, params):
         """Call the Replicate API to generate an image"""
@@ -1839,11 +2141,16 @@ class ImageGeneratorGUI(ctk.CTk): # Inherit directly from ctk.CTk
     # --- Event Handlers & Callbacks ---
 
     def on_service_change(self):
-        """Handle service change between Replicate and Hugging Face"""
+        """Handle service change between Replicate, Hugging Face, and Gemini"""
         service = self.service_var.get()
         self.config["service"] = service
-        self.update_model_section(self.model_section_frame) # Pass parent
-        self.service_info_label.configure(text=f"Service: {service.capitalize()}")
+        self.update_model_section(self.model_section_frame)
+        if hasattr(self, 'service_info_label'):
+            self.service_info_label.configure(text=f"{service.capitalize()}")
+        if hasattr(self, 'status_label'):
+            self.status_label.configure(text=f"Connected to {service.capitalize()}")
+        if hasattr(self, '_update_service_status_display'):
+            self._update_service_status_display()
         self.save_config()
 
     def configure_api_keys(self):
@@ -2167,66 +2474,82 @@ class ImageGeneratorGUI(ctk.CTk): # Inherit directly from ctk.CTk
 
 
     def _create_param_widget(self, parent, param_name, config, row_idx):
-        """Helper to create a widget for a model parameter based on its type and config"""
+        """Helper to create a widget for a model parameter with Stitch-style value badges"""
         defaults = config.get("defaults", {})
         ranges = config.get("ranges", {})
         options = config.get("options", {})
         default_value = defaults.get(param_name)
 
-        ctk.CTkLabel(parent, text=f"{param_name}:", text_color=TEXT_COLOR).grid(row=row_idx, column=0, padx=5, pady=2, sticky="w")
+        # Parameter label (muted gray, smaller)
+        ctk.CTkLabel(parent, text=f"{param_name}:", text_color=TEXT_SECONDARY,
+                     font=ctk.CTkFont(size=11)).grid(row=row_idx, column=0, padx=(4, 8), pady=3, sticky="w")
         widget_var = None
 
         # Determine widget type
         if isinstance(default_value, bool): # Checkbox
             widget_var = tk.BooleanVar(value=default_value)
-            widget = ctk.CTkCheckBox(parent, variable=widget_var, text="", checkbox_height=18, checkbox_width=18, fg_color=ACCENT_COLOR)
-            widget.grid(row=row_idx, column=1, columnspan=2, padx=5, pady=2, sticky="w")
+            widget = ctk.CTkCheckBox(parent, variable=widget_var, text="",
+                                      checkbox_height=16, checkbox_width=16,
+                                      fg_color=ACCENT_COLOR, hover_color=ACCENT_HOVER)
+            widget.grid(row=row_idx, column=1, columnspan=2, padx=4, pady=3, sticky="w")
         elif param_name in options: # Dropdown
             widget_var = tk.StringVar(value=str(default_value))
-            widget = ctk.CTkComboBox(parent, values=options[param_name], variable=widget_var, width=150) # Adjust width as needed
-            widget.grid(row=row_idx, column=1, columnspan=2, padx=5, pady=2, sticky="ew")
-        elif param_name in ranges: # Slider
+            widget = ctk.CTkComboBox(parent, values=options[param_name], variable=widget_var,
+                                      width=140, height=28, corner_radius=4,
+                                      fg_color="#1a1a1a", border_color="#2a2a2a",
+                                      button_color="#1a1a1a",
+                                      dropdown_fg_color=SURFACE_ELEVATED,
+                                      font=ctk.CTkFont(size=11))
+            widget.grid(row=row_idx, column=1, columnspan=2, padx=4, pady=3, sticky="ew")
+        elif param_name in ranges: # Slider with value badge
             range_info = ranges[param_name]
             min_val, max_val = range_info[0], range_info[1]
-            # Ensure max_val respects the global limit for safety_tolerance
             if param_name == "safety_tolerance":
-                max_val = min(max_val, 6) # Cap max_val at 6 for safety_tolerance slider
+                max_val = min(max_val, 6)
 
-            step = range_info[2] if len(range_info) > 2 else 1 # Step for integer sliders
-            num_steps = int((max_val - min_val) / step) if isinstance(default_value, int) else 100 # Default steps for float
+            step = range_info[2] if len(range_info) > 2 else 1
+            num_steps = int((max_val - min_val) / step) if isinstance(default_value, int) else 100
 
-            # Ensure default value doesn't exceed the (potentially capped) max_val
             if default_value is not None and default_value > max_val:
                 clamped_default = max_val
-                print(f"Warning: Default value {default_value} for {param_name} exceeded max {max_val}. Clamping to {clamped_default}.")
             else:
                 clamped_default = default_value
 
             if isinstance(clamped_default, int):
                  widget_var = tk.IntVar(value=clamped_default)
-            elif isinstance(clamped_default, float): # Float
+            elif isinstance(clamped_default, float):
                  widget_var = tk.DoubleVar(value=clamped_default)
-                 num_steps = int((max_val - min_val) / 0.1) # Example: 0.1 step for float sliders
-            else: # Handle None case or other types if necessary
-                 widget_var = tk.IntVar(value=int(max_val)) # Default to max if original default was None or invalid type
+                 num_steps = int((max_val - min_val) / 0.1)
+            else:
+                 widget_var = tk.IntVar(value=int(max_val))
 
-            # Ensure num_steps is valid
-            if num_steps <= 0: num_steps = 1 # Prevent division by zero or negative steps
+            if num_steps <= 0: num_steps = 1
 
-            # Restore the slider creation and grid placement
-            widget = ctk.CTkSlider(parent, from_=min_val, to=max_val, number_of_steps=num_steps, variable=widget_var)
-            widget.grid(row=row_idx, column=1, padx=5, pady=2, sticky="ew")
+            widget = ctk.CTkSlider(parent, from_=min_val, to=max_val,
+                                    number_of_steps=num_steps, variable=widget_var,
+                                    fg_color="#1a1a1a", progress_color=ACCENT_COLOR,
+                                    button_color="#FFFFFF", button_hover_color=ACCENT_HOVER,
+                                    height=14)
+            widget.grid(row=row_idx, column=1, padx=4, pady=3, sticky="ew")
 
-            # Value label for slider (Common for both int and float sliders)
-            value_label = ctk.CTkLabel(parent, text=f"{widget_var.get():.1f}" if isinstance(widget_var, tk.DoubleVar) else str(widget_var.get()), text_color=TEXT_COLOR, width=40)
-            value_label.grid(row=row_idx, column=2, padx=5, pady=2, sticky="w")
-            widget_var.trace_add("write", lambda *args, var=widget_var, label=value_label: label.configure(text=f"{var.get():.1f}" if isinstance(var, tk.DoubleVar) else str(var.get())))
-        else: # Fallback to Entry (e.g., for string params if any)
+            # Value badge (Stitch-style: bg-[#1a1a1a] px-2 py-0.5 rounded border border-[#2a2a2a])
+            initial_text = f"{widget_var.get():.1f}" if isinstance(widget_var, tk.DoubleVar) else str(widget_var.get())
+            value_badge = ctk.CTkLabel(parent, text=initial_text,
+                                        text_color="#cccccc", width=42, height=22,
+                                        fg_color="#1a1a1a", corner_radius=4,
+                                        font=ctk.CTkFont(family="Consolas", size=11))
+            value_badge.grid(row=row_idx, column=2, padx=(4, 4), pady=3, sticky="e")
+            widget_var.trace_add("write", lambda *args, var=widget_var, badge=value_badge: badge.configure(
+                text=f"{var.get():.1f}" if isinstance(var, tk.DoubleVar) else str(var.get())))
+        else: # Fallback to Entry
             widget_var = tk.StringVar(value=str(default_value) if default_value is not None else "")
-            widget = ctk.CTkEntry(parent, textvariable=widget_var)
-            widget.grid(row=row_idx, column=1, columnspan=2, padx=5, pady=2, sticky="ew")
+            widget = ctk.CTkEntry(parent, textvariable=widget_var, height=28,
+                                   fg_color="#1a1a1a", border_color="#2a2a2a",
+                                   border_width=1, corner_radius=4,
+                                   font=ctk.CTkFont(size=11))
+            widget.grid(row=row_idx, column=1, columnspan=2, padx=4, pady=3, sticky="ew")
 
-        return widget_var # Return the associated Tkinter variable
+        return widget_var
 
     def _update_quality_slider_state(self, *args):
         """Enable/disable output quality slider based on format"""

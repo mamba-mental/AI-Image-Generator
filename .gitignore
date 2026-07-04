@@ -30,3 +30,7 @@ logs/
 desktop.ini
 Thumbs.db
 .DS_Store
+
+# Build artifacts (venv + work dirs live under build/)
+build/venv/
+build/work*/

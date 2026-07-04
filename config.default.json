@@ -5,7 +5,7 @@
   "output_directory": "",
   "service": "gemini",
   "last_used_model_gemini": "gemini-2.5-flash-image",
-  "last_used_model_replicate": "stability-ai/stable-diffusion",
+  "last_used_model_replicate": "black-forest-labs/flux-schnell",
   "last_used_model_hf": "CultriX/flux-nsfw-highress",
   "last_used_lora_hf": "huggingface.co/CultriX/flux-nsfw-highress",
   "parameters": {
@@ -19,6 +19,7 @@
   "advanced_mode": true,
   "recent_prompts": [],
   "recent_models_replicate": [
+    "black-forest-labs/flux-schnell",
     "stability-ai/sdxl:c221b2b8ef527988fb59bf24a8b97c4561f1c671f73bd389f866bfb27c061316",
     "black-forest-labs/flux-dev-lora",
     "black-forest-labs/flux-1.1-pro-ultra",
@@ -69,7 +70,6 @@
   ],
   "recent_loras_replicate": [],
   "recent_models_gemini": [
-    "gemini-2.0-flash-exp-image-generation",
     "gemini-2.5-flash-image",
     "gemini-3-pro-image-preview",
     "gemini-3.1-flash-image-preview"

@@ -1,15 +1,19 @@
 # Requirements for Hugging Face & Replicate API Image Generator
 
 # Core dependencies
-replicate==0.22.0
-requests==2.31.0
-Pillow==10.1.0
-customtkinter==5.2.1
+replicate>=0.22.0
+requests>=2.31.0
+Pillow>=10.4  # 10.1 has no Python 3.13 wheel
+customtkinter>=5.2.1  # legacy app.py only — excluded from the frozen build
 tkinterdnd2>=0.4 # drag & drop — NOT the -universal fork: it imports tkinter.tix, removed in Python 3.13
 python-dotenv>=0.20.0 # Added for .env support
 
 # Hugging Face dependencies
 huggingface_hub>=0.20.0  # For InferenceClient
+
+# Web-view shell + fal backend (2026-07-03 rebuild)
+pywebview>=5.0
+fal-client>=0.5
 # diffusers==0.25.0  # Temporarily commented out for local inference
 # transformers==4.36.2 # Temporarily commented out for local inference
 # torch>=2.2.0  # Temporarily commented out for local inference
