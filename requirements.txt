@@ -5,7 +5,7 @@ replicate==0.22.0
 requests==2.31.0
 Pillow==10.1.0
 customtkinter==5.2.1
-tkinterdnd2-universal>=0.5 # Added for drag & drop support
+tkinterdnd2>=0.4 # drag & drop — NOT the -universal fork: it imports tkinter.tix, removed in Python 3.13
 python-dotenv>=0.20.0 # Added for .env support
 
 # Hugging Face dependencies

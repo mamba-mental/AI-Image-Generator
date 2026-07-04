@@ -2,6 +2,14 @@
 .env
 .env.*
 
+# Live config may hold user-set API keys — track config.default.json instead
+config.json
+
+# PyInstaller
+build/dist/
+dist/
+*.manifest
+
 # Ignore generated images
 generated_images/
 

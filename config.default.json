@@ -1,0 +1,79 @@
+{
+  "replicate_api_key": "",
+  "huggingface_token": "",
+  "gemini_api_key": "",
+  "output_directory": "",
+  "service": "gemini",
+  "last_used_model_gemini": "gemini-2.5-flash-image",
+  "last_used_model_replicate": "stability-ai/stable-diffusion",
+  "last_used_model_hf": "CultriX/flux-nsfw-highress",
+  "last_used_lora_hf": "huggingface.co/CultriX/flux-nsfw-highress",
+  "parameters": {
+    "width": 1024,
+    "height": 1024,
+    "num_inference_steps": 50,
+    "guidance_scale": 7.5,
+    "prompt_strength": 0.8,
+    "negative_prompt": "deformed, bad anatomy, disfigured, poorly drawn face, mutation, mutated, extra limb, ugly, disgusting, poorly drawn hands, missing limb, floating limbs, disconnected limbs, malformed hands, blurry, watermark, watermarked, oversaturated, censored, distorted, blurry, bad anatomy, disfigured, poorly drawn face, mutation, mutated, extra limb, ugly, poorly drawn hands, missing limb, floating limbs, disconnected limbs, malformed hands, oversaturated, censored, distorted, text, low quality, worst quality"
+  },
+  "advanced_mode": true,
+  "recent_prompts": [],
+  "recent_models_replicate": [
+    "stability-ai/sdxl:c221b2b8ef527988fb59bf24a8b97c4561f1c671f73bd389f866bfb27c061316",
+    "black-forest-labs/flux-dev-lora",
+    "black-forest-labs/flux-1.1-pro-ultra",
+    "huggingface.co/CultriX/flux-nsfw-highress",
+    "huggingface.co/lustlyai/Flux_Lustly.ai_Uncensored_nsfw_v1",
+    "black-forest-labs/flux-schnell-lora",
+    "black-forest-labs/flux-depth-dev",
+    "black-forest-labs/flux-dev",
+    "black-forest-labs/flux-pro",
+    "black-forest-labs/flux-1.1-pro",
+    "stability-ai/stable-diffusion-3.5-medium",
+    "stability-ai/stable-diffusion-3.5-large-turbo",
+    "stability-ai/stable-diffusion-3.5-large",
+    "stability-ai/stable-diffusion-3",
+    "stability-ai/sdxl:7762fd07cf82c948538e41f63f77d685e02b063e37e496e96eefd46c929f9bdc",
+    "stability-ai/sdxl",
+    "stability-ai/stable-diffusion"
+  ],
+  "recent_models_hf": [
+    "black-forest-labs/FLUX.1-dev",
+    "black-forest-labs/flux-1.1-pro-ultra",
+    "huggingface.co/black-forest-labs/FLUX.1-dev",
+    "https://huggingface.co/CultriX/flux-nsfw-highress",
+    "huggingface.co/CultriX/flux-nsfw-highress",
+    "CultriX/flux-nsfw-highress"
+  ],
+  "recent_loras_hf": [
+    {
+      "url": "https://huggingface.co/aifeifei798/flux-lora-uncensored/resolve/main/flux_lora_v1.safetensors",
+      "scale": 0.8,
+      "enabled": true
+    },
+    {
+      "url": "strangerzonehf/Flux-Super-Realism-LoRA",
+      "scale": 0.8,
+      "enabled": false
+    },
+    {
+      "url": "huggingface.co/strangerzonehf/Flux-Super-Realism-LoRA",
+      "scale": 0.8,
+      "enabled": false
+    },
+    {
+      "url": "huggingface.co/CultriX/flux-nsfw-highress",
+      "scale": 0.8,
+      "enabled": false
+    }
+  ],
+  "recent_loras_replicate": [],
+  "recent_models_gemini": [
+    "gemini-2.0-flash-exp-image-generation",
+    "gemini-2.5-flash-image",
+    "gemini-3-pro-image-preview",
+    "gemini-3.1-flash-image-preview"
+  ],
+  "recent_models_fal": [],
+  "last_used_model_fal": "fal-ai/flux/schnell"
+}
