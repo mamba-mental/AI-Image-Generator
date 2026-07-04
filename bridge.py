@@ -69,6 +69,72 @@ class Api:
         self._persist()
         return {"ok": True}
 
+    # live key-validation probes (cheapest per provider; endpoints from PRIME's validate.sh)
+    _VALIDATE = {
+        "fal": ("https://api.fal.ai/v1/models?limit=1", lambda k: {"Authorization": f"Key {k}"}),
+        "replicate": ("https://api.replicate.com/v1/account", lambda k: {"Authorization": f"Token {k}"}),
+        "gemini": ("https://generativelanguage.googleapis.com/v1beta/models", lambda k: {"x-goog-api-key": k}),
+        "huggingface": ("https://huggingface.co/api/whoami-v2", lambda k: {"Authorization": f"Bearer {k}"}),
+    }
+
+    def validate_key(self, service: str, key: str = "") -> dict:
+        """Live-check a key against its provider (2xx = accepted). If key is empty,
+        validate the currently-resolved key. Key value is never echoed back."""
+        import urllib.error
+        import urllib.request
+        probe = self._VALIDATE.get(service)
+        if not probe:
+            return {"valid": False, "http": 0, "detail": f"unknown service {service}"}
+        url, hdr = probe
+        env_name = engine_config.KEY_FIELDS[service][1]
+        k = key.strip() or os.environ.get(env_name, "")
+        if not k:
+            return {"valid": False, "http": 0, "detail": "no key set"}
+        try:
+            req = urllib.request.Request(url, headers=hdr(k))
+            code = urllib.request.urlopen(req, timeout=15).getcode()
+            return {"valid": 200 <= code < 300, "http": code, "detail": "accepted"}
+        except urllib.error.HTTPError as e:
+            return {"valid": False, "http": e.code,
+                    "detail": "rejected" if e.code in (401, 403) else f"HTTP {e.code}"}
+        except Exception as e:
+            return {"valid": False, "http": 0, "detail": f"unreachable ({type(e).__name__})"}
+
+    def save_and_validate_key(self, service: str, key: str) -> dict:
+        """Persist a new key then live-validate it. Returns validation + refreshed status."""
+        self.set_key(service, key)
+        result = self.validate_key(service)  # validates the now-resolved key
+        return {"validation": result, "keys_status": self.keys_status}
+
+    def get_balance(self, service: str) -> dict:
+        """Credit/quota status for the footer. Only fal exposes a real balance
+        (via FAL_KEY_ADMIN); the rest are usage-based or free-tier. Key never returned."""
+        import urllib.request
+        try:
+            if service == "fal":
+                key = os.environ.get("FAL_KEY_ADMIN") or os.environ.get("FAL_KEY")
+                if not key:
+                    return {"label": "no admin key", "kind": "none"}
+                req = urllib.request.Request(
+                    "https://api.fal.ai/v1/account/billing?expand=credits",
+                    headers={"Authorization": f"Key {key}"})
+                d = json.loads(urllib.request.urlopen(req, timeout=15).read())
+                c = d.get("credits", {}) or {}
+                bal = c.get("current_balance")
+                if bal is None:
+                    return {"label": "balance n/a", "kind": "none"}
+                return {"label": f"${bal:.2f} {c.get('currency', 'USD')}",
+                        "kind": "low" if bal < 2 else "ok"}
+            if service == "gemini":
+                return {"label": "free tier · daily quota", "kind": "info"}
+            if service == "replicate":
+                return {"label": "usage-based · no balance API", "kind": "info"}
+            if service == "huggingface":
+                return {"label": "free / PRO tier", "kind": "info"}
+        except Exception as e:
+            return {"label": f"balance unavailable ({type(e).__name__})", "kind": "none"}
+        return {"label": "", "kind": "none"}
+
     def list_models(self, service: str) -> list:
         if service == "fal":
             return _load_fal_models()

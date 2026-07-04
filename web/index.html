@@ -22,15 +22,27 @@
       <button data-theme="costa"><span class="swatch" style="background:oklch(65.87% .163 54.96)"></span>COSTA</button>
       <button data-theme="claret"><span class="swatch" style="background:#c2304a"></span>CLARET</button>
     </div>
+    <button id="settingsbtn" title="API keys & settings">⚙</button>
   </div>
 </header>
+
+<div class="modal-overlay" id="settings" hidden>
+  <div class="modal">
+    <div class="modal-head">
+      <h2>API Keys</h2>
+      <button id="settingsclose">✕</button>
+    </div>
+    <p class="modal-sub">Keys resolve from your environment by default. Add or override one here, then Validate to live-check it against the provider. Stored in <code>%APPDATA%\AI Studio Void\config.json</code> — never committed.</p>
+    <div id="keyrows"></div>
+  </div>
+</div>
 
 <div class="main">
 <aside>
   <div class="scroll">
     <div class="sec">
       <div class="lbl">Service</div>
-      <div class="svc" id="svc"></div>
+      <select id="svc"></select>
     </div>
     <div class="sec">
       <div class="lbl">Category · Model <em id="pricenote"></em></div>
@@ -86,9 +98,10 @@
 <footer>
   <span><span class="dot" id="conn"></span><span id="connlabel">connecting…</span></span>
   <span id="modellabel"></span>
-  <span class="sp"></span>
   <span id="statusmsg"></span>
   <div class="pbar" id="pbar"><div></div></div>
+  <span class="sp"></span>
+  <span id="balance" title="credit / quota for the active service"></span>
   <span id="sessioninfo">v2.0</span>
 </footer>
 

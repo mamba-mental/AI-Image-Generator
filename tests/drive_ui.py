@@ -52,7 +52,7 @@ def screenshot(path):
 def drive(window):
     try:
         # wait for boot to actually complete (services rendered), not a fixed sleep
-        booted = wait_for(window, "document.querySelectorAll('#svc button').length >= 4", timeout=30)
+        booted = wait_for(window, "document.querySelectorAll('#svc option').length >= 4", timeout=30)
         check("bridge boot", booted, js(window, "document.getElementById('connlabel').textContent"))
         if not booted:
             check("diagnostic: pywebview object",
@@ -63,7 +63,7 @@ def drive(window):
         js(window, "window.__errs=[]; window.onerror=(m,s,l)=>{window.__errs.push(m+':'+l)}")
 
         # --- 1. fal schnell via the real button (switch to fal explicitly first) ---
-        js(window, "document.querySelector('#svc button[data-s=fal]').click()")
+        js(window, "var s=document.getElementById('svc'); s.value='fal'; s.dispatchEvent(new Event('change'))")
         time.sleep(1)
         js(window, "document.querySelector('#cats button[data-c=\"text-to-image\"]').click()")
         time.sleep(1)
@@ -75,10 +75,11 @@ def drive(window):
               "| model:", js(window, "state.model"))
         js(window, "document.getElementById('prompt').value='a single violet orchid on black glass, studio macro'")
         js(window, "document.getElementById('gen').click()")
-        time.sleep(2)
-        started = js(window, "document.getElementById('gen').textContent") == "CANCEL"
-        check("fal job started (button flips to CANCEL)", started,
-              f"status='{js(window, chr(100)+'ocument.getElementById(`statusmsg`).textContent')}' errs={js(window, 'JSON.stringify(window.__errs)')}")
+        time.sleep(0.6)  # schnell can finish in ~1.5s; check the flip fast
+        started = (js(window, "document.getElementById('gen').textContent") == "CANCEL"
+                   or js(window, "state.gallery.length >= 1"))  # or already done (out-raced)
+        check("fal job started (button flips to CANCEL or gen completes)", started,
+              f"btn='{js(window, chr(100)+'ocument.getElementById(`gen`).textContent')}' errs={js(window, 'JSON.stringify(window.__errs)')}")
         ok = wait_for(window, "state.gallery.length >= 1", timeout=120)
         check("fal schnell tile in gallery", ok, js(window, "state.gallery[0] && state.gallery[0].file"))
         # the render-proof the earlier gate MISSED: image pixels actually painted,
@@ -95,10 +96,16 @@ def drive(window):
         check("screenshot", screenshot(str(Path(__file__).parent / "ui_gate.png")))
 
         # --- 2. gemini via the real service toggle ---
-        # --- 2. replicate via the real service toggle ---
+        # --- balance shows for fal (real $ number) ---
+        bal = wait_for(window, "document.getElementById('balance').textContent.indexOf('$') >= 0", timeout=15)
+        check("fal balance shows real $ in footer", bal,
+              js(window, "document.getElementById('balance').textContent"))
+
+        # --- 2. replicate via the service dropdown ---
         base = js(window, "state.gallery.length") or 0
-        js(window, "document.querySelector('#svc button[data-s=replicate]').click()")
+        js(window, "var s=document.getElementById('svc'); s.value='replicate'; s.dispatchEvent(new Event('change'))")
         time.sleep(1)
+        check("service dropdown switches to replicate", js(window, "state.service") == "replicate")
         js(window, "document.getElementById('prompt').value='minimal geometric violet logo on black'")
         js(window, "document.getElementById('gen').click()")
         ok = wait_for(window, f"state.gallery.length >= {base + 1}", timeout=180)
@@ -107,7 +114,7 @@ def drive(window):
 
         # --- 2b. gemini: pass on tile OR a clean quota-block (free tier resets midnight PT) ---
         base = js(window, "state.gallery.length") or 0
-        js(window, "document.querySelector('#svc button[data-s=gemini]').click()")
+        js(window, "var s=document.getElementById('svc'); s.value='gemini'; s.dispatchEvent(new Event('change'))")
         time.sleep(1)
         js(window, "document.getElementById('gen').click()")
         got_tile = wait_for(window, f"state.gallery.length >= {base + 1}", timeout=90)
@@ -117,7 +124,7 @@ def drive(window):
               "tile" if got_tile else status[:120])
 
         # --- 3. cancel proof on fal: flux/dev 50 steps (slow enough to out-race), cancel at 2s ---
-        js(window, "document.querySelector('#svc button[data-s=fal]').click()")
+        js(window, "var s=document.getElementById('svc'); s.value='fal'; s.dispatchEvent(new Event('change'))")
         time.sleep(1)
         js(window, "document.querySelector('#cats button[data-c=\"text-to-image\"]').click()")
         time.sleep(1)
@@ -135,6 +142,21 @@ def drive(window):
         check("cancel resets UI", ok, status[:120])
         check("cancel surfaced (or gen out-raced cancel)",
               "cancel" in status.lower() or "done" in status.lower(), status[:120])
+
+        # --- settings modal: open, live-validate fal key, close ---
+        js(window, "document.getElementById('settingsbtn').click()")
+        time.sleep(1)
+        modal_open = js(window, "!document.getElementById('settings').hidden")
+        check("settings modal opens", modal_open)
+        js(window, "document.querySelector('.keyrow[data-svc=fal] [data-validate]').click()")
+        valid = wait_for(window,
+            "document.querySelector('.keyrow[data-svc=fal] [data-status]').textContent.indexOf('valid') >= 0",
+            timeout=20)
+        check("fal key live-validates in settings", valid,
+              js(window, "document.querySelector('.keyrow[data-svc=fal] [data-status]').textContent"))
+        js(window, "document.getElementById('settingsclose').click()")
+        time.sleep(1)
+        check("settings modal closes", js(window, "document.getElementById('settings').hidden"))
 
         # --- 4. layout + theme switch sanity ---
         js(window, "document.querySelector('#layoutpick button[data-layout=pro]').click()")

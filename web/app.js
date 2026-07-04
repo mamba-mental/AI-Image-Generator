@@ -72,6 +72,7 @@ async function boot() {
     .map(([k, ok]) => `${k}:${ok ? "✓" : "✗"}`).join(" ");
   renderService();
   render();
+  refreshBalance();
 }
 
 /* ---------- pickers (layout + theme) ---------- */
@@ -88,6 +89,56 @@ function setTheme(name, persist = true) {
 $("layoutpick").addEventListener("click", e => { const b = e.target.closest("button"); if (b) setLayout(b.dataset.layout); });
 $("themepick").addEventListener("click", e => { const b = e.target.closest("button"); if (b) setTheme(b.dataset.theme); });
 
+/* ---------- settings modal (API keys) ---------- */
+const KEY_HINTS = {
+  fal: "FAL_KEY · fal.ai/dashboard/keys",
+  replicate: "REPLICATE_API_TOKEN · replicate.com/account/api-tokens",
+  gemini: "GEMINI_API_KEY · aistudio.google.com/apikey (free)",
+  huggingface: "HUGGINGFACE_TOKEN · huggingface.co/settings/tokens",
+};
+function renderKeyRows() {
+  $("keyrows").innerHTML = ["fal", "replicate", "huggingface", "gemini"].map(s => `
+    <div class="keyrow" data-svc="${s}">
+      <div class="keyrow-head">
+        <span class="svc-name">${SVC_LABELS[s]}</span>
+        <span class="status ${state.keys[s] ? "set" : "unset"}" data-status>${state.keys[s] ? "key set" : "not set"}</span>
+      </div>
+      <div class="keyrow-in">
+        <input type="password" placeholder="paste new ${SVC_LABELS[s]} key to override…" data-keyin>
+        <button data-validate>Validate</button>
+        <button data-save>Save + Check</button>
+      </div>
+      <div class="hint">${KEY_HINTS[s]}</div>
+    </div>`).join("");
+
+  $("keyrows").querySelectorAll(".keyrow").forEach(row => {
+    const s = row.dataset.svc;
+    const status = row.querySelector("[data-status]");
+    const input = row.querySelector("[data-keyin]");
+    const setStatus = (cls, txt) => { status.className = "status " + cls; status.textContent = txt; };
+
+    row.querySelector("[data-validate]").addEventListener("click", async () => {
+      setStatus("checking", "checking…");
+      const r = await api().validate_key(s, input.value);
+      setStatus(r.valid ? "valid" : "invalid", r.valid ? `valid (${r.http})` : `${r.detail} (${r.http})`);
+    });
+    row.querySelector("[data-save]").addEventListener("click", async () => {
+      if (!input.value.trim()) { setStatus("invalid", "empty"); return; }
+      setStatus("checking", "saving…");
+      const r = await api().save_and_validate_key(s, input.value);
+      state.keys = r.keys_status;
+      const v = r.validation;
+      setStatus(v.valid ? "valid" : "invalid", v.valid ? `saved · valid (${v.http})` : `saved · ${v.detail}`);
+      input.value = "";
+      renderService();            // reflect new key state in the dropdown
+      if (s === state.service) refreshBalance();
+    });
+  });
+}
+$("settingsbtn").addEventListener("click", () => { renderKeyRows(); $("settings").hidden = false; });
+$("settingsclose").addEventListener("click", () => { $("settings").hidden = true; });
+$("settings").addEventListener("click", e => { if (e.target.id === "settings") $("settings").hidden = true; });
+
 /* ---------- model catalog ---------- */
 function modelsFor(service, category) {
   if (service === "fal") return state.falModels.filter(m => m.category === category);
@@ -103,7 +154,20 @@ function currentModel() {
 /* ---------- renderers ---------- */
 function renderService() {
   $("svc").innerHTML = state.services.map(s =>
-    `<button data-s="${s}" class="${s === state.service ? "on" : ""} ${state.keys[s] ? "" : "nokey"}">${SVC_LABELS[s] || s}</button>`).join("");
+    `<option value="${s}" ${s === state.service ? "selected" : ""}>${SVC_LABELS[s] || s}${state.keys[s] ? "" : " (no key)"}</option>`).join("");
+}
+
+async function refreshBalance() {
+  const el = $("balance");
+  el.textContent = "…";
+  el.className = "";
+  try {
+    const b = await api().get_balance(state.service);
+    el.textContent = `${SVC_LABELS[state.service] || state.service}: ${b.label}`;
+    el.className = "bal-" + (b.kind || "none");
+  } catch (e) {
+    el.textContent = "";
+  }
 }
 function render() {
   const isFal = state.service === "fal";
@@ -311,7 +375,7 @@ window.onEngineEvent = (evt) => {
     state.genCount += evt.files.length;
     state.selected = 0;
     $("statusmsg").textContent = `done — ${evt.files.length} file(s)`;
-    setBusy(false); renderGallery();
+    setBusy(false); renderGallery(); refreshBalance();  // fal balance drops after a gen
   } else if (evt.type === "job_error") {
     $("statusmsg").textContent = evt.error;
     setBusy(false);
@@ -319,10 +383,9 @@ window.onEngineEvent = (evt) => {
 };
 
 /* ---------- service/category/model switching ---------- */
-$("svc").addEventListener("click", e => {
-  const b = e.target.closest("button"); if (!b) return;
-  state.service = b.dataset.s; state.model = null; state.inputFiles = {};
-  renderService(); render();
+$("svc").addEventListener("change", () => {
+  state.service = $("svc").value; state.model = null; state.inputFiles = {};
+  renderService(); render(); refreshBalance();
 });
 $("cats").addEventListener("click", e => {
   const b = e.target.closest("button"); if (!b) return;
