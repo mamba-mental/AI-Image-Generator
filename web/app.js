@@ -40,7 +40,7 @@ const state = {
   services: [], keys: {}, falModels: [], recentModels: {}, lastUsed: {},
   service: "fal", category: "text-to-image", model: null,
   inputFiles: {}, job: null, gallery: [], selected: null,
-  genCount: 0, loras: {},
+  genCount: 0, loras: {}, mediaBase: "", outDirName: "generated_images",
 };
 
 /* ---------- bridge helpers ---------- */
@@ -53,6 +53,8 @@ async function boot() {
   state.falModels = s.fal_models;
   state.recentModels = s.recent_models;
   state.loras = s.loras || {};
+  state.mediaBase = s.media_base || "";
+  state.outDirName = s.output_dir_name || "generated_images";
   state.service = s.active_service || "fal";
   const cfg = s.config || {};
   state.lastUsed = {
@@ -196,7 +198,13 @@ function renderLoras() {
 }
 
 /* ---------- gallery ---------- */
-function fileUrl(p) { return "file:///" + p.replace(/\\/g, "/"); }
+// WebView2 blocks file:// sub-resources from a file:// page — serve via the
+// localhost media server instead (basename resolves against the output dir).
+function fileUrl(p) {
+  const name = p.split(/[\\/]/).pop();
+  return state.mediaBase ? state.mediaBase + encodeURIComponent(name)
+                         : "file:///" + p.replace(/\\/g, "/");
+}
 function mediaTag(f) {
   const name = f.split(/[\\/]/).pop();
   const ext = f.split(".").pop().toLowerCase();
@@ -219,7 +227,7 @@ function renderGallery() {
       </div>
       <div class="meta"><span><b>${g.meta.model.split("/").pop()}</b>${g.meta.seed ? " · " + g.meta.seed : ""}</span><span>${g.time}</span></div>
     </div>`).join("");
-  $("outinfo").textContent = `OUTPUT · generated_images/ · ${state.gallery.length} this session`;
+  $("outinfo").textContent = `OUTPUT · ${state.outDirName}/ · ${state.gallery.length} this session`;
   $("sessioninfo").textContent = `v2.0 · ${state.genCount} generated`;
   $("gallery").querySelectorAll(".tile").forEach(t => t.addEventListener("click", e => {
     if (e.target.closest(".acts")) return;

@@ -1,6 +1,6 @@
 {
  "version": 2,
- "generated_at": "2026-07-03 21:56",
+ "generated_at": "2026-07-03 22:47",
  "generator": "scripts/build_fal_catalog.py (top-N per category via api.fal.ai/v1/models)",
  "note": "params are FORM HINTS; engine passes dicts through verbatim. Regenerate with the script.",
  "models": [
@@ -34,6 +34,19 @@
      "max": 20
     },
     {
+     "name": "image_size",
+     "type": "enum",
+     "values": [
+      "square_hd",
+      "square",
+      "portrait_4_3",
+      "portrait_16_9",
+      "landscape_4_3",
+      "landscape_16_9"
+     ],
+     "default": "landscape_4_3"
+    },
+    {
      "name": "num_images",
      "type": "int",
      "default": 1,
@@ -60,6 +73,20 @@
      "name": "sync_mode",
      "type": "bool",
      "default": false
+    },
+    {
+     "name": "height",
+     "type": "int",
+     "min": 256,
+     "max": 2048,
+     "optional": true
+    },
+    {
+     "name": "width",
+     "type": "int",
+     "min": 256,
+     "max": 2048,
+     "optional": true
     }
    ]
   },
@@ -141,6 +168,19 @@
    "description": "GPT Image 2, OpenAI's latest image model, is capable of creating extremely detailed images with fine typography.",
    "params": [
     {
+     "name": "image_size",
+     "type": "enum",
+     "values": [
+      "square_hd",
+      "square",
+      "portrait_4_3",
+      "portrait_16_9",
+      "landscape_4_3",
+      "landscape_16_9"
+     ],
+     "default": "landscape_4_3"
+    },
+    {
      "name": "num_images",
      "type": "int",
      "default": 1,
@@ -172,6 +212,20 @@
      "name": "sync_mode",
      "type": "bool",
      "default": false
+    },
+    {
+     "name": "height",
+     "type": "int",
+     "min": 256,
+     "max": 2048,
+     "optional": true
+    },
+    {
+     "name": "width",
+     "type": "int",
+     "min": 256,
+     "max": 2048,
+     "optional": true
     }
    ]
   },
@@ -205,6 +259,19 @@
      "max": 20
     },
     {
+     "name": "image_size",
+     "type": "enum",
+     "values": [
+      "square_hd",
+      "square",
+      "portrait_4_3",
+      "portrait_16_9",
+      "landscape_4_3",
+      "landscape_16_9"
+     ],
+     "default": "landscape_4_3"
+    },
+    {
      "name": "num_images",
      "type": "int",
      "default": 1,
@@ -231,6 +298,20 @@
      "name": "sync_mode",
      "type": "bool",
      "default": false
+    },
+    {
+     "name": "height",
+     "type": "int",
+     "min": 256,
+     "max": 2048,
+     "optional": true
+    },
+    {
+     "name": "width",
+     "type": "int",
+     "min": 256,
+     "max": 2048,
+     "optional": true
     }
    ]
   },
@@ -316,6 +397,19 @@
      "default": true
     },
     {
+     "name": "image_size",
+     "type": "enum",
+     "values": [
+      "square_hd",
+      "square",
+      "portrait_4_3",
+      "portrait_16_9",
+      "landscape_4_3",
+      "landscape_16_9"
+     ],
+     "default": "landscape_4_3"
+    },
+    {
      "name": "output_format",
      "type": "enum",
      "values": [
@@ -340,6 +434,20 @@
      "name": "sync_mode",
      "type": "bool",
      "default": false
+    },
+    {
+     "name": "height",
+     "type": "int",
+     "min": 256,
+     "max": 2048,
+     "optional": true
+    },
+    {
+     "name": "width",
+     "type": "int",
+     "min": 256,
+     "max": 2048,
+     "optional": true
     }
    ]
   },
@@ -499,6 +607,19 @@
      "max": 35
     },
     {
+     "name": "image_size",
+     "type": "enum",
+     "values": [
+      "square_hd",
+      "square",
+      "portrait_4_3",
+      "portrait_16_9",
+      "landscape_4_3",
+      "landscape_16_9"
+     ],
+     "default": "landscape_4_3"
+    },
+    {
      "name": "num_images",
      "type": "int",
      "default": 1,
@@ -525,6 +646,20 @@
      "name": "sync_mode",
      "type": "bool",
      "default": false
+    },
+    {
+     "name": "height",
+     "type": "int",
+     "min": 256,
+     "max": 2048,
+     "optional": true
+    },
+    {
+     "name": "width",
+     "type": "int",
+     "min": 256,
+     "max": 2048,
+     "optional": true
     }
    ]
   },
@@ -601,6 +736,19 @@
      "default": true
     },
     {
+     "name": "image_size",
+     "type": "enum",
+     "values": [
+      "square_hd",
+      "square",
+      "portrait_4_3",
+      "portrait_16_9",
+      "landscape_4_3",
+      "landscape_16_9"
+     ],
+     "default": "landscape_4_3"
+    },
+    {
      "name": "num_images",
      "type": "int",
      "default": 1,
@@ -628,6 +776,20 @@
      "name": "sync_mode",
      "type": "bool",
      "default": false
+    },
+    {
+     "name": "height",
+     "type": "int",
+     "min": 256,
+     "max": 2048,
+     "optional": true
+    },
+    {
+     "name": "width",
+     "type": "int",
+     "min": 256,
+     "max": 2048,
+     "optional": true
     }
    ]
   },
@@ -642,6 +804,22 @@
      "name": "enable_safety_checker",
      "type": "bool",
      "default": true
+    },
+    {
+     "name": "image_size",
+     "type": "enum",
+     "values": [
+      "square_hd",
+      "square",
+      "portrait_4_3",
+      "portrait_16_9",
+      "landscape_4_3",
+      "landscape_16_9"
+     ],
+     "default": {
+      "height": 2048,
+      "width": 2048
+     }
     },
     {
      "name": "max_images",
@@ -661,6 +839,20 @@
      "name": "sync_mode",
      "type": "bool",
      "default": false
+    },
+    {
+     "name": "height",
+     "type": "int",
+     "min": 256,
+     "max": 2048,
+     "optional": true
+    },
+    {
+     "name": "width",
+     "type": "int",
+     "min": 256,
+     "max": 2048,
+     "optional": true
     }
    ]
   },
@@ -744,6 +936,19 @@
    "description": "GPT Image 2, OpenAI's latest image model, is capable of making fine-grained, detailed edits to images.",
    "params": [
     {
+     "name": "image_size",
+     "type": "enum",
+     "values": [
+      "square_hd",
+      "square",
+      "portrait_4_3",
+      "portrait_16_9",
+      "landscape_4_3",
+      "landscape_16_9"
+     ],
+     "default": "auto"
+    },
+    {
      "name": "num_images",
      "type": "int",
      "default": 1,
@@ -775,6 +980,20 @@
      "name": "sync_mode",
      "type": "bool",
      "default": false
+    },
+    {
+     "name": "height",
+     "type": "int",
+     "min": 256,
+     "max": 2048,
+     "optional": true
+    },
+    {
+     "name": "width",
+     "type": "int",
+     "min": 256,
+     "max": 2048,
+     "optional": true
     }
    ]
   },
@@ -909,6 +1128,22 @@
      "default": true
     },
     {
+     "name": "image_size",
+     "type": "enum",
+     "values": [
+      "square_hd",
+      "square",
+      "portrait_4_3",
+      "portrait_16_9",
+      "landscape_4_3",
+      "landscape_16_9"
+     ],
+     "default": {
+      "height": 2048,
+      "width": 2048
+     }
+    },
+    {
      "name": "max_images",
      "type": "int",
      "default": 1,
@@ -926,6 +1161,20 @@
      "name": "sync_mode",
      "type": "bool",
      "default": false
+    },
+    {
+     "name": "height",
+     "type": "int",
+     "min": 256,
+     "max": 2048,
+     "optional": true
+    },
+    {
+     "name": "width",
+     "type": "int",
+     "min": 256,
+     "max": 2048,
+     "optional": true
     }
    ]
   },
@@ -998,6 +1247,19 @@
      "default": true
     },
     {
+     "name": "image_size",
+     "type": "enum",
+     "values": [
+      "square_hd",
+      "square",
+      "portrait_4_3",
+      "portrait_16_9",
+      "landscape_4_3",
+      "landscape_16_9"
+     ],
+     "default": "auto"
+    },
+    {
      "name": "output_format",
      "type": "enum",
      "values": [
@@ -1022,6 +1284,20 @@
      "name": "sync_mode",
      "type": "bool",
      "default": false
+    },
+    {
+     "name": "height",
+     "type": "int",
+     "min": 256,
+     "max": 2048,
+     "optional": true
+    },
+    {
+     "name": "width",
+     "type": "int",
+     "min": 256,
+     "max": 2048,
+     "optional": true
     }
    ]
   },
@@ -1290,6 +1566,19 @@
      "default": true
     },
     {
+     "name": "image_size",
+     "type": "enum",
+     "values": [
+      "square_hd",
+      "square",
+      "portrait_4_3",
+      "portrait_16_9",
+      "landscape_4_3",
+      "landscape_16_9"
+     ],
+     "default": "auto_2K"
+    },
+    {
      "name": "max_images",
      "type": "int",
      "default": 1,
@@ -1307,6 +1596,20 @@
      "name": "sync_mode",
      "type": "bool",
      "default": false
+    },
+    {
+     "name": "height",
+     "type": "int",
+     "min": 256,
+     "max": 2048,
+     "optional": true
+    },
+    {
+     "name": "width",
+     "type": "int",
+     "min": 256,
+     "max": 2048,
+     "optional": true
     }
    ]
   },
@@ -3058,6 +3361,46 @@
      "name": "negative_prompt",
      "type": "string",
      "default": "color distortion, overexposure, static, blurry details, subtitles, style, artwork, painting, frame, still, dim overall tone, worst quality, low quality, JPEG compression artifacts, ugly, mutilated, extra fingers, poorly drawn hands, poorly drawn face, deformed, disfigured, malformed limbs, fused fingers, motionless frame, cluttered background, three legs, crowded background, walking backwards"
+    },
+    {
+     "name": "num_frames",
+     "type": "int",
+     "default": 121,
+     "min": 9,
+     "max": 481
+    },
+    {
+     "name": "num_inference_steps",
+     "type": "int",
+     "default": 15,
+     "min": 8,
+     "max": 30
+    },
+    {
+     "name": "sync_mode",
+     "type": "bool",
+     "default": false
+    },
+    {
+     "name": "video_quality",
+     "type": "enum",
+     "values": [
+      "low",
+      "medium",
+      "high",
+      "maximum"
+     ],
+     "default": "high"
+    },
+    {
+     "name": "video_write_mode",
+     "type": "enum",
+     "values": [
+      "fast",
+      "balanced",
+      "small"
+     ],
+     "default": "balanced"
     }
    ],
    "needs_input_audio": true,
@@ -3133,6 +3476,44 @@
      "default": 25,
      "min": 1,
      "max": 60
+    },
+    {
+     "name": "guidance_scale",
+     "type": "float",
+     "default": 3,
+     "min": 1,
+     "max": 10
+    },
+    {
+     "name": "image_strength",
+     "type": "float",
+     "default": 1,
+     "min": 0,
+     "max": 1
+    },
+    {
+     "name": "match_audio_length",
+     "type": "bool",
+     "default": true
+    },
+    {
+     "name": "negative_prompt",
+     "type": "string",
+     "default": "blurry, out of focus, overexposed, underexposed, low contrast, washed out colors, excessive noise, grainy texture, poor lighting, flickering, motion blur, distorted proportions, unnatural skin tones, deformed facial features, asymmetrical face, missing facial features, extra limbs, disfigured hands, wrong hand count, artifacts around text, inconsistent perspective, camera shake, incorrect depth of field, background too sharp, background clutter, distracting reflections, harsh shadows, inconsistent lighting direction, color banding, cartoonish rendering, 3D CGI look, unrealistic materials, uncanny valley effect, incorrect ethnicity, wrong gender, exaggerated expressions, wrong gaze direction, mismatched lip sync, silent or muted audio, distorted voice, robotic voice, echo, background noise, off-sync audio,incorrect dialogue, added dialogue, repetitive speech, jittery movement, awkward pauses, incorrect timing, unnatural transitions, inconsistent framing, tilted camera, flat lighting, inconsistent tone, cinematic oversaturation, stylized filters, or AI artifacts."
+    },
+    {
+     "name": "num_frames",
+     "type": "int",
+     "default": 121,
+     "min": 9,
+     "max": 481
+    },
+    {
+     "name": "num_inference_steps",
+     "type": "int",
+     "default": 40,
+     "min": 8,
+     "max": 50
     }
    ],
    "needs_input_audio": true,
@@ -3212,6 +3593,44 @@
      "default": 1,
      "min": 0,
      "max": 1
+    },
+    {
+     "name": "distill_lora_first_pass_scale",
+     "type": "float",
+     "default": 0.2,
+     "min": 0,
+     "max": 1
+    },
+    {
+     "name": "distill_lora_second_pass_scale",
+     "type": "float",
+     "default": 0.5,
+     "min": 0,
+     "max": 1
+    },
+    {
+     "name": "enable_prompt_expansion",
+     "type": "bool",
+     "default": true
+    },
+    {
+     "name": "enable_safety_checker",
+     "type": "bool",
+     "default": true
+    },
+    {
+     "name": "end_image_strength",
+     "type": "float",
+     "default": 1,
+     "min": 0,
+     "max": 1
+    },
+    {
+     "name": "fps",
+     "type": "float",
+     "default": 24,
+     "min": 1,
+     "max": 60
     }
    ],
    "needs_input_image": true,
@@ -3339,6 +3758,27 @@
      "default": 5,
      "min": 1,
      "max": 10
+    },
+    {
+     "name": "video_quality",
+     "type": "enum",
+     "values": [
+      "low",
+      "medium",
+      "high",
+      "maximum"
+     ],
+     "default": "high"
+    },
+    {
+     "name": "video_write_mode",
+     "type": "enum",
+     "values": [
+      "fast",
+      "balanced",
+      "small"
+     ],
+     "default": "balanced"
     }
    ],
    "needs_input_audio": true,
@@ -3414,6 +3854,40 @@
      "default": 25,
      "min": 1,
      "max": 60
+    },
+    {
+     "name": "image_strength",
+     "type": "float",
+     "default": 1,
+     "min": 0,
+     "max": 1
+    },
+    {
+     "name": "match_audio_length",
+     "type": "bool",
+     "default": true
+    },
+    {
+     "name": "negative_prompt",
+     "type": "string",
+     "default": "blurry, out of focus, overexposed, underexposed, low contrast, washed out colors, excessive noise, grainy texture, poor lighting, flickering, motion blur, distorted proportions, unnatural skin tones, deformed facial features, asymmetrical face, missing facial features, extra limbs, disfigured hands, wrong hand count, artifacts around text, inconsistent perspective, camera shake, incorrect depth of field, background too sharp, background clutter, distracting reflections, harsh shadows, inconsistent lighting direction, color banding, cartoonish rendering, 3D CGI look, unrealistic materials, uncanny valley effect, incorrect ethnicity, wrong gender, exaggerated expressions, wrong gaze direction, mismatched lip sync, silent or muted audio, distorted voice, robotic voice, echo, background noise, off-sync audio,incorrect dialogue, added dialogue, repetitive speech, jittery movement, awkward pauses, incorrect timing, unnatural transitions, inconsistent framing, tilted camera, flat lighting, inconsistent tone, cinematic oversaturation, stylized filters, or AI artifacts."
+    },
+    {
+     "name": "num_frames",
+     "type": "int",
+     "default": 121,
+     "min": 9,
+     "max": 481
+    },
+    {
+     "name": "preprocess_audio",
+     "type": "bool",
+     "default": true
+    },
+    {
+     "name": "sync_mode",
+     "type": "bool",
+     "default": false
     }
    ],
    "needs_input_audio": true,
@@ -3515,6 +3989,46 @@
      "name": "negative_prompt",
      "type": "string",
      "default": "color distortion, overexposure, static, blurry details, subtitles, style, artwork, painting, frame, still, dim overall tone, worst quality, low quality, JPEG compression artifacts, ugly, mutilated, extra fingers, poorly drawn hands, poorly drawn face, deformed, disfigured, malformed limbs, fused fingers, motionless frame, cluttered background, three legs, crowded background, walking backwards"
+    },
+    {
+     "name": "num_frames",
+     "type": "int",
+     "default": 121,
+     "min": 9,
+     "max": 481
+    },
+    {
+     "name": "num_inference_steps",
+     "type": "int",
+     "default": 15,
+     "min": 8,
+     "max": 30
+    },
+    {
+     "name": "sync_mode",
+     "type": "bool",
+     "default": false
+    },
+    {
+     "name": "video_quality",
+     "type": "enum",
+     "values": [
+      "low",
+      "medium",
+      "high",
+      "maximum"
+     ],
+     "default": "high"
+    },
+    {
+     "name": "video_write_mode",
+     "type": "enum",
+     "values": [
+      "fast",
+      "balanced",
+      "small"
+     ],
+     "default": "balanced"
     }
    ],
    "needs_input_audio": true,
@@ -3627,6 +4141,42 @@
      "default": 1,
      "min": 0,
      "max": 1
+    },
+    {
+     "name": "fps",
+     "type": "float",
+     "default": 24,
+     "min": 1,
+     "max": 60
+    },
+    {
+     "name": "image_strength",
+     "type": "float",
+     "default": 1,
+     "min": 0,
+     "max": 1
+    },
+    {
+     "name": "match_audio_length",
+     "type": "bool",
+     "default": true
+    },
+    {
+     "name": "negative_prompt",
+     "type": "string",
+     "default": "news broadcast, 3d animation, computer graphics, pc game, console game, video game, cartoon, childish, watermark, logo, text, on screen text, subtitles, titles, signature, slowmo, static"
+    },
+    {
+     "name": "num_frames",
+     "type": "int",
+     "default": 121,
+     "min": 9,
+     "max": 481
+    },
+    {
+     "name": "preprocess_audio",
+     "type": "bool",
+     "default": true
     }
    ],
    "needs_input_image": true,
@@ -3702,6 +4252,44 @@
      "default": 25,
      "min": 1,
      "max": 60
+    },
+    {
+     "name": "guidance_scale",
+     "type": "float",
+     "default": 3,
+     "min": 1,
+     "max": 10
+    },
+    {
+     "name": "image_strength",
+     "type": "float",
+     "default": 1,
+     "min": 0,
+     "max": 1
+    },
+    {
+     "name": "match_audio_length",
+     "type": "bool",
+     "default": true
+    },
+    {
+     "name": "negative_prompt",
+     "type": "string",
+     "default": "blurry, out of focus, overexposed, underexposed, low contrast, washed out colors, excessive noise, grainy texture, poor lighting, flickering, motion blur, distorted proportions, unnatural skin tones, deformed facial features, asymmetrical face, missing facial features, extra limbs, disfigured hands, wrong hand count, artifacts around text, inconsistent perspective, camera shake, incorrect depth of field, background too sharp, background clutter, distracting reflections, harsh shadows, inconsistent lighting direction, color banding, cartoonish rendering, 3D CGI look, unrealistic materials, uncanny valley effect, incorrect ethnicity, wrong gender, exaggerated expressions, wrong gaze direction, mismatched lip sync, silent or muted audio, distorted voice, robotic voice, echo, background noise, off-sync audio,incorrect dialogue, added dialogue, repetitive speech, jittery movement, awkward pauses, incorrect timing, unnatural transitions, inconsistent framing, tilted camera, flat lighting, inconsistent tone, cinematic oversaturation, stylized filters, or AI artifacts."
+    },
+    {
+     "name": "num_frames",
+     "type": "int",
+     "default": 121,
+     "min": 9,
+     "max": 481
+    },
+    {
+     "name": "num_inference_steps",
+     "type": "int",
+     "default": 40,
+     "min": 8,
+     "max": 50
     }
    ],
    "needs_input_audio": true,
@@ -4153,6 +4741,40 @@
      "name": "lyrics",
      "type": "string",
      "default": ""
+    },
+    {
+     "name": "minimum_guidance_scale",
+     "type": "float",
+     "default": 3,
+     "min": 0,
+     "max": 200
+    },
+    {
+     "name": "number_of_steps",
+     "type": "int",
+     "default": 27,
+     "min": 3,
+     "max": 60
+    },
+    {
+     "name": "scheduler",
+     "type": "enum",
+     "values": [
+      "euler",
+      "heun"
+     ],
+     "default": "euler"
+    },
+    {
+     "name": "tag_guidance_scale",
+     "type": "float",
+     "default": 5,
+     "min": 0,
+     "max": 10
+    },
+    {
+     "name": "tags",
+     "type": "string"
     }
    ]
   },
@@ -4426,6 +5048,45 @@
      "name": "lyrics",
      "type": "string",
      "default": ""
+    },
+    {
+     "name": "minimum_guidance_scale",
+     "type": "float",
+     "default": 3,
+     "min": 0,
+     "max": 200
+    },
+    {
+     "name": "number_of_steps",
+     "type": "int",
+     "default": 27,
+     "min": 3,
+     "max": 60
+    },
+    {
+     "name": "original_lyrics",
+     "type": "string",
+     "default": ""
+    },
+    {
+     "name": "scheduler",
+     "type": "enum",
+     "values": [
+      "euler",
+      "heun"
+     ],
+     "default": "euler"
+    },
+    {
+     "name": "tag_guidance_scale",
+     "type": "float",
+     "default": 5,
+     "min": 0,
+     "max": 10
+    },
+    {
+     "name": "original_tags",
+     "type": "string"
     }
    ],
    "needs_input_audio": true
@@ -4528,6 +5189,25 @@
      "default": 8,
      "min": 1,
      "max": 100
+    },
+    {
+     "name": "output_format",
+     "type": "enum",
+     "values": [
+      "mp3",
+      "wav",
+      "flac",
+      "ogg",
+      "opus",
+      "m4a",
+      "aac"
+     ],
+     "default": "mp3"
+    },
+    {
+     "name": "sync_mode",
+     "type": "bool",
+     "default": false
     }
    ],
    "needs_input_audio": true
@@ -4614,6 +5294,50 @@
      "default": 1.5,
      "min": 0,
      "max": 10
+    },
+    {
+     "name": "lyrics",
+     "type": "string",
+     "default": ""
+    },
+    {
+     "name": "minimum_guidance_scale",
+     "type": "float",
+     "default": 3,
+     "min": 0,
+     "max": 200
+    },
+    {
+     "name": "number_of_steps",
+     "type": "int",
+     "default": 27,
+     "min": 3,
+     "max": 60
+    },
+    {
+     "name": "scheduler",
+     "type": "enum",
+     "values": [
+      "euler",
+      "heun"
+     ],
+     "default": "euler"
+    },
+    {
+     "name": "start_time",
+     "type": "float",
+     "default": 0,
+     "min": 0,
+     "max": 240
+    },
+    {
+     "name": "start_time_relative_to",
+     "type": "enum",
+     "values": [
+      "start",
+      "end"
+     ],
+     "default": "start"
     }
    ],
    "needs_input_audio": true
@@ -5925,6 +6649,52 @@
       "full"
      ],
      "default": "full"
+    },
+    {
+     "name": "model_type",
+     "type": "enum",
+     "values": [
+      "standard",
+      "lowpoly"
+     ],
+     "default": "standard"
+    },
+    {
+     "name": "pose_mode",
+     "type": "enum",
+     "values": [
+      "a-pose",
+      "t-pose",
+      ""
+     ],
+     "default": ""
+    },
+    {
+     "name": "rigging_height_meters",
+     "type": "float",
+     "default": 1.7
+    },
+    {
+     "name": "should_remesh",
+     "type": "bool",
+     "default": true
+    },
+    {
+     "name": "symmetry_mode",
+     "type": "enum",
+     "values": [
+      "off",
+      "auto",
+      "on"
+     ],
+     "default": "auto"
+    },
+    {
+     "name": "target_polycount",
+     "type": "int",
+     "default": 30000,
+     "min": 100,
+     "max": 300000
     }
    ]
   },
@@ -6057,6 +6827,52 @@
       "full"
      ],
      "default": "full"
+    },
+    {
+     "name": "model_type",
+     "type": "enum",
+     "values": [
+      "standard",
+      "lowpoly"
+     ],
+     "default": "standard"
+    },
+    {
+     "name": "pose_mode",
+     "type": "enum",
+     "values": [
+      "a-pose",
+      "t-pose",
+      ""
+     ],
+     "default": ""
+    },
+    {
+     "name": "rigging_height_meters",
+     "type": "float",
+     "default": 1.7
+    },
+    {
+     "name": "should_remesh",
+     "type": "bool",
+     "default": true
+    },
+    {
+     "name": "symmetry_mode",
+     "type": "enum",
+     "values": [
+      "off",
+      "auto",
+      "on"
+     ],
+     "default": "auto"
+    },
+    {
+     "name": "target_polycount",
+     "type": "int",
+     "default": 30000,
+     "min": 100,
+     "max": 300000
     }
    ]
   },
@@ -6154,6 +6970,19 @@
      "name": "texture_delight",
      "type": "bool",
      "default": false
+    },
+    {
+     "name": "tier",
+     "type": "enum",
+     "values": [
+      "Gen-2.5-Minimum",
+      "Gen-2.5-Extreme-Low",
+      "Gen-2.5-Low",
+      "Gen-2.5-Medium",
+      "Gen-2.5-High",
+      "Gen-2.5-Extreme-High"
+     ],
+     "default": "Gen-2.5-High"
     }
    ]
   },
@@ -6315,6 +7144,16 @@
      "name": "texture_delight",
      "type": "bool",
      "default": false
+    },
+    {
+     "name": "tier",
+     "type": "enum",
+     "values": [
+      "Gen-2.5-Minimum",
+      "Gen-2.5-Extreme-Low",
+      "Gen-2.5-Low"
+     ],
+     "default": "Gen-2.5-Extreme-Low"
     }
    ]
   },
@@ -6410,6 +7249,48 @@
      "name": "shape_slat_guidance_rescale",
      "type": "float",
      "default": 0.5,
+     "min": 0,
+     "max": 1
+    },
+    {
+     "name": "shape_slat_guidance_strength",
+     "type": "float",
+     "default": 7.5,
+     "min": 0,
+     "max": 10
+    },
+    {
+     "name": "shape_slat_rescale_t",
+     "type": "float",
+     "default": 3,
+     "min": 1,
+     "max": 6
+    },
+    {
+     "name": "shape_slat_sampling_steps",
+     "type": "int",
+     "default": 12,
+     "min": 1,
+     "max": 50
+    },
+    {
+     "name": "ss_guidance_interval_end",
+     "type": "float",
+     "default": 1,
+     "min": 0,
+     "max": 1
+    },
+    {
+     "name": "ss_guidance_interval_start",
+     "type": "float",
+     "default": 0.6,
+     "min": 0,
+     "max": 1
+    },
+    {
+     "name": "ss_guidance_rescale",
+     "type": "float",
+     "default": 0.7,
      "min": 0,
      "max": 1
     }
@@ -6526,6 +7407,47 @@
       ""
      ],
      "default": ""
+    },
+    {
+     "name": "rigging_height_meters",
+     "type": "float",
+     "default": 1.7
+    },
+    {
+     "name": "should_remesh",
+     "type": "bool",
+     "default": true
+    },
+    {
+     "name": "should_texture",
+     "type": "bool",
+     "default": true
+    },
+    {
+     "name": "symmetry_mode",
+     "type": "enum",
+     "values": [
+      "off",
+      "auto",
+      "on"
+     ],
+     "default": "auto"
+    },
+    {
+     "name": "target_polycount",
+     "type": "int",
+     "default": 30000,
+     "min": 100,
+     "max": 300000
+    },
+    {
+     "name": "topology",
+     "type": "enum",
+     "values": [
+      "quad",
+      "triangle"
+     ],
+     "default": "triangle"
     }
    ],
    "needs_input_image": true
@@ -6727,6 +7649,29 @@
       "2M Triangle"
      ],
      "default": "Auto"
+    },
+    {
+     "name": "texture_delight",
+     "type": "bool",
+     "default": false
+    },
+    {
+     "name": "tier",
+     "type": "enum",
+     "values": [
+      "Gen-2.5-Minimum",
+      "Gen-2.5-Extreme-Low",
+      "Gen-2.5-Low",
+      "Gen-2.5-Medium",
+      "Gen-2.5-High",
+      "Gen-2.5-Extreme-High"
+     ],
+     "default": "Gen-2.5-High"
+    },
+    {
+     "name": "use_original_alpha",
+     "type": "bool",
+     "default": false
     }
    ]
   },
@@ -6866,6 +7811,47 @@
       ""
      ],
      "default": ""
+    },
+    {
+     "name": "rigging_height_meters",
+     "type": "float",
+     "default": 1.7
+    },
+    {
+     "name": "should_remesh",
+     "type": "bool",
+     "default": true
+    },
+    {
+     "name": "should_texture",
+     "type": "bool",
+     "default": true
+    },
+    {
+     "name": "symmetry_mode",
+     "type": "enum",
+     "values": [
+      "off",
+      "auto",
+      "on"
+     ],
+     "default": "auto"
+    },
+    {
+     "name": "target_polycount",
+     "type": "int",
+     "default": 30000,
+     "min": 100,
+     "max": 300000
+    },
+    {
+     "name": "topology",
+     "type": "enum",
+     "values": [
+      "quad",
+      "triangle"
+     ],
+     "default": "triangle"
     }
    ],
    "needs_input_image": true

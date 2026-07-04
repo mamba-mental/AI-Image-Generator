@@ -4,8 +4,10 @@ and the JobRegistry pushes progress back via window.onEngineEvent.
 """
 import json
 import os
+from pathlib import Path
 
 from engine import config as engine_config
+from engine import mediaserver
 from engine.jobs import REGISTRY
 from loramanager import LoRAManager
 
@@ -21,6 +23,7 @@ class Api:
     def __init__(self):
         self.config = engine_config.load()
         self.keys_status = engine_config.resolve_keys(self.config)
+        self.media_base = mediaserver.start(self.config["output_directory"])
         self.lora_managers = {
             "huggingface": LoRAManager("huggingface"),
             "replicate": LoRAManager("replicate"),
@@ -50,6 +53,8 @@ class Api:
                 "replicate": self.lora_managers["replicate"].get_loras(),
             },
             "keys_status": self.keys_status,
+            "media_base": self.media_base,
+            "output_dir_name": Path(self.config["output_directory"]).name,
             "busy": REGISTRY.is_busy(),
         }
 
@@ -59,6 +64,8 @@ class Api:
                 self.config.setdefault("parameters", {}).update(v)
             else:
                 self.config[k] = v
+        if "output_directory" in patch:
+            mediaserver.set_dir(self.config["output_directory"])
         self._persist()
         return {"ok": True}
 

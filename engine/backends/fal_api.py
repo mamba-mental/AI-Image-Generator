@@ -38,11 +38,9 @@ def _build_args(entry: dict, params: dict) -> dict:
     args = {k: v for k, v in params.items()
             if v is not None and k not in _ENGINE_ONLY_KEYS}
 
-    # Legacy width/height (from the shared params panel) -> explicit image_size,
-    # only for image models that didn't already get an image_size/aspect_ratio hint.
-    if (entry.get("output") == "image" and "image_size" not in args
-            and "aspect_ratio" not in args
-            and params.get("width") and params.get("height")):
+    # Custom width+height override the image_size preset (fal accepts either a
+    # preset string or a {width,height} object). Both empty -> keep the preset.
+    if params.get("width") and params.get("height"):
         args["image_size"] = {"width": int(params["width"]), "height": int(params["height"])}
 
     # Local input media (one slot per kind: image/video/audio/mesh) -> fal storage URLs

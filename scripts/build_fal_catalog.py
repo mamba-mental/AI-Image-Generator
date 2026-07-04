@@ -91,6 +91,17 @@ def extract_params(endpoint_id: str) -> tuple:
                 continue
             if pname.endswith("_url") or pname == "loras":
                 continue  # secondary media/complex inputs — not form-rendered v1
+            # fal's `image_size` is a $ref (preset enum OR custom {width,height}) so it
+            # has no plain `type` and was being dropped — the reason dimensions vanished.
+            # Emit it as a preset picker + optional custom width/height.
+            if pname == "image_size":
+                params.append({"name": "image_size", "type": "enum",
+                               "values": ["square_hd", "square", "portrait_4_3",
+                                          "portrait_16_9", "landscape_4_3", "landscape_16_9"],
+                               "default": p.get("default", "landscape_4_3")})
+                params.append({"name": "width", "type": "int", "min": 256, "max": 2048, "optional": True})
+                params.append({"name": "height", "type": "int", "min": 256, "max": 2048, "optional": True})
+                continue
             entry = {"name": pname}
             ptype = p.get("type")
             if "enum" in p:
@@ -114,9 +125,9 @@ def extract_params(endpoint_id: str) -> tuple:
             if pname not in required and "default" not in p:
                 entry["optional"] = True
             params.append(entry)
-        # keep forms usable: cap at the 8 most relevant (defaults first, then required)
+        # keep forms usable but don't hide real knobs: defaults first, cap at 14
         params.sort(key=lambda e: (0 if "default" in e else 1, e["name"]))
-        return params[:8], flags
+        return params[:14], flags
     except Exception:
         return [], {}
 

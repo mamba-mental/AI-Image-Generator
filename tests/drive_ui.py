@@ -81,6 +81,14 @@ def drive(window):
               f"status='{js(window, chr(100)+'ocument.getElementById(`statusmsg`).textContent')}' errs={js(window, 'JSON.stringify(window.__errs)')}")
         ok = wait_for(window, "state.gallery.length >= 1", timeout=120)
         check("fal schnell tile in gallery", ok, js(window, "state.gallery[0] && state.gallery[0].file"))
+        # the render-proof the earlier gate MISSED: image pixels actually painted,
+        # not just a tile element in the DOM (WebView2 file:// broken-link bug).
+        rendered = wait_for(window,
+            "(function(){var i=document.querySelector('.tile img');return i&&i.complete&&i.naturalWidth>0})()",
+            timeout=20)
+        check("image actually RENDERS (naturalWidth>0 via media server)", rendered,
+              "mediaBase=" + str(js(window, "state.mediaBase")) +
+              " src=" + str(js(window, "var i=document.querySelector('.tile img'); i?i.src:'none'")))
 
         # --- screenshot the live window with the result ---
         time.sleep(2)
