@@ -1,27 +1,97 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="en" data-theme="violet" data-layout="compact">
 <head>
 <meta charset="UTF-8">
 <title>AI Studio Void</title>
-<style>
-  body { background:#000; color:#ece6e4; font-family:monospace; display:grid;
-         place-items:center; height:100vh; margin:0; }
-  .boot { text-align:center; }
-  .boot b { color:#8B5CF6; }
-</style>
+<link rel="stylesheet" href="tokens.css">
+<link rel="stylesheet" href="app.css">
 </head>
 <body>
-  <div class="boot">
-    <h1>AI <b>Studio</b> Void</h1>
-    <p id="status">bridge: connecting…</p>
+<header>
+  <div class="brand">AI <b>STUDIO</b> VOID</div>
+  <div class="hdr-r">
+    <span id="hdrinfo"></span>
+    <div class="picker" id="layoutpick" title="Layout">
+      <button data-layout="compact" class="on">COMPACT</button>
+      <button data-layout="airy">AIRY</button>
+      <button data-layout="pro">PRO</button>
+    </div>
+    <div class="picker" id="themepick" title="Theme">
+      <button data-theme="violet" class="on"><span class="swatch" style="background:#8B5CF6"></span>VOID</button>
+      <button data-theme="shy-moment"><span class="swatch" style="background:oklch(73.59% .141 285.6)"></span>SHY</button>
+      <button data-theme="costa"><span class="swatch" style="background:oklch(65.87% .163 54.96)"></span>COSTA</button>
+      <button data-theme="claret"><span class="swatch" style="background:#c2304a"></span>CLARET</button>
+    </div>
   </div>
-  <script>
-    window.onEngineEvent = (evt) => console.log("engine event", evt);
-    window.addEventListener("pywebviewready", async () => {
-      const state = await window.pywebview.api.get_state();
-      document.getElementById("status").textContent =
-        `bridge: OK — services [${state.services.join(", ")}], active: ${state.active_service}`;
-    });
-  </script>
+</header>
+
+<div class="main">
+<aside>
+  <div class="scroll">
+    <div class="sec">
+      <div class="lbl">Service</div>
+      <div class="svc" id="svc"></div>
+    </div>
+    <div class="sec">
+      <div class="lbl">Category · Model <em id="pricenote"></em></div>
+      <div class="cat-chips" id="cats"></div>
+      <select id="model"></select>
+    </div>
+    <div class="sec">
+      <div class="lbl">Prompt</div>
+      <textarea id="prompt" placeholder="describe what to generate…"></textarea>
+    </div>
+    <div class="sec" id="negwrap">
+      <div class="lbl">Negative Prompt</div>
+      <input type="text" id="negprompt" placeholder="what to avoid…">
+    </div>
+    <div class="sec" id="inputimgwrap" style="display:none">
+      <div class="lbl">Input Image</div>
+      <div class="imgpick">
+        <button id="pickimg">Choose…</button>
+        <span class="path" id="imgpath">none</span>
+      </div>
+    </div>
+    <div class="sec">
+      <div class="lbl">Parameters</div>
+      <div id="params"></div>
+    </div>
+    <div class="sec" id="lorawrap" style="display:none">
+      <div class="lbl">LoRAs <em id="loracount"></em></div>
+      <div id="loras"></div>
+    </div>
+  </div>
+  <div class="gen-wrap">
+    <button class="gen" id="gen">GENERATE</button>
+    <div class="qbar">
+      <span>queue: <b id="qstate">idle</b></span>
+      <span id="estcost"></span>
+      <span id="canhint"></span>
+    </div>
+  </div>
+</aside>
+
+<section class="stage">
+  <div class="stagehdr">
+    <span id="outinfo">OUTPUT · generated_images/</span>
+    <span id="viewinfo"></span>
+  </div>
+  <div class="gwrap">
+    <div class="gallery" id="gallery"></div>
+    <div class="emptystate" id="empty">nothing generated yet — write a prompt and hit GENERATE</div>
+  </div>
+</section>
+</div>
+
+<footer>
+  <span><span class="dot" id="conn"></span><span id="connlabel">connecting…</span></span>
+  <span id="modellabel"></span>
+  <span class="sp"></span>
+  <span id="statusmsg"></span>
+  <div class="pbar" id="pbar"><div></div></div>
+  <span id="sessioninfo">v2.0</span>
+</footer>
+
+<script src="app.js"></script>
 </body>
 </html>

@@ -1,0 +1,347 @@
+/* AI Studio Void — front-end state + bridge wiring. No frameworks, no network. */
+"use strict";
+
+const $ = (id) => document.getElementById(id);
+
+// category chips derive from the catalog; this is just the label map
+const CAT_LABELS = {
+  "text-to-image": "Image", "image-to-image": "Img→Img",
+  "text-to-video": "Video", "image-to-video": "Img→Video",
+  "video-to-video": "Vid→Vid", "audio-to-video": "Aud→Vid",
+  "text-to-audio": "Audio", "audio-to-audio": "Aud→Aud", "video-to-audio": "Vid→Aud",
+  "text-to-speech": "TTS", "speech-to-speech": "Voice→Voice",
+  "speech-to-text": "STT", "audio-to-text": "Aud→Txt",
+  "video-to-text": "Vid→Txt", "image-to-text": "Caption", "vision": "Vision",
+  "text-to-3d": "3D", "image-to-3d": "Img→3D", "3d-to-3d": "3D→3D",
+  "upscale": "Upscale", "bg-removal": "BG", "music": "Music", "tts": "TTS",
+};
+const CAT_ORDER = Object.keys(CAT_LABELS);
+function catList() {
+  const present = [...new Set(state.falModels.map(m => m.category))];
+  present.sort((a, b) => (CAT_ORDER.indexOf(a) + 99 * (CAT_ORDER.indexOf(a) < 0)) -
+                         (CAT_ORDER.indexOf(b) + 99 * (CAT_ORDER.indexOf(b) < 0)));
+  return present.map(k => ({ key: k, label: CAT_LABELS[k] || k }));
+}
+const INPUT_KINDS = { needs_input_image: "image", needs_input_video: "video",
+                      needs_input_audio: "audio", needs_input_mesh: "mesh" };
+const SVC_LABELS = { fal: "Fal", replicate: "Replicate", huggingface: "HF", gemini: "Gemini" };
+
+// legacy param set for replicate / hf / gemini (ported from the CTk panel)
+const LEGACY_PARAMS = [
+  { name: "width", type: "int", default: 1024, min: 256, max: 2048, step: 64 },
+  { name: "height", type: "int", default: 1024, min: 256, max: 2048, step: 64 },
+  { name: "num_inference_steps", type: "int", default: 28, min: 1, max: 100 },
+  { name: "guidance_scale", type: "float", default: 7.5, min: 0, max: 20, step: 0.5 },
+  { name: "num_outputs", type: "int", default: 1, min: 1, max: 4 },
+  { name: "seed", type: "int", optional: true },
+];
+
+const state = {
+  services: [], keys: {}, falModels: [], recentModels: {}, lastUsed: {},
+  service: "fal", category: "text-to-image", model: null,
+  inputFiles: {}, job: null, gallery: [], selected: null,
+  genCount: 0, loras: {},
+};
+
+/* ---------- bridge helpers ---------- */
+const api = () => window.pywebview.api;
+
+async function boot() {
+  const s = await api().get_state();
+  state.services = s.services;
+  state.keys = s.keys_status;
+  state.falModels = s.fal_models;
+  state.recentModels = s.recent_models;
+  state.loras = s.loras || {};
+  state.service = s.active_service || "fal";
+  const cfg = s.config || {};
+  state.lastUsed = {
+    fal: cfg.last_used_model_fal, replicate: cfg.last_used_model_replicate,
+    huggingface: cfg.last_used_model_hf, gemini: cfg.last_used_model_gemini,
+  };
+  // start on the category of the last-used fal model so the select matches
+  const lastFal = state.falModels.find(m => m.id === state.lastUsed.fal);
+  if (state.service === "fal" && lastFal) state.category = lastFal.category;
+  if (cfg.ui_theme) setTheme(cfg.ui_theme, false);
+  if (cfg.ui_layout) setLayout(cfg.ui_layout, false);
+  if (cfg.parameters && cfg.parameters.negative_prompt) $("negprompt").value = cfg.parameters.negative_prompt;
+  $("conn").classList.remove("off");
+  $("connlabel").textContent = Object.entries(state.keys)
+    .map(([k, ok]) => `${k}:${ok ? "✓" : "✗"}`).join(" ");
+  renderService();
+  render();
+}
+
+/* ---------- pickers (layout + theme) ---------- */
+function setLayout(name, persist = true) {
+  document.documentElement.dataset.layout = name;
+  document.querySelectorAll("#layoutpick button").forEach(b => b.classList.toggle("on", b.dataset.layout === name));
+  if (persist) api().set_config({ ui_layout: name });
+}
+function setTheme(name, persist = true) {
+  document.documentElement.dataset.theme = name;
+  document.querySelectorAll("#themepick button").forEach(b => b.classList.toggle("on", b.dataset.theme === name));
+  if (persist) api().set_config({ ui_theme: name });
+}
+$("layoutpick").addEventListener("click", e => { const b = e.target.closest("button"); if (b) setLayout(b.dataset.layout); });
+$("themepick").addEventListener("click", e => { const b = e.target.closest("button"); if (b) setTheme(b.dataset.theme); });
+
+/* ---------- model catalog ---------- */
+function modelsFor(service, category) {
+  if (service === "fal") return state.falModels.filter(m => m.category === category);
+  return (state.recentModels[service] || []).map(id => ({ id, label: id, category: "text-to-image", params: LEGACY_PARAMS }));
+}
+function currentModel() {
+  const models = modelsFor(state.service, state.category);
+  return models.find(m => m.id === state.model)
+      || models.find(m => m.id === state.lastUsed[state.service])
+      || models[0] || null;
+}
+
+/* ---------- renderers ---------- */
+function renderService() {
+  $("svc").innerHTML = state.services.map(s =>
+    `<button data-s="${s}" class="${s === state.service ? "on" : ""} ${state.keys[s] ? "" : "nokey"}">${SVC_LABELS[s] || s}</button>`).join("");
+}
+function render() {
+  const isFal = state.service === "fal";
+  // categories only meaningful for fal; legacy services are t2i (+img via uploader)
+  $("cats").style.display = isFal ? "" : "none";
+  if (!isFal) state.category = "text-to-image";
+  else if (!state.falModels.some(m => m.category === state.category)) state.category = "text-to-image";
+  $("cats").innerHTML = (isFal ? catList() : [])
+    .map(c => `<button class="chip ${c.key === state.category ? "on" : ""}" data-c="${c.key}">${c.label}</button>`).join("");
+
+  const models = modelsFor(state.service, state.category);
+  const cur = currentModel();
+  state.model = cur ? cur.id : null;
+  $("model").innerHTML = models.map(m =>
+    `<option value="${m.id}" ${cur && m.id === cur.id ? "selected" : ""}>${m.label}${m.price ? " — " + m.price : ""}</option>`).join("");
+  $("pricenote").textContent = cur && cur.price ? cur.price : "";
+  $("estcost").textContent = cur && cur.price ? "est " + cur.price : "";
+  $("modellabel").textContent = cur ? cur.label || cur.id : "";
+  $("hdrinfo").textContent = `${state.service} · ${cur ? (cur.label || cur.id) : "—"}`;
+
+  renderInputPickers(cur);
+  $("negwrap").style.display = (isFal && state.category !== "text-to-image" && state.category !== "image-to-image") ? "none" : "";
+  renderParams(cur);
+  renderLoras();
+}
+
+function paramControl(p) {
+  const v = p.default !== undefined ? p.default : "";
+  if (p.type === "enum")
+    return `<select data-p="${p.name}">${p.values.map(x => `<option ${x === p.default ? "selected" : ""}>${x}</option>`).join("")}</select>`;
+  if (p.type === "bool")
+    return `<input type="checkbox" data-p="${p.name}" ${p.default ? "checked" : ""}>`;
+  if (p.type === "int" || p.type === "float") {
+    if (p.optional) return `<input type="number" data-p="${p.name}" placeholder="random">`;
+    const min = p.min !== undefined ? p.min : 0, max = p.max !== undefined ? p.max : (p.type === "int" ? 100 : 20);
+    const step = p.step !== undefined ? p.step : (p.type === "float" ? 0.1 : 1);
+    return `<input type="range" data-p="${p.name}" min="${min}" max="${max}" step="${step}" value="${v}">
+            <span class="val" data-v="${p.name}">${v}</span>`;
+  }
+  return `<input type="text" data-p="${p.name}" placeholder="${p.optional ? "optional" : ""}">`;
+}
+function renderParams(model) {
+  const params = model && model.params ? model.params : LEGACY_PARAMS;
+  $("params").innerHTML = params.map(p =>
+    `<div class="prow"><span>${p.name.replace(/_/g, " ")}</span>${paramControl(p)}</div>`).join("");
+  $("params").querySelectorAll("input[type=range]").forEach(r =>
+    r.addEventListener("input", () => {
+      const out = $("params").querySelector(`[data-v="${r.dataset.p}"]`);
+      if (out) out.textContent = r.value;
+    }));
+}
+function collectParams(model) {
+  const out = {};
+  const defs = Object.fromEntries(((model && model.params) || LEGACY_PARAMS).map(p => [p.name, p]));
+  $("params").querySelectorAll("[data-p]").forEach(el => {
+    const def = defs[el.dataset.p] || {};
+    let v;
+    if (el.type === "checkbox") v = el.checked;
+    else if (el.value === "") return;
+    else if (def.type === "int") v = parseInt(el.value, 10);
+    else if (def.type === "float") v = parseFloat(el.value);
+    else v = el.value;
+    out[el.dataset.p] = v;
+  });
+  const neg = $("negprompt").value.trim();
+  if (neg && $("negwrap").style.display !== "none") out.negative_prompt = neg;
+  return out;
+}
+
+function renderLoras() {
+  const svc = state.service === "huggingface" ? "huggingface" : state.service === "replicate" ? "replicate" : null;
+  $("lorawrap").style.display = svc ? "" : "none";
+  if (!svc) return;
+  const loras = state.loras[svc] || [];
+  $("loracount").textContent = `${loras.filter(l => l.enabled).length}/${loras.length} on`;
+  $("loras").innerHTML = loras.map((l, i) => `
+    <div class="lora-row">
+      <input type="checkbox" data-li="${i}" ${l.enabled ? "checked" : ""}>
+      <span class="name" title="${l.url}">${l.url.split("/").pop()}</span>
+      <input type="range" data-ls="${i}" min="0" max="1.5" step="0.05" value="${l.scale}">
+      <button class="x" data-lx="${i}">✕</button>
+    </div>`).join("");
+  $("loras").querySelectorAll("[data-li]").forEach(el => el.addEventListener("change", async () => {
+    state.loras[svc] = await api().lora_set(svc, +el.dataset.li, { enabled: el.checked }); renderLoras();
+  }));
+  $("loras").querySelectorAll("[data-ls]").forEach(el => el.addEventListener("change", async () => {
+    state.loras[svc] = await api().lora_set(svc, +el.dataset.ls, { scale: +el.value });
+  }));
+  $("loras").querySelectorAll("[data-lx]").forEach(el => el.addEventListener("click", async () => {
+    state.loras[svc] = await api().lora_remove(svc, +el.dataset.lx); renderLoras();
+  }));
+}
+
+/* ---------- gallery ---------- */
+function fileUrl(p) { return "file:///" + p.replace(/\\/g, "/"); }
+function mediaTag(f) {
+  const name = f.split(/[\\/]/).pop();
+  const ext = f.split(".").pop().toLowerCase();
+  if (["mp4", "webm", "mov"].includes(ext)) return `<video src="${fileUrl(f)}" controls muted></video>`;
+  if (["mp3", "wav", "m4a", "flac"].includes(ext)) return `<audio src="${fileUrl(f)}" controls></audio>`;
+  if (["glb", "obj", "stl", "bin"].includes(ext))
+    return `<div class="filecard">🧊<br>${name}<br><small>3D model — open in a viewer</small></div>`;
+  if (["txt", "json"].includes(ext))
+    return `<div class="filecard txt" data-txt="${fileUrl(f)}">📄<br>${name}<br><small>text output — click Save As to keep</small></div>`;
+  return `<img src="${fileUrl(f)}" alt="">`;
+}
+function renderGallery() {
+  $("empty").style.display = state.gallery.length ? "none" : "";
+  $("gallery").innerHTML = state.gallery.map((g, i) => `
+    <div class="tile ${i === state.selected ? "sel" : ""}" data-i="${i}">
+      ${mediaTag(g.file)}
+      <div class="acts">
+        <button data-save="${i}">Save As</button>
+        <button data-open="${i}">Folder</button>
+      </div>
+      <div class="meta"><span><b>${g.meta.model.split("/").pop()}</b>${g.meta.seed ? " · " + g.meta.seed : ""}</span><span>${g.time}</span></div>
+    </div>`).join("");
+  $("outinfo").textContent = `OUTPUT · generated_images/ · ${state.gallery.length} this session`;
+  $("sessioninfo").textContent = `v2.0 · ${state.genCount} generated`;
+  $("gallery").querySelectorAll(".tile").forEach(t => t.addEventListener("click", e => {
+    if (e.target.closest(".acts")) return;
+    state.selected = +t.dataset.i; renderGallery();
+  }));
+  $("gallery").querySelectorAll("[data-save]").forEach(b => b.addEventListener("click", () =>
+    api().save_as(state.gallery[+b.dataset.save].file)));
+  $("gallery").querySelectorAll("[data-open]").forEach(b => b.addEventListener("click", () =>
+    api().open_output_folder()));
+}
+
+/* ---------- generation ---------- */
+function setBusy(busy) {
+  const gen = $("gen");
+  if (busy) {
+    gen.textContent = "CANCEL";
+    gen.classList.add("cancel");
+    $("qstate").textContent = "running";
+    $("pbar").classList.add("run");
+    $("canhint").textContent = "click to cancel";
+  } else {
+    gen.textContent = "GENERATE";
+    gen.classList.remove("cancel");
+    gen.disabled = false;
+    $("qstate").textContent = "idle";
+    $("pbar").classList.remove("run");
+    $("canhint").textContent = "";
+    state.job = null;
+  }
+}
+
+$("gen").addEventListener("click", async () => {
+  if (state.job) { await api().cancel(state.job); return; }
+  const cur = currentModel();
+  if (!cur) { $("statusmsg").textContent = "no model selected"; return; }
+  const prompt = $("prompt").value.trim();
+  const kinds = neededKinds(cur);
+  if (!prompt && !kinds.length) { $("statusmsg").textContent = "prompt required"; return; }
+  const missing = kinds.filter(k => !state.inputFiles[k]);
+  if (missing.length) { $("statusmsg").textContent = "input required: " + missing.join(", "); return; }
+  const inputFiles = {};
+  kinds.forEach(k => { inputFiles[k] = state.inputFiles[k]; });
+  const req = {
+    service: state.service, model: cur.id, category: state.category,
+    prompt, params: collectParams(cur), input_files: inputFiles,
+  };
+  const r = await api().generate(req);
+  if (r.error) { $("statusmsg").textContent = r.error; return; }
+  state.job = r.job_id;
+  setBusy(true);
+});
+
+function neededKinds(model) {
+  if (!model) return [];
+  return Object.entries(INPUT_KINDS).filter(([flag]) => model[flag]).map(([, kind]) => kind);
+}
+function renderInputPickers(model) {
+  const kinds = neededKinds(model);
+  $("inputimgwrap").style.display = kinds.length ? "" : "none";
+  if (!kinds.length) { state.inputFiles = {}; return; }
+  $("inputimgwrap").querySelector(".lbl").textContent = "Input " + kinds.join(" + ");
+  $("inputimgwrap").querySelector(".imgpick").innerHTML = kinds.map(k => `
+    <button data-pick="${k}">${k}…</button>
+    <span class="path" data-path="${k}">${state.inputFiles[k] ? state.inputFiles[k].split(/[\\/]/).pop() : "none"}</span>`).join("");
+  $("inputimgwrap").querySelectorAll("[data-pick]").forEach(b => b.addEventListener("click", async () => {
+    const r = await api().pick_input_file(b.dataset.pick);
+    if (r.path) {
+      state.inputFiles[b.dataset.pick] = r.path;
+      $("inputimgwrap").querySelector(`[data-path="${b.dataset.pick}"]`).textContent = r.path.split(/[\\/]/).pop();
+    }
+  }));
+}
+
+/* ---------- engine events ---------- */
+window.onEngineEvent = (evt) => {
+  if (evt.type === "job_queued") { $("statusmsg").textContent = "queued…"; }
+  else if (evt.type === "job_progress") { $("statusmsg").textContent = evt.message || "…"; }
+  else if (evt.type === "job_done") {
+    const t = new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
+    evt.files.forEach(f => state.gallery.unshift({ file: f, meta: evt.meta, time: t }));
+    state.genCount += evt.files.length;
+    state.selected = 0;
+    $("statusmsg").textContent = `done — ${evt.files.length} file(s)`;
+    setBusy(false); renderGallery();
+  } else if (evt.type === "job_error") {
+    $("statusmsg").textContent = evt.error;
+    setBusy(false);
+  }
+};
+
+/* ---------- service/category/model switching ---------- */
+$("svc").addEventListener("click", e => {
+  const b = e.target.closest("button"); if (!b) return;
+  state.service = b.dataset.s; state.model = null; state.inputFiles = {};
+  renderService(); render();
+});
+$("cats").addEventListener("click", e => {
+  const b = e.target.closest("button"); if (!b) return;
+  state.category = b.dataset.c; state.model = null; render();
+});
+$("model").addEventListener("change", () => { state.model = $("model").value; render(); });
+
+/* ---------- boot ---------- */
+function tryBoot() {
+  boot().catch(err => {
+    $("connlabel").textContent = "bridge error: " + err;
+    $("conn").classList.add("off");
+  });
+}
+// pywebviewready can fire before this script registers its listener — guard both paths,
+// plus a short poll as a belt-and-braces for WebView2 injection timing.
+if (window.pywebview && window.pywebview.api) {
+  tryBoot();
+} else {
+  window.addEventListener("pywebviewready", tryBoot, { once: true });
+  let tries = 0;
+  const poll = setInterval(() => {
+    if (window.pywebview && window.pywebview.api) {
+      clearInterval(poll);
+      if ($("connlabel").textContent === "connecting…") tryBoot();
+    } else if (++tries > 50) {
+      clearInterval(poll);
+    }
+  }, 200);
+}

@@ -17,6 +17,8 @@ _CT_EXT = {
     "image/png": ".png", "image/jpeg": ".jpg", "image/webp": ".webp",
     "video/mp4": ".mp4", "video/webm": ".webm",
     "audio/mpeg": ".mp3", "audio/wav": ".wav", "audio/x-wav": ".wav",
+    "model/gltf-binary": ".glb", "model/obj": ".obj", "model/stl": ".stl",
+    "application/octet-stream": ".bin", "text/plain": ".txt",
 }
 
 
@@ -49,6 +51,12 @@ def persist_results(results: list, output_paths: list) -> tuple:
         try:
             if isinstance(result, str) and result.startswith("http"):
                 final = _download(result, dest)
+                saved.append(final)
+            elif isinstance(result, dict) and "text" in result:
+                # text output (STT / vision / captioning) -> .txt beside media outputs
+                final = str(Path(dest).with_suffix(".txt"))
+                with open(final, "w", encoding="utf-8") as f:
+                    f.write(str(result["text"]))
                 saved.append(final)
             elif isinstance(result, Image.Image):
                 result.save(dest)

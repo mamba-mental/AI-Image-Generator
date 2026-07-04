@@ -1,104 +1,7031 @@
 {
-  "version": 1,
-  "note": "Curated fal.ai flagship table — single source of truth for the app AND the fal skill (C:/AI CoWork/.claude/skills/fal). params are FORM-RENDERING HINTS only; the engine passes the params dict through verbatim. Refresh a model's schema via the fal skill's get-schema when it drifts.",
-  "models": [
-    { "id": "fal-ai/flux/schnell", "label": "FLUX Schnell", "category": "text-to-image", "output": "image", "price": "~$0.003/MP",
-      "params": [
-        {"name": "image_size", "type": "enum", "values": ["square_hd", "square", "landscape_4_3", "portrait_4_3", "landscape_16_9", "portrait_16_9"], "default": "landscape_4_3"},
-        {"name": "num_inference_steps", "type": "int", "default": 4, "max": 12},
-        {"name": "num_images", "type": "int", "default": 1, "max": 4},
-        {"name": "seed", "type": "int", "optional": true}
-      ]},
-    { "id": "fal-ai/flux/dev", "label": "FLUX Dev", "category": "text-to-image", "output": "image", "price": "~$0.025/MP",
-      "params": [
-        {"name": "image_size", "type": "enum", "values": ["square_hd", "square", "landscape_4_3", "portrait_4_3", "landscape_16_9", "portrait_16_9"], "default": "landscape_4_3"},
-        {"name": "num_inference_steps", "type": "int", "default": 28, "max": 50},
-        {"name": "guidance_scale", "type": "float", "default": 3.5, "max": 20},
-        {"name": "num_images", "type": "int", "default": 1, "max": 4},
-        {"name": "seed", "type": "int", "optional": true}
-      ]},
-    { "id": "fal-ai/nano-banana-pro", "label": "Nano Banana Pro", "category": "text-to-image", "output": "image", "price": "~$0.05/img",
-      "params": [
-        {"name": "aspect_ratio", "type": "enum", "values": ["1:1", "4:3", "3:4", "16:9", "9:16"], "default": "4:3"},
-        {"name": "num_images", "type": "int", "default": 1, "max": 4}
-      ]},
-    { "id": "fal-ai/ideogram/v3", "label": "Ideogram v3 (text-in-image)", "category": "text-to-image", "output": "image", "price": "~$0.06/img",
-      "params": [
-        {"name": "aspect_ratio", "type": "enum", "values": ["1:1", "4:3", "3:4", "16:9", "9:16"], "default": "1:1"},
-        {"name": "style", "type": "enum", "values": ["AUTO", "GENERAL", "REALISTIC", "DESIGN"], "default": "AUTO"}
-      ]},
-    { "id": "fal-ai/recraft/v3/text-to-image", "label": "Recraft v3 (design/vector)", "category": "text-to-image", "output": "image", "price": "~$0.04/img",
-      "params": [
-        {"name": "image_size", "type": "enum", "values": ["square_hd", "landscape_4_3", "portrait_4_3", "landscape_16_9", "portrait_16_9"], "default": "square_hd"},
-        {"name": "style", "type": "enum", "values": ["realistic_image", "digital_illustration", "vector_illustration"], "default": "realistic_image"}
-      ]},
-
-    { "id": "fal-ai/flux/dev/image-to-image", "label": "FLUX Dev img2img", "category": "image-to-image", "output": "image", "price": "~$0.025/MP", "needs_input_image": true,
-      "params": [
-        {"name": "strength", "type": "float", "default": 0.85, "max": 1},
-        {"name": "num_inference_steps", "type": "int", "default": 28, "max": 50},
-        {"name": "guidance_scale", "type": "float", "default": 3.5, "max": 20},
-        {"name": "seed", "type": "int", "optional": true}
-      ]},
-    { "id": "fal-ai/flux-pro/kontext", "label": "FLUX Kontext (edit by instruction)", "category": "image-to-image", "output": "image", "price": "~$0.04/img", "needs_input_image": true,
-      "params": [
-        {"name": "guidance_scale", "type": "float", "default": 3.5, "max": 20},
-        {"name": "seed", "type": "int", "optional": true}
-      ]},
-    { "id": "fal-ai/flux/dev/inpainting", "label": "FLUX Dev Inpainting", "category": "image-to-image", "output": "image", "price": "~$0.025/MP", "needs_input_image": true,
-      "params": [
-        {"name": "strength", "type": "float", "default": 0.85, "max": 1},
-        {"name": "num_inference_steps", "type": "int", "default": 28, "max": 50}
-      ]},
-
-    { "id": "fal-ai/veo3.1", "label": "Veo 3.1 (t2v + audio)", "category": "text-to-video", "output": "video", "price": "~$0.40/s",
-      "params": [
-        {"name": "aspect_ratio", "type": "enum", "values": ["16:9", "9:16"], "default": "16:9"},
-        {"name": "duration", "type": "enum", "values": ["4s", "6s", "8s"], "default": "8s"},
-        {"name": "generate_audio", "type": "bool", "default": true}
-      ]},
-    { "id": "fal-ai/bytedance/seedance/v1/pro/text-to-video", "label": "Seedance 1.0 Pro (t2v)", "category": "text-to-video", "output": "video", "price": "~$0.15-0.75/clip",
-      "params": [
-        {"name": "aspect_ratio", "type": "enum", "values": ["16:9", "9:16", "1:1"], "default": "16:9"},
-        {"name": "resolution", "type": "enum", "values": ["480p", "720p", "1080p"], "default": "720p"},
-        {"name": "duration", "type": "enum", "values": ["5", "10"], "default": "5"}
-      ]},
-
-    { "id": "fal-ai/kling-video/v2.6/pro/image-to-video", "label": "Kling 2.6 Pro (i2v)", "category": "image-to-video", "output": "video", "price": "~$0.35-0.70/clip", "needs_input_image": true,
-      "params": [
-        {"name": "duration", "type": "enum", "values": ["5", "10"], "default": "5"},
-        {"name": "cfg_scale", "type": "float", "default": 0.5, "max": 1}
-      ]},
-    { "id": "fal-ai/bytedance/seedance/v1.5/pro/image-to-video", "label": "Seedance 1.5 Pro (i2v)", "category": "image-to-video", "output": "video", "price": "~$0.15-0.75/clip", "needs_input_image": true,
-      "params": [
-        {"name": "resolution", "type": "enum", "values": ["480p", "720p", "1080p"], "default": "720p"},
-        {"name": "duration", "type": "enum", "values": ["5", "10"], "default": "5"}
-      ]},
-
-    { "id": "fal-ai/aura-sr", "label": "AuraSR Upscale (4x, fast)", "category": "upscale", "output": "image", "price": "~$0.01/img", "needs_input_image": true,
-      "params": [
-        {"name": "upscaling_factor", "type": "enum", "values": ["4"], "default": "4"}
-      ]},
-    { "id": "fal-ai/clarity-upscaler", "label": "Clarity Upscaler (creative)", "category": "upscale", "output": "image", "price": "~$0.03/img", "needs_input_image": true,
-      "params": [
-        {"name": "upscale_factor", "type": "float", "default": 2, "max": 4},
-        {"name": "creativity", "type": "float", "default": 0.35, "max": 1}
-      ]},
-    { "id": "fal-ai/topaz/upscale/video", "label": "Topaz Video Upscale", "category": "upscale", "output": "video", "price": "usage-based", "needs_input_video": true,
-      "params": [
-        {"name": "upscale_factor", "type": "enum", "values": ["2", "4"], "default": "2"}
-      ]},
-
-    { "id": "fal-ai/birefnet/v2", "label": "BiRefNet v2 (bg removal)", "category": "bg-removal", "output": "image", "price": "~$0.002/img", "needs_input_image": true,
-      "params": []},
-
-    { "id": "fal-ai/minimax-music", "label": "MiniMax Music", "category": "music", "output": "audio", "price": "~$0.035/gen",
-      "params": [
-        {"name": "reference_audio_url", "type": "string", "optional": true}
-      ]},
-    { "id": "fal-ai/minimax/speech-02-hd", "label": "MiniMax Speech HD (TTS)", "category": "tts", "output": "audio", "price": "~$0.10/1k chars",
-      "params": [
-        {"name": "voice_setting", "type": "string", "optional": true}
-      ]}
-  ]
+ "version": 2,
+ "generated_at": "2026-07-03 21:56",
+ "generator": "scripts/build_fal_catalog.py (top-N per category via api.fal.ai/v1/models)",
+ "note": "params are FORM HINTS; engine passes dicts through verbatim. Regenerate with the script.",
+ "models": [
+  {
+   "id": "fal-ai/flux/schnell",
+   "label": "FLUX.1 [schnell]",
+   "category": "text-to-image",
+   "output": "image",
+   "description": "FLUX.1 [schnell] is a 12 billion parameter flow transformer that generates high-quality images from text in 1 to 4 steps, suitable for personal and commercial use.",
+   "params": [
+    {
+     "name": "acceleration",
+     "type": "enum",
+     "values": [
+      "none",
+      "regular",
+      "high"
+     ],
+     "default": "none"
+    },
+    {
+     "name": "enable_safety_checker",
+     "type": "bool",
+     "default": true
+    },
+    {
+     "name": "guidance_scale",
+     "type": "float",
+     "default": 3.5,
+     "min": 1,
+     "max": 20
+    },
+    {
+     "name": "num_images",
+     "type": "int",
+     "default": 1,
+     "min": 1,
+     "max": 4
+    },
+    {
+     "name": "num_inference_steps",
+     "type": "int",
+     "default": 4,
+     "min": 1,
+     "max": 12
+    },
+    {
+     "name": "output_format",
+     "type": "enum",
+     "values": [
+      "jpeg",
+      "png"
+     ],
+     "default": "jpeg"
+    },
+    {
+     "name": "sync_mode",
+     "type": "bool",
+     "default": false
+    }
+   ]
+  },
+  {
+   "id": "fal-ai/nano-banana-2",
+   "label": "Nano Banana 2",
+   "category": "text-to-image",
+   "output": "image",
+   "description": "Nano Banana 2 is Google's new state-of-the-art fast image generation and editing model",
+   "params": [
+    {
+     "name": "enable_web_search",
+     "type": "bool",
+     "default": false
+    },
+    {
+     "name": "limit_generations",
+     "type": "bool",
+     "default": true
+    },
+    {
+     "name": "num_images",
+     "type": "int",
+     "default": 1,
+     "min": 1,
+     "max": 4
+    },
+    {
+     "name": "output_format",
+     "type": "enum",
+     "values": [
+      "jpeg",
+      "png",
+      "webp"
+     ],
+     "default": "png"
+    },
+    {
+     "name": "resolution",
+     "type": "enum",
+     "values": [
+      "0.5K",
+      "1K",
+      "2K",
+      "4K"
+     ],
+     "default": "1K"
+    },
+    {
+     "name": "safety_tolerance",
+     "type": "enum",
+     "values": [
+      "1",
+      "2",
+      "3",
+      "4",
+      "5",
+      "6"
+     ],
+     "default": "4"
+    },
+    {
+     "name": "sync_mode",
+     "type": "bool",
+     "default": false
+    },
+    {
+     "name": "system_prompt",
+     "type": "string",
+     "default": ""
+    }
+   ]
+  },
+  {
+   "id": "openai/gpt-image-2",
+   "label": "GPT Image 2 API",
+   "category": "text-to-image",
+   "output": "image",
+   "description": "GPT Image 2, OpenAI's latest image model, is capable of creating extremely detailed images with fine typography.",
+   "params": [
+    {
+     "name": "num_images",
+     "type": "int",
+     "default": 1,
+     "min": 1,
+     "max": 4
+    },
+    {
+     "name": "output_format",
+     "type": "enum",
+     "values": [
+      "jpeg",
+      "png",
+      "webp"
+     ],
+     "default": "png"
+    },
+    {
+     "name": "quality",
+     "type": "enum",
+     "values": [
+      "auto",
+      "low",
+      "medium",
+      "high"
+     ],
+     "default": "high"
+    },
+    {
+     "name": "sync_mode",
+     "type": "bool",
+     "default": false
+    }
+   ]
+  },
+  {
+   "id": "fal-ai/flux/dev",
+   "label": "FLUX.1 [dev]",
+   "category": "text-to-image",
+   "output": "image",
+   "description": "FLUX.1 [dev] is a 12 billion parameter flow transformer that generates high-quality images from text. It is suitable for personal and commercial use.",
+   "params": [
+    {
+     "name": "acceleration",
+     "type": "enum",
+     "values": [
+      "none",
+      "regular",
+      "high"
+     ],
+     "default": "none"
+    },
+    {
+     "name": "enable_safety_checker",
+     "type": "bool",
+     "default": true
+    },
+    {
+     "name": "guidance_scale",
+     "type": "float",
+     "default": 3.5,
+     "min": 1,
+     "max": 20
+    },
+    {
+     "name": "num_images",
+     "type": "int",
+     "default": 1,
+     "min": 1,
+     "max": 4
+    },
+    {
+     "name": "num_inference_steps",
+     "type": "int",
+     "default": 28,
+     "min": 1,
+     "max": 50
+    },
+    {
+     "name": "output_format",
+     "type": "enum",
+     "values": [
+      "jpeg",
+      "png"
+     ],
+     "default": "jpeg"
+    },
+    {
+     "name": "sync_mode",
+     "type": "bool",
+     "default": false
+    }
+   ]
+  },
+  {
+   "id": "fal-ai/nano-banana-pro",
+   "label": "Nano Banana Pro",
+   "category": "text-to-image",
+   "output": "image",
+   "description": "Nano Banana Pro is Google's new state-of-the-art image generation and editing model",
+   "params": [
+    {
+     "name": "enable_web_search",
+     "type": "bool",
+     "default": false
+    },
+    {
+     "name": "limit_generations",
+     "type": "bool",
+     "default": false
+    },
+    {
+     "name": "num_images",
+     "type": "int",
+     "default": 1,
+     "min": 1,
+     "max": 4
+    },
+    {
+     "name": "output_format",
+     "type": "enum",
+     "values": [
+      "jpeg",
+      "png",
+      "webp"
+     ],
+     "default": "png"
+    },
+    {
+     "name": "resolution",
+     "type": "enum",
+     "values": [
+      "1K",
+      "2K",
+      "4K"
+     ],
+     "default": "1K"
+    },
+    {
+     "name": "safety_tolerance",
+     "type": "enum",
+     "values": [
+      "1",
+      "2",
+      "3",
+      "4",
+      "5",
+      "6"
+     ],
+     "default": "4"
+    },
+    {
+     "name": "sync_mode",
+     "type": "bool",
+     "default": false
+    },
+    {
+     "name": "system_prompt",
+     "type": "string",
+     "default": ""
+    }
+   ]
+  },
+  {
+   "id": "fal-ai/flux-2-pro",
+   "label": "Flux 2 Pro",
+   "category": "text-to-image",
+   "output": "image",
+   "description": "Image editing with FLUX.2 [pro] from Black Forest Labs. Ideal for high-quality image manipulation, style transfer, and sequential editing workflows",
+   "params": [
+    {
+     "name": "enable_safety_checker",
+     "type": "bool",
+     "default": true
+    },
+    {
+     "name": "output_format",
+     "type": "enum",
+     "values": [
+      "jpeg",
+      "png"
+     ],
+     "default": "jpeg"
+    },
+    {
+     "name": "safety_tolerance",
+     "type": "enum",
+     "values": [
+      "1",
+      "2",
+      "3",
+      "4",
+      "5"
+     ],
+     "default": "2"
+    },
+    {
+     "name": "sync_mode",
+     "type": "bool",
+     "default": false
+    }
+   ]
+  },
+  {
+   "id": "fal-ai/nano-banana",
+   "label": "Nano Banana",
+   "category": "text-to-image",
+   "output": "image",
+   "description": "Google's famous original image generation and editing model",
+   "params": [
+    {
+     "name": "aspect_ratio",
+     "type": "enum",
+     "values": [
+      "21:9",
+      "16:9",
+      "3:2",
+      "4:3",
+      "5:4",
+      "1:1",
+      "4:5",
+      "3:4",
+      "2:3",
+      "9:16"
+     ],
+     "default": "1:1"
+    },
+    {
+     "name": "limit_generations",
+     "type": "bool",
+     "default": false
+    },
+    {
+     "name": "num_images",
+     "type": "int",
+     "default": 1,
+     "min": 1,
+     "max": 4
+    },
+    {
+     "name": "output_format",
+     "type": "enum",
+     "values": [
+      "jpeg",
+      "png",
+      "webp"
+     ],
+     "default": "png"
+    },
+    {
+     "name": "safety_tolerance",
+     "type": "enum",
+     "values": [
+      "1",
+      "2",
+      "3",
+      "4",
+      "5",
+      "6"
+     ],
+     "default": "4"
+    },
+    {
+     "name": "sync_mode",
+     "type": "bool",
+     "default": false
+    }
+   ]
+  },
+  {
+   "id": "fal-ai/flux-pro/v1.1-ultra",
+   "label": "FLUX1.1 [pro] ultra",
+   "category": "text-to-image",
+   "output": "image",
+   "description": "FLUX1.1 [pro] ultra is the newest version of FLUX1.1 [pro], maintaining professional-grade image quality while delivering up to 2K resolution with improved photo realism.",
+   "params": [
+    {
+     "name": "enhance_prompt",
+     "type": "bool",
+     "default": false
+    },
+    {
+     "name": "image_prompt_strength",
+     "type": "float",
+     "default": 0.1,
+     "min": 0,
+     "max": 1
+    },
+    {
+     "name": "num_images",
+     "type": "int",
+     "default": 1,
+     "min": 1,
+     "max": 4
+    },
+    {
+     "name": "output_format",
+     "type": "enum",
+     "values": [
+      "jpeg",
+      "png"
+     ],
+     "default": "jpeg"
+    },
+    {
+     "name": "raw",
+     "type": "bool",
+     "default": false
+    },
+    {
+     "name": "safety_tolerance",
+     "type": "enum",
+     "values": [
+      "1",
+      "2",
+      "3",
+      "4",
+      "5",
+      "6"
+     ],
+     "default": "2"
+    },
+    {
+     "name": "sync_mode",
+     "type": "bool",
+     "default": false
+    }
+   ],
+   "needs_input_image": true
+  },
+  {
+   "id": "fal-ai/flux-lora",
+   "label": "FLUX.1 [dev] with LoRAs",
+   "category": "text-to-image",
+   "output": "image",
+   "description": "Super fast endpoint for the FLUX.1 [dev] model with LoRA support, enabling rapid and high-quality image generation using pre-trained LoRA adaptations for personalization, specific ",
+   "params": [
+    {
+     "name": "acceleration",
+     "type": "enum",
+     "values": [
+      "none",
+      "regular"
+     ],
+     "default": "none"
+    },
+    {
+     "name": "enable_safety_checker",
+     "type": "bool",
+     "default": true
+    },
+    {
+     "name": "guidance_scale",
+     "type": "float",
+     "default": 3.5,
+     "min": 0,
+     "max": 35
+    },
+    {
+     "name": "num_images",
+     "type": "int",
+     "default": 1,
+     "min": 1,
+     "max": 4
+    },
+    {
+     "name": "num_inference_steps",
+     "type": "int",
+     "default": 28,
+     "min": 1,
+     "max": 50
+    },
+    {
+     "name": "output_format",
+     "type": "enum",
+     "values": [
+      "jpeg",
+      "png"
+     ],
+     "default": "jpeg"
+    },
+    {
+     "name": "sync_mode",
+     "type": "bool",
+     "default": false
+    }
+   ]
+  },
+  {
+   "id": "xai/grok-imagine-image",
+   "label": "Grok Imagine Image",
+   "category": "text-to-image",
+   "output": "image",
+   "description": "Generate highly aesthetic images with xAI's Grok Imagine Image generation model.",
+   "params": [
+    {
+     "name": "aspect_ratio",
+     "type": "enum",
+     "values": [
+      "2:1",
+      "20:9",
+      "19.5:9",
+      "16:9",
+      "4:3",
+      "3:2",
+      "1:1",
+      "2:3",
+      "3:4",
+      "9:16",
+      "9:19.5",
+      "9:20",
+      "1:2"
+     ],
+     "default": "1:1"
+    },
+    {
+     "name": "num_images",
+     "type": "int",
+     "default": 1,
+     "min": 1,
+     "max": 4
+    },
+    {
+     "name": "output_format",
+     "type": "enum",
+     "values": [
+      "jpeg",
+      "png",
+      "webp"
+     ],
+     "default": "jpeg"
+    },
+    {
+     "name": "resolution",
+     "type": "enum",
+     "values": [
+      "1k",
+      "2k"
+     ],
+     "default": "1k"
+    },
+    {
+     "name": "sync_mode",
+     "type": "bool",
+     "default": false
+    }
+   ]
+  },
+  {
+   "id": "fal-ai/flux-2/klein/9b",
+   "label": "FLUX.2 [klein] 9B",
+   "category": "text-to-image",
+   "output": "image",
+   "description": "Text-to-image generation with FLUX.2 [klein] 9B from Black Forest Labs. Enhanced realism, crisper text generation, and native editing capabilities.",
+   "params": [
+    {
+     "name": "enable_safety_checker",
+     "type": "bool",
+     "default": true
+    },
+    {
+     "name": "num_images",
+     "type": "int",
+     "default": 1,
+     "min": 1,
+     "max": 4
+    },
+    {
+     "name": "num_inference_steps",
+     "type": "int",
+     "default": 4,
+     "min": 4,
+     "max": 8
+    },
+    {
+     "name": "output_format",
+     "type": "enum",
+     "values": [
+      "jpeg",
+      "png",
+      "webp"
+     ],
+     "default": "png"
+    },
+    {
+     "name": "sync_mode",
+     "type": "bool",
+     "default": false
+    }
+   ]
+  },
+  {
+   "id": "fal-ai/bytedance/seedream/v4.5/text-to-image",
+   "label": "Bytedance Seedream V4.5 Text To Image",
+   "category": "text-to-image",
+   "output": "image",
+   "description": "A new-generation image creation model ByteDance, Seedream 4.5 integrates image generation and image editing capabilities into a single, unified architecture.",
+   "params": [
+    {
+     "name": "enable_safety_checker",
+     "type": "bool",
+     "default": true
+    },
+    {
+     "name": "max_images",
+     "type": "int",
+     "default": 1,
+     "min": 1,
+     "max": 6
+    },
+    {
+     "name": "num_images",
+     "type": "int",
+     "default": 1,
+     "min": 1,
+     "max": 6
+    },
+    {
+     "name": "sync_mode",
+     "type": "bool",
+     "default": false
+    }
+   ]
+  },
+  {
+   "id": "fal-ai/nano-banana-2/edit",
+   "label": "Nano Banana 2",
+   "category": "image-to-image",
+   "output": "image",
+   "description": "Nano Banana 2 is Google's new state-of-the-art image generation and editing model\n",
+   "params": [
+    {
+     "name": "enable_web_search",
+     "type": "bool",
+     "default": false
+    },
+    {
+     "name": "limit_generations",
+     "type": "bool",
+     "default": true
+    },
+    {
+     "name": "num_images",
+     "type": "int",
+     "default": 1,
+     "min": 1,
+     "max": 4
+    },
+    {
+     "name": "output_format",
+     "type": "enum",
+     "values": [
+      "jpeg",
+      "png",
+      "webp"
+     ],
+     "default": "png"
+    },
+    {
+     "name": "resolution",
+     "type": "enum",
+     "values": [
+      "0.5K",
+      "1K",
+      "2K",
+      "4K"
+     ],
+     "default": "1K"
+    },
+    {
+     "name": "safety_tolerance",
+     "type": "enum",
+     "values": [
+      "1",
+      "2",
+      "3",
+      "4",
+      "5",
+      "6"
+     ],
+     "default": "4"
+    },
+    {
+     "name": "sync_mode",
+     "type": "bool",
+     "default": false
+    },
+    {
+     "name": "system_prompt",
+     "type": "string",
+     "default": ""
+    }
+   ],
+   "needs_input_audio": true,
+   "needs_input_video": true
+  },
+  {
+   "id": "openai/gpt-image-2/edit",
+   "label": "GPT Image 2 API",
+   "category": "image-to-image",
+   "output": "image",
+   "description": "GPT Image 2, OpenAI's latest image model, is capable of making fine-grained, detailed edits to images.",
+   "params": [
+    {
+     "name": "num_images",
+     "type": "int",
+     "default": 1,
+     "min": 1,
+     "max": 4
+    },
+    {
+     "name": "output_format",
+     "type": "enum",
+     "values": [
+      "jpeg",
+      "png",
+      "webp"
+     ],
+     "default": "png"
+    },
+    {
+     "name": "quality",
+     "type": "enum",
+     "values": [
+      "auto",
+      "low",
+      "medium",
+      "high"
+     ],
+     "default": "high"
+    },
+    {
+     "name": "sync_mode",
+     "type": "bool",
+     "default": false
+    }
+   ]
+  },
+  {
+   "id": "fal-ai/nano-banana-pro/edit",
+   "label": "Nano Banana Pro",
+   "category": "image-to-image",
+   "output": "image",
+   "description": "Nano Banana Pro is Google's new state-of-the-art image generation and editing model",
+   "params": [
+    {
+     "name": "enable_web_search",
+     "type": "bool",
+     "default": false
+    },
+    {
+     "name": "limit_generations",
+     "type": "bool",
+     "default": false
+    },
+    {
+     "name": "num_images",
+     "type": "int",
+     "default": 1,
+     "min": 1,
+     "max": 4
+    },
+    {
+     "name": "output_format",
+     "type": "enum",
+     "values": [
+      "jpeg",
+      "png",
+      "webp"
+     ],
+     "default": "png"
+    },
+    {
+     "name": "resolution",
+     "type": "enum",
+     "values": [
+      "1K",
+      "2K",
+      "4K"
+     ],
+     "default": "1K"
+    },
+    {
+     "name": "safety_tolerance",
+     "type": "enum",
+     "values": [
+      "1",
+      "2",
+      "3",
+      "4",
+      "5",
+      "6"
+     ],
+     "default": "4"
+    },
+    {
+     "name": "sync_mode",
+     "type": "bool",
+     "default": false
+    },
+    {
+     "name": "system_prompt",
+     "type": "string",
+     "default": ""
+    }
+   ]
+  },
+  {
+   "id": "fal-ai/nano-banana/edit",
+   "label": "Nano Banana",
+   "category": "image-to-image",
+   "output": "image",
+   "description": "Google's famous original image generation and editing model",
+   "params": [
+    {
+     "name": "limit_generations",
+     "type": "bool",
+     "default": false
+    },
+    {
+     "name": "num_images",
+     "type": "int",
+     "default": 1,
+     "min": 1,
+     "max": 4
+    },
+    {
+     "name": "output_format",
+     "type": "enum",
+     "values": [
+      "jpeg",
+      "png",
+      "webp"
+     ],
+     "default": "png"
+    },
+    {
+     "name": "safety_tolerance",
+     "type": "enum",
+     "values": [
+      "1",
+      "2",
+      "3",
+      "4",
+      "5",
+      "6"
+     ],
+     "default": "4"
+    },
+    {
+     "name": "sync_mode",
+     "type": "bool",
+     "default": false
+    }
+   ]
+  },
+  {
+   "id": "fal-ai/bytedance/seedream/v4.5/edit",
+   "label": "Bytedance Seedream V4.5 Edit",
+   "category": "image-to-image",
+   "output": "image",
+   "description": "A new-generation image creation model ByteDance, Seedream 4.5 integrates image generation and image editing capabilities into a single, unified architecture.\n",
+   "params": [
+    {
+     "name": "enable_safety_checker",
+     "type": "bool",
+     "default": true
+    },
+    {
+     "name": "max_images",
+     "type": "int",
+     "default": 1,
+     "min": 1,
+     "max": 6
+    },
+    {
+     "name": "num_images",
+     "type": "int",
+     "default": 1,
+     "min": 1,
+     "max": 6
+    },
+    {
+     "name": "sync_mode",
+     "type": "bool",
+     "default": false
+    }
+   ]
+  },
+  {
+   "id": "fal-ai/flux-pro/kontext",
+   "label": "FLUX.1 Kontext [pro]",
+   "category": "image-to-image",
+   "output": "image",
+   "description": "FLUX.1 Kontext [pro] handles both text and reference images as inputs, seamlessly enabling targeted, local edits and complex transformations of entire scenes.",
+   "params": [
+    {
+     "name": "enhance_prompt",
+     "type": "bool",
+     "default": false
+    },
+    {
+     "name": "guidance_scale",
+     "type": "float",
+     "default": 3.5,
+     "min": 1,
+     "max": 20
+    },
+    {
+     "name": "num_images",
+     "type": "int",
+     "default": 1,
+     "min": 1,
+     "max": 4
+    },
+    {
+     "name": "output_format",
+     "type": "enum",
+     "values": [
+      "jpeg",
+      "png"
+     ],
+     "default": "jpeg"
+    },
+    {
+     "name": "safety_tolerance",
+     "type": "enum",
+     "values": [
+      "1",
+      "2",
+      "3",
+      "4",
+      "5",
+      "6"
+     ],
+     "default": "2"
+    },
+    {
+     "name": "sync_mode",
+     "type": "bool",
+     "default": false
+    }
+   ],
+   "needs_input_image": true
+  },
+  {
+   "id": "fal-ai/flux-2-pro/edit",
+   "label": "FLUX 2 Pro Edit",
+   "category": "image-to-image",
+   "output": "image",
+   "description": "Text-to-image generation with FLUX.2 [pro] from Black Forest Labs. Optimized for maximum quality, exceptional photorealism and artistic images.",
+   "params": [
+    {
+     "name": "enable_safety_checker",
+     "type": "bool",
+     "default": true
+    },
+    {
+     "name": "output_format",
+     "type": "enum",
+     "values": [
+      "jpeg",
+      "png"
+     ],
+     "default": "jpeg"
+    },
+    {
+     "name": "safety_tolerance",
+     "type": "enum",
+     "values": [
+      "1",
+      "2",
+      "3",
+      "4",
+      "5"
+     ],
+     "default": "2"
+    },
+    {
+     "name": "sync_mode",
+     "type": "bool",
+     "default": false
+    }
+   ]
+  },
+  {
+   "id": "fal-ai/birefnet/v2",
+   "label": "Birefnet Background Removal V2",
+   "category": "image-to-image",
+   "output": "image",
+   "description": "bilateral reference framework (BiRefNet) for high-resolution dichotomous image segmentation (DIS)",
+   "params": [
+    {
+     "name": "mask_only",
+     "type": "bool",
+     "default": false
+    },
+    {
+     "name": "model",
+     "type": "enum",
+     "values": [
+      "General Use (Light)",
+      "General Use (Light 2K)",
+      "General Use (Heavy)",
+      "Matting",
+      "Portrait",
+      "General Use (Dynamic)"
+     ],
+     "default": "General Use (Light)"
+    },
+    {
+     "name": "operating_resolution",
+     "type": "enum",
+     "values": [
+      "1024x1024",
+      "2048x2048",
+      "2304x2304"
+     ],
+     "default": "1024x1024"
+    },
+    {
+     "name": "output_format",
+     "type": "enum",
+     "values": [
+      "webp",
+      "png",
+      "gif"
+     ],
+     "default": "png"
+    },
+    {
+     "name": "output_mask",
+     "type": "bool",
+     "default": false
+    },
+    {
+     "name": "refine_foreground",
+     "type": "bool",
+     "default": true
+    },
+    {
+     "name": "sync_mode",
+     "type": "bool",
+     "default": false
+    }
+   ],
+   "needs_input_image": true
+  },
+  {
+   "id": "fal-ai/seedvr/upscale/image",
+   "label": "SeedVR2",
+   "category": "image-to-image",
+   "output": "image",
+   "description": "Use SeedVR2 to upscale your images",
+   "params": [
+    {
+     "name": "noise_scale",
+     "type": "float",
+     "default": 0.1,
+     "min": 0,
+     "max": 1
+    },
+    {
+     "name": "output_format",
+     "type": "enum",
+     "values": [
+      "png",
+      "jpg",
+      "webp"
+     ],
+     "default": "jpg"
+    },
+    {
+     "name": "sync_mode",
+     "type": "bool",
+     "default": false
+    },
+    {
+     "name": "target_resolution",
+     "type": "enum",
+     "values": [
+      "720p",
+      "1080p",
+      "1440p",
+      "2160p"
+     ],
+     "default": "1080p"
+    },
+    {
+     "name": "upscale_factor",
+     "type": "float",
+     "default": 2,
+     "min": 1,
+     "max": 10
+    },
+    {
+     "name": "upscale_mode",
+     "type": "enum",
+     "values": [
+      "target",
+      "factor"
+     ],
+     "default": "factor"
+    }
+   ],
+   "needs_input_image": true
+  },
+  {
+   "id": "xai/grok-imagine-image/edit",
+   "label": "Grok Imagine Image",
+   "category": "image-to-image",
+   "output": "image",
+   "description": "Edit images precisely with xAI's Grok Imagine model",
+   "params": [
+    {
+     "name": "aspect_ratio",
+     "type": "enum",
+     "values": [
+      "auto",
+      "2:1",
+      "20:9",
+      "19.5:9",
+      "16:9",
+      "4:3",
+      "3:2",
+      "1:1",
+      "2:3",
+      "3:4",
+      "9:16",
+      "9:19.5",
+      "9:20",
+      "1:2"
+     ],
+     "default": "auto"
+    },
+    {
+     "name": "num_images",
+     "type": "int",
+     "default": 1,
+     "min": 1,
+     "max": 4
+    },
+    {
+     "name": "output_format",
+     "type": "enum",
+     "values": [
+      "jpeg",
+      "png",
+      "webp"
+     ],
+     "default": "jpeg"
+    },
+    {
+     "name": "resolution",
+     "type": "enum",
+     "values": [
+      "1k",
+      "2k"
+     ],
+     "default": "1k"
+    },
+    {
+     "name": "sync_mode",
+     "type": "bool",
+     "default": false
+    }
+   ]
+  },
+  {
+   "id": "google/nano-banana-lite/edit",
+   "label": "Nano Banana Lite Edit",
+   "category": "image-to-image",
+   "output": "image",
+   "description": "Nano banana lite is the efficiency-focused model in the image generation family. Sub-2 second latency with cost-effective generation and editing, fast multi-turn local edits, and 1",
+   "params": [
+    {
+     "name": "limit_generations",
+     "type": "bool",
+     "default": true
+    },
+    {
+     "name": "num_images",
+     "type": "int",
+     "default": 1,
+     "min": 1,
+     "max": 4
+    },
+    {
+     "name": "output_format",
+     "type": "enum",
+     "values": [
+      "jpeg",
+      "png",
+      "webp"
+     ],
+     "default": "png"
+    },
+    {
+     "name": "safety_tolerance",
+     "type": "enum",
+     "values": [
+      "1",
+      "2",
+      "3",
+      "4",
+      "5",
+      "6"
+     ],
+     "default": "4"
+    },
+    {
+     "name": "sync_mode",
+     "type": "bool",
+     "default": false
+    },
+    {
+     "name": "system_prompt",
+     "type": "string",
+     "default": ""
+    }
+   ]
+  },
+  {
+   "id": "fal-ai/bria/background/remove",
+   "label": "Bria RMBG 2.0",
+   "category": "image-to-image",
+   "output": "image",
+   "description": "Bria RMBG 2.0 enables seamless removal of backgrounds from images, ideal for professional editing tasks. Trained exclusively on licensed data for safe and risk-free commercial use.",
+   "params": [
+    {
+     "name": "sync_mode",
+     "type": "bool",
+     "default": false
+    }
+   ],
+   "needs_input_image": true
+  },
+  {
+   "id": "fal-ai/bytedance/seedream/v5/lite/edit",
+   "label": "Bytedance Seedream V5 Lite Edit",
+   "category": "image-to-image",
+   "output": "image",
+   "description": "Image editing endpoint for the fast Lite version of Seedream 5.0, supporting high quality intelligent image editing with multiple inputs.",
+   "params": [
+    {
+     "name": "enable_safety_checker",
+     "type": "bool",
+     "default": true
+    },
+    {
+     "name": "max_images",
+     "type": "int",
+     "default": 1,
+     "min": 1,
+     "max": 6
+    },
+    {
+     "name": "num_images",
+     "type": "int",
+     "default": 1,
+     "min": 1,
+     "max": 6
+    },
+    {
+     "name": "sync_mode",
+     "type": "bool",
+     "default": false
+    }
+   ]
+  },
+  {
+   "id": "bytedance/seedance-2.0/text-to-video",
+   "label": "Seedance 2.0 Text to Video API",
+   "category": "text-to-video",
+   "output": "video",
+   "description": "ByteDance's most advanced text-to-video model. Cinematic output with native audio, multi-shot editing, real-world physics, and director-level camera control.",
+   "params": [
+    {
+     "name": "aspect_ratio",
+     "type": "enum",
+     "values": [
+      "auto",
+      "21:9",
+      "16:9",
+      "4:3",
+      "1:1",
+      "3:4",
+      "9:16"
+     ],
+     "default": "auto"
+    },
+    {
+     "name": "bitrate_mode",
+     "type": "enum",
+     "values": [
+      "standard",
+      "high"
+     ],
+     "default": "standard"
+    },
+    {
+     "name": "duration",
+     "type": "enum",
+     "values": [
+      "auto",
+      "4",
+      "5",
+      "6",
+      "7",
+      "8",
+      "9",
+      "10",
+      "11",
+      "12",
+      "13",
+      "14",
+      "15"
+     ],
+     "default": "auto"
+    },
+    {
+     "name": "generate_audio",
+     "type": "bool",
+     "default": true
+    },
+    {
+     "name": "resolution",
+     "type": "enum",
+     "values": [
+      "480p",
+      "720p",
+      "1080p",
+      "4k"
+     ],
+     "default": "720p"
+    }
+   ]
+  },
+  {
+   "id": "fal-ai/kling-video/v3/pro/text-to-video",
+   "label": "Kling Video v3 Text to Video [Pro]",
+   "category": "text-to-video",
+   "output": "video",
+   "description": "Kling 3.0 Pro: Top-tier text-to-video with cinematic visuals, fluid motion, and native audio generation, with multi-shot support.",
+   "params": [
+    {
+     "name": "aspect_ratio",
+     "type": "enum",
+     "values": [
+      "16:9",
+      "9:16",
+      "1:1"
+     ],
+     "default": "16:9"
+    },
+    {
+     "name": "cfg_scale",
+     "type": "float",
+     "default": 0.5,
+     "min": 0,
+     "max": 1
+    },
+    {
+     "name": "duration",
+     "type": "enum",
+     "values": [
+      "3",
+      "4",
+      "5",
+      "6",
+      "7",
+      "8",
+      "9",
+      "10",
+      "11",
+      "12",
+      "13",
+      "14",
+      "15"
+     ],
+     "default": "5"
+    },
+    {
+     "name": "generate_audio",
+     "type": "bool",
+     "default": true
+    },
+    {
+     "name": "negative_prompt",
+     "type": "string",
+     "default": "blur, distort, and low quality"
+    },
+    {
+     "name": "shot_type",
+     "type": "enum",
+     "values": [
+      "customize",
+      "intelligent"
+     ],
+     "default": "customize"
+    }
+   ]
+  },
+  {
+   "id": "bytedance/seedance-2.0/fast/text-to-video",
+   "label": "Seedance 2.0 Fast Text to Video",
+   "category": "text-to-video",
+   "output": "video",
+   "description": "ByteDance's most advanced text-to-video model, fast tier. Lower latency and cost with cinematic output, native audio, multi-shot editing, and director-level camera control.",
+   "params": [
+    {
+     "name": "aspect_ratio",
+     "type": "enum",
+     "values": [
+      "auto",
+      "21:9",
+      "16:9",
+      "4:3",
+      "1:1",
+      "3:4",
+      "9:16"
+     ],
+     "default": "auto"
+    },
+    {
+     "name": "bitrate_mode",
+     "type": "enum",
+     "values": [
+      "standard",
+      "high"
+     ],
+     "default": "standard"
+    },
+    {
+     "name": "duration",
+     "type": "enum",
+     "values": [
+      "auto",
+      "4",
+      "5",
+      "6",
+      "7",
+      "8",
+      "9",
+      "10",
+      "11",
+      "12",
+      "13",
+      "14",
+      "15"
+     ],
+     "default": "auto"
+    },
+    {
+     "name": "generate_audio",
+     "type": "bool",
+     "default": true
+    },
+    {
+     "name": "resolution",
+     "type": "enum",
+     "values": [
+      "480p",
+      "720p"
+     ],
+     "default": "720p"
+    }
+   ]
+  },
+  {
+   "id": "fal-ai/veo3.1",
+   "label": "Veo 3.1",
+   "category": "text-to-video",
+   "output": "video",
+   "description": "Veo 3.1 by Google, the most advanced AI video generation model in the world. With sound on!",
+   "params": [
+    {
+     "name": "aspect_ratio",
+     "type": "enum",
+     "values": [
+      "16:9",
+      "9:16"
+     ],
+     "default": "16:9"
+    },
+    {
+     "name": "auto_fix",
+     "type": "bool",
+     "default": true
+    },
+    {
+     "name": "duration",
+     "type": "enum",
+     "values": [
+      "4s",
+      "6s",
+      "8s"
+     ],
+     "default": "8s"
+    },
+    {
+     "name": "generate_audio",
+     "type": "bool",
+     "default": true
+    },
+    {
+     "name": "resolution",
+     "type": "enum",
+     "values": [
+      "720p",
+      "1080p",
+      "4k"
+     ],
+     "default": "720p"
+    },
+    {
+     "name": "safety_tolerance",
+     "type": "enum",
+     "values": [
+      "1",
+      "2",
+      "3",
+      "4",
+      "5",
+      "6"
+     ],
+     "default": "4"
+    }
+   ]
+  },
+  {
+   "id": "fal-ai/veo3.1/fast",
+   "label": "Veo 3.1 Fast",
+   "category": "text-to-video",
+   "output": "video",
+   "description": "Faster and more cost effective version of Google's Veo 3.1! ",
+   "params": [
+    {
+     "name": "aspect_ratio",
+     "type": "enum",
+     "values": [
+      "16:9",
+      "9:16"
+     ],
+     "default": "16:9"
+    },
+    {
+     "name": "auto_fix",
+     "type": "bool",
+     "default": true
+    },
+    {
+     "name": "duration",
+     "type": "enum",
+     "values": [
+      "4s",
+      "6s",
+      "8s"
+     ],
+     "default": "8s"
+    },
+    {
+     "name": "generate_audio",
+     "type": "bool",
+     "default": true
+    },
+    {
+     "name": "resolution",
+     "type": "enum",
+     "values": [
+      "720p",
+      "1080p",
+      "4k"
+     ],
+     "default": "720p"
+    },
+    {
+     "name": "safety_tolerance",
+     "type": "enum",
+     "values": [
+      "1",
+      "2",
+      "3",
+      "4",
+      "5",
+      "6"
+     ],
+     "default": "4"
+    }
+   ]
+  },
+  {
+   "id": "fal-ai/kling-video/v3/standard/text-to-video",
+   "label": "Kling Video v3 Text to Video [Standard]",
+   "category": "text-to-video",
+   "output": "video",
+   "description": "Kling 3.0 Standard: Top-tier text-to-video with cinematic visuals, fluid motion, and native audio generation, with multi-shot support.",
+   "params": [
+    {
+     "name": "aspect_ratio",
+     "type": "enum",
+     "values": [
+      "16:9",
+      "9:16",
+      "1:1"
+     ],
+     "default": "16:9"
+    },
+    {
+     "name": "cfg_scale",
+     "type": "float",
+     "default": 0.5,
+     "min": 0,
+     "max": 1
+    },
+    {
+     "name": "duration",
+     "type": "enum",
+     "values": [
+      "3",
+      "4",
+      "5",
+      "6",
+      "7",
+      "8",
+      "9",
+      "10",
+      "11",
+      "12",
+      "13",
+      "14",
+      "15"
+     ],
+     "default": "5"
+    },
+    {
+     "name": "generate_audio",
+     "type": "bool",
+     "default": true
+    },
+    {
+     "name": "negative_prompt",
+     "type": "string",
+     "default": "blur, distort, and low quality"
+    },
+    {
+     "name": "shot_type",
+     "type": "enum",
+     "values": [
+      "customize",
+      "intelligent"
+     ],
+     "default": "customize"
+    }
+   ]
+  },
+  {
+   "id": "google/gemini-omni-flash",
+   "label": "Gemini Omni Flash",
+   "category": "text-to-video",
+   "output": "video",
+   "description": "Creates video with synchronized audio from text input. Grounded in Gemini's real-world knowledge, with improved physics understanding for more coherent motion and interaction.",
+   "params": [
+    {
+     "name": "aspect_ratio",
+     "type": "enum",
+     "values": [
+      "16:9",
+      "9:16"
+     ],
+     "default": "16:9"
+    },
+    {
+     "name": "duration",
+     "type": "int",
+     "default": 8,
+     "min": 3,
+     "max": 10
+    }
+   ]
+  },
+  {
+   "id": "fal-ai/kling-video/v2.5-turbo/pro/text-to-video",
+   "label": "Kling v2.5 Text to Video",
+   "category": "text-to-video",
+   "output": "video",
+   "description": "Kling 2.5 Turbo Pro: Top-tier text-to-video generation with unparalleled motion fluidity, cinematic visuals, and exceptional prompt precision.",
+   "params": [
+    {
+     "name": "aspect_ratio",
+     "type": "enum",
+     "values": [
+      "16:9",
+      "9:16",
+      "1:1"
+     ],
+     "default": "16:9"
+    },
+    {
+     "name": "cfg_scale",
+     "type": "float",
+     "default": 0.5,
+     "min": 0,
+     "max": 1
+    },
+    {
+     "name": "duration",
+     "type": "enum",
+     "values": [
+      "5",
+      "10"
+     ],
+     "default": "5"
+    },
+    {
+     "name": "negative_prompt",
+     "type": "string",
+     "default": "blur, distort, and low quality"
+    }
+   ]
+  },
+  {
+   "id": "xai/grok-imagine-video/text-to-video",
+   "label": "Grok Imagine Video",
+   "category": "text-to-video",
+   "output": "video",
+   "description": "Generate videos with audio from text using Grok Imagine Video.",
+   "params": [
+    {
+     "name": "aspect_ratio",
+     "type": "enum",
+     "values": [
+      "16:9",
+      "4:3",
+      "3:2",
+      "1:1",
+      "2:3",
+      "3:4",
+      "9:16"
+     ],
+     "default": "16:9"
+    },
+    {
+     "name": "duration",
+     "type": "int",
+     "default": 6,
+     "min": 1,
+     "max": 15
+    },
+    {
+     "name": "resolution",
+     "type": "enum",
+     "values": [
+      "480p",
+      "720p"
+     ],
+     "default": "720p"
+    }
+   ]
+  },
+  {
+   "id": "fal-ai/sora-2/text-to-video",
+   "label": "Sora 2",
+   "category": "text-to-video",
+   "output": "video",
+   "description": "Text-to-video endpoint for Sora 2, OpenAI's state-of-the-art video model capable of creating richly detailed, dynamic clips with audio from natural language or images.",
+   "params": [
+    {
+     "name": "aspect_ratio",
+     "type": "enum",
+     "values": [
+      "9:16",
+      "16:9"
+     ],
+     "default": "16:9"
+    },
+    {
+     "name": "delete_video",
+     "type": "bool",
+     "default": true
+    },
+    {
+     "name": "detect_and_block_ip",
+     "type": "bool",
+     "default": false
+    },
+    {
+     "name": "duration",
+     "type": "enum",
+     "values": [
+      4,
+      8,
+      12,
+      16,
+      20
+     ],
+     "default": 4
+    },
+    {
+     "name": "model",
+     "type": "enum",
+     "values": [
+      "sora-2",
+      "sora-2-2025-12-08",
+      "sora-2-2025-10-06"
+     ],
+     "default": "sora-2"
+    },
+    {
+     "name": "resolution",
+     "type": "string",
+     "default": "720p"
+    }
+   ]
+  },
+  {
+   "id": "fal-ai/kling-video/v2.6/pro/text-to-video",
+   "label": "Kling Video v2.6 Text to Video",
+   "category": "text-to-video",
+   "output": "video",
+   "description": "Kling 2.6 Pro: Top-tier text-to-video with cinematic visuals, fluid motion, and native audio generation.",
+   "params": [
+    {
+     "name": "aspect_ratio",
+     "type": "enum",
+     "values": [
+      "16:9",
+      "9:16",
+      "1:1"
+     ],
+     "default": "16:9"
+    },
+    {
+     "name": "cfg_scale",
+     "type": "float",
+     "default": 0.5,
+     "min": 0,
+     "max": 1
+    },
+    {
+     "name": "duration",
+     "type": "enum",
+     "values": [
+      "5",
+      "10"
+     ],
+     "default": "5"
+    },
+    {
+     "name": "generate_audio",
+     "type": "bool",
+     "default": true
+    },
+    {
+     "name": "negative_prompt",
+     "type": "string",
+     "default": "blur, distort, and low quality"
+    }
+   ]
+  },
+  {
+   "id": "fal-ai/bytedance/seedance/v1.5/pro/text-to-video",
+   "label": "Bytedance Seedance V1.5 Pro Text To Video",
+   "category": "text-to-video",
+   "output": "video",
+   "description": "Generate videos with audio with Seedance 1.5",
+   "params": [
+    {
+     "name": "aspect_ratio",
+     "type": "enum",
+     "values": [
+      "21:9",
+      "16:9",
+      "4:3",
+      "1:1",
+      "3:4",
+      "9:16",
+      "auto"
+     ],
+     "default": "16:9"
+    },
+    {
+     "name": "camera_fixed",
+     "type": "bool",
+     "default": false
+    },
+    {
+     "name": "duration",
+     "type": "enum",
+     "values": [
+      "4",
+      "5",
+      "6",
+      "7",
+      "8",
+      "9",
+      "10",
+      "11",
+      "12"
+     ],
+     "default": "5"
+    },
+    {
+     "name": "enable_safety_checker",
+     "type": "bool",
+     "default": true
+    },
+    {
+     "name": "generate_audio",
+     "type": "bool",
+     "default": true
+    },
+    {
+     "name": "resolution",
+     "type": "enum",
+     "values": [
+      "480p",
+      "720p",
+      "1080p"
+     ],
+     "default": "720p"
+    }
+   ]
+  },
+  {
+   "id": "fal-ai/kling-video/v1.6/standard/text-to-video",
+   "label": "Kling 1.6",
+   "category": "text-to-video",
+   "output": "video",
+   "description": "Generate video clips from your prompts using Kling 1.6 (std)",
+   "params": [
+    {
+     "name": "aspect_ratio",
+     "type": "enum",
+     "values": [
+      "16:9",
+      "9:16",
+      "1:1"
+     ],
+     "default": "16:9"
+    },
+    {
+     "name": "cfg_scale",
+     "type": "float",
+     "default": 0.5,
+     "min": 0,
+     "max": 1
+    },
+    {
+     "name": "duration",
+     "type": "enum",
+     "values": [
+      "5",
+      "10"
+     ],
+     "default": "5"
+    },
+    {
+     "name": "negative_prompt",
+     "type": "string",
+     "default": "blur, distort, and low quality"
+    }
+   ]
+  },
+  {
+   "id": "fal-ai/kling-video/v3/pro/image-to-video",
+   "label": "Kling Video v3 Image to Video [Pro]",
+   "category": "image-to-video",
+   "output": "video",
+   "description": "Kling 3.0 Pro: Top-tier image-to-video with cinematic visuals, fluid motion, and native audio generation, with custom element support.",
+   "params": [
+    {
+     "name": "cfg_scale",
+     "type": "float",
+     "default": 0.5,
+     "min": 0,
+     "max": 1
+    },
+    {
+     "name": "duration",
+     "type": "enum",
+     "values": [
+      "3",
+      "4",
+      "5",
+      "6",
+      "7",
+      "8",
+      "9",
+      "10",
+      "11",
+      "12",
+      "13",
+      "14",
+      "15"
+     ],
+     "default": "5"
+    },
+    {
+     "name": "generate_audio",
+     "type": "bool",
+     "default": true
+    },
+    {
+     "name": "negative_prompt",
+     "type": "string",
+     "default": "blur, distort, and low quality"
+    },
+    {
+     "name": "shot_type",
+     "type": "enum",
+     "values": [
+      "customize",
+      "intelligent"
+     ],
+     "default": "customize"
+    }
+   ]
+  },
+  {
+   "id": "bytedance/seedance-2.0/image-to-video",
+   "label": "Seedance 2 Image to Video",
+   "category": "image-to-video",
+   "output": "video",
+   "description": "ByteDance's most advanced image-to-video model. Animate still images into cinematic video with synchronized audio, start and end frame control, and motion prompts.",
+   "params": [
+    {
+     "name": "aspect_ratio",
+     "type": "enum",
+     "values": [
+      "auto",
+      "21:9",
+      "16:9",
+      "4:3",
+      "1:1",
+      "3:4",
+      "9:16"
+     ],
+     "default": "auto"
+    },
+    {
+     "name": "bitrate_mode",
+     "type": "enum",
+     "values": [
+      "standard",
+      "high"
+     ],
+     "default": "standard"
+    },
+    {
+     "name": "duration",
+     "type": "enum",
+     "values": [
+      "auto",
+      "4",
+      "5",
+      "6",
+      "7",
+      "8",
+      "9",
+      "10",
+      "11",
+      "12",
+      "13",
+      "14",
+      "15"
+     ],
+     "default": "auto"
+    },
+    {
+     "name": "generate_audio",
+     "type": "bool",
+     "default": true
+    },
+    {
+     "name": "resolution",
+     "type": "enum",
+     "values": [
+      "480p",
+      "720p",
+      "1080p",
+      "4k"
+     ],
+     "default": "720p"
+    }
+   ],
+   "needs_input_image": true
+  },
+  {
+   "id": "bytedance/seedance-2.0/reference-to-video",
+   "label": "Seedance 2 Reference to Video",
+   "category": "image-to-video",
+   "output": "video",
+   "description": "ByteDance's most advanced reference-to-video model. Generate video from up to 9 images, 3 videos, and 3 audio clips with native audio and cinematic camera control.",
+   "params": [
+    {
+     "name": "aspect_ratio",
+     "type": "enum",
+     "values": [
+      "auto",
+      "21:9",
+      "16:9",
+      "4:3",
+      "1:1",
+      "3:4",
+      "9:16"
+     ],
+     "default": "auto"
+    },
+    {
+     "name": "bitrate_mode",
+     "type": "enum",
+     "values": [
+      "standard",
+      "high"
+     ],
+     "default": "standard"
+    },
+    {
+     "name": "duration",
+     "type": "enum",
+     "values": [
+      "auto",
+      "4",
+      "5",
+      "6",
+      "7",
+      "8",
+      "9",
+      "10",
+      "11",
+      "12",
+      "13",
+      "14",
+      "15"
+     ],
+     "default": "auto"
+    },
+    {
+     "name": "generate_audio",
+     "type": "bool",
+     "default": true
+    },
+    {
+     "name": "resolution",
+     "type": "enum",
+     "values": [
+      "480p",
+      "720p",
+      "1080p",
+      "4k"
+     ],
+     "default": "720p"
+    }
+   ]
+  },
+  {
+   "id": "fal-ai/kling-video/v2.5-turbo/pro/image-to-video",
+   "label": "Kling Video",
+   "category": "image-to-video",
+   "output": "video",
+   "description": "Kling 2.5 Turbo Pro: Top-tier image-to-video generation with unparalleled motion fluidity, cinematic visuals, and exceptional prompt precision.",
+   "params": [
+    {
+     "name": "cfg_scale",
+     "type": "float",
+     "default": 0.5,
+     "min": 0,
+     "max": 1
+    },
+    {
+     "name": "duration",
+     "type": "enum",
+     "values": [
+      "5",
+      "10"
+     ],
+     "default": "5"
+    },
+    {
+     "name": "negative_prompt",
+     "type": "string",
+     "default": "blur, distort, and low quality"
+    }
+   ],
+   "needs_input_image": true
+  },
+  {
+   "id": "fal-ai/kling-video/v3/standard/image-to-video",
+   "label": "Kling Video v3 Image to Video [Standard]",
+   "category": "image-to-video",
+   "output": "video",
+   "description": "Kling 3.0 Standard: Top-tier image-to-video with cinematic visuals, fluid motion, and native audio generation, with custom element support.",
+   "params": [
+    {
+     "name": "cfg_scale",
+     "type": "float",
+     "default": 0.5,
+     "min": 0,
+     "max": 1
+    },
+    {
+     "name": "duration",
+     "type": "enum",
+     "values": [
+      "3",
+      "4",
+      "5",
+      "6",
+      "7",
+      "8",
+      "9",
+      "10",
+      "11",
+      "12",
+      "13",
+      "14",
+      "15"
+     ],
+     "default": "5"
+    },
+    {
+     "name": "generate_audio",
+     "type": "bool",
+     "default": true
+    },
+    {
+     "name": "negative_prompt",
+     "type": "string",
+     "default": "blur, distort, and low quality"
+    },
+    {
+     "name": "shot_type",
+     "type": "enum",
+     "values": [
+      "customize",
+      "intelligent"
+     ],
+     "default": "customize"
+    }
+   ]
+  },
+  {
+   "id": "fal-ai/kling-video/v2.6/pro/image-to-video",
+   "label": "Kling Video v2.6 Image to Video",
+   "category": "image-to-video",
+   "output": "video",
+   "description": "Kling 2.6 Pro: Top-tier image-to-video with cinematic visuals, fluid motion, and native audio generation.",
+   "params": [
+    {
+     "name": "duration",
+     "type": "enum",
+     "values": [
+      "5",
+      "10"
+     ],
+     "default": "5"
+    },
+    {
+     "name": "generate_audio",
+     "type": "bool",
+     "default": true
+    },
+    {
+     "name": "negative_prompt",
+     "type": "string",
+     "default": "blur, distort, and low quality"
+    }
+   ]
+  },
+  {
+   "id": "bytedance/seedance-2.0/fast/image-to-video",
+   "label": "Seedance 2.0 Fast Image to Video",
+   "category": "image-to-video",
+   "output": "video",
+   "description": "ByteDance's most advanced image-to-video model, fast tier. Lower latency and cost with synchronized audio, start and end frame control, and motion prompts.",
+   "params": [
+    {
+     "name": "aspect_ratio",
+     "type": "enum",
+     "values": [
+      "auto",
+      "21:9",
+      "16:9",
+      "4:3",
+      "1:1",
+      "3:4",
+      "9:16"
+     ],
+     "default": "auto"
+    },
+    {
+     "name": "bitrate_mode",
+     "type": "enum",
+     "values": [
+      "standard",
+      "high"
+     ],
+     "default": "standard"
+    },
+    {
+     "name": "duration",
+     "type": "enum",
+     "values": [
+      "auto",
+      "4",
+      "5",
+      "6",
+      "7",
+      "8",
+      "9",
+      "10",
+      "11",
+      "12",
+      "13",
+      "14",
+      "15"
+     ],
+     "default": "auto"
+    },
+    {
+     "name": "generate_audio",
+     "type": "bool",
+     "default": true
+    },
+    {
+     "name": "resolution",
+     "type": "enum",
+     "values": [
+      "480p",
+      "720p"
+     ],
+     "default": "720p"
+    }
+   ],
+   "needs_input_image": true
+  },
+  {
+   "id": "fal-ai/veo3.1/fast/image-to-video",
+   "label": "Veo 3.1 Fast",
+   "category": "image-to-video",
+   "output": "video",
+   "description": "Generate videos from your image prompts using Veo 3.1 fast.",
+   "params": [
+    {
+     "name": "aspect_ratio",
+     "type": "enum",
+     "values": [
+      "auto",
+      "16:9",
+      "9:16"
+     ],
+     "default": "auto"
+    },
+    {
+     "name": "auto_fix",
+     "type": "bool",
+     "default": false
+    },
+    {
+     "name": "duration",
+     "type": "enum",
+     "values": [
+      "4s",
+      "6s",
+      "8s"
+     ],
+     "default": "8s"
+    },
+    {
+     "name": "generate_audio",
+     "type": "bool",
+     "default": true
+    },
+    {
+     "name": "resolution",
+     "type": "enum",
+     "values": [
+      "720p",
+      "1080p",
+      "4k"
+     ],
+     "default": "720p"
+    },
+    {
+     "name": "safety_tolerance",
+     "type": "enum",
+     "values": [
+      "1",
+      "2",
+      "3",
+      "4",
+      "5",
+      "6"
+     ],
+     "default": "4"
+    }
+   ],
+   "needs_input_image": true
+  },
+  {
+   "id": "xai/grok-imagine-video/image-to-video",
+   "label": "Grok Imagine Video",
+   "category": "image-to-video",
+   "output": "video",
+   "description": "Generate videos from images with audio using xAI's Grok Imagine Video model. ",
+   "params": [
+    {
+     "name": "duration",
+     "type": "int",
+     "default": 6,
+     "min": 1,
+     "max": 15
+    },
+    {
+     "name": "resolution",
+     "type": "enum",
+     "values": [
+      "480p",
+      "720p"
+     ],
+     "default": "720p"
+    }
+   ],
+   "needs_input_image": true
+  },
+  {
+   "id": "bytedance/seedance-2.0/fast/reference-to-video",
+   "label": "Seedance 2.0 Fast Reference to Video",
+   "category": "image-to-video",
+   "output": "video",
+   "description": "ByteDance's most advanced reference-to-video model, fast tier. Lower latency and cost with up to 9 images, 3 videos, and 3 audio clips as inputs.",
+   "params": [
+    {
+     "name": "aspect_ratio",
+     "type": "enum",
+     "values": [
+      "auto",
+      "21:9",
+      "16:9",
+      "4:3",
+      "1:1",
+      "3:4",
+      "9:16"
+     ],
+     "default": "auto"
+    },
+    {
+     "name": "bitrate_mode",
+     "type": "enum",
+     "values": [
+      "standard",
+      "high"
+     ],
+     "default": "standard"
+    },
+    {
+     "name": "duration",
+     "type": "enum",
+     "values": [
+      "auto",
+      "4",
+      "5",
+      "6",
+      "7",
+      "8",
+      "9",
+      "10",
+      "11",
+      "12",
+      "13",
+      "14",
+      "15"
+     ],
+     "default": "auto"
+    },
+    {
+     "name": "generate_audio",
+     "type": "bool",
+     "default": true
+    },
+    {
+     "name": "resolution",
+     "type": "enum",
+     "values": [
+      "480p",
+      "720p"
+     ],
+     "default": "720p"
+    }
+   ]
+  },
+  {
+   "id": "fal-ai/veo3.1/image-to-video",
+   "label": "Veo 3.1",
+   "category": "image-to-video",
+   "output": "video",
+   "description": "Veo 3.1 is the latest state-of-the art video generation model from Google DeepMind",
+   "params": [
+    {
+     "name": "aspect_ratio",
+     "type": "enum",
+     "values": [
+      "auto",
+      "16:9",
+      "9:16"
+     ],
+     "default": "auto"
+    },
+    {
+     "name": "auto_fix",
+     "type": "bool",
+     "default": false
+    },
+    {
+     "name": "duration",
+     "type": "enum",
+     "values": [
+      "4s",
+      "6s",
+      "8s"
+     ],
+     "default": "8s"
+    },
+    {
+     "name": "generate_audio",
+     "type": "bool",
+     "default": true
+    },
+    {
+     "name": "resolution",
+     "type": "enum",
+     "values": [
+      "720p",
+      "1080p",
+      "4k"
+     ],
+     "default": "720p"
+    },
+    {
+     "name": "safety_tolerance",
+     "type": "enum",
+     "values": [
+      "1",
+      "2",
+      "3",
+      "4",
+      "5",
+      "6"
+     ],
+     "default": "4"
+    }
+   ],
+   "needs_input_image": true
+  },
+  {
+   "id": "fal-ai/bytedance/seedance/v1.5/pro/image-to-video",
+   "label": "Bytedance Seedance V1.5 Pro Image To Video",
+   "category": "image-to-video",
+   "output": "video",
+   "description": "Generate videos with audio with Seedance 1.5 (supports start & end frame) ",
+   "params": [
+    {
+     "name": "aspect_ratio",
+     "type": "enum",
+     "values": [
+      "21:9",
+      "16:9",
+      "4:3",
+      "1:1",
+      "3:4",
+      "9:16",
+      "auto"
+     ],
+     "default": "16:9"
+    },
+    {
+     "name": "camera_fixed",
+     "type": "bool",
+     "default": false
+    },
+    {
+     "name": "duration",
+     "type": "enum",
+     "values": [
+      "4",
+      "5",
+      "6",
+      "7",
+      "8",
+      "9",
+      "10",
+      "11",
+      "12"
+     ],
+     "default": "5"
+    },
+    {
+     "name": "enable_safety_checker",
+     "type": "bool",
+     "default": true
+    },
+    {
+     "name": "generate_audio",
+     "type": "bool",
+     "default": true
+    },
+    {
+     "name": "resolution",
+     "type": "enum",
+     "values": [
+      "480p",
+      "720p",
+      "1080p"
+     ],
+     "default": "720p"
+    }
+   ],
+   "needs_input_image": true
+  },
+  {
+   "id": "google/gemini-omni-flash/image-to-video",
+   "label": "Gemini Omni Flash",
+   "category": "image-to-video",
+   "output": "video",
+   "description": "Animates a still image into video with audio. Extends a single frame into coherent motion, grounded in Gemini's physical understanding of how scenes and subjects behave.",
+   "params": [
+    {
+     "name": "aspect_ratio",
+     "type": "enum",
+     "values": [
+      "16:9",
+      "9:16"
+     ],
+     "default": "16:9"
+    },
+    {
+     "name": "duration",
+     "type": "int",
+     "default": 8,
+     "min": 3,
+     "max": 10
+    }
+   ],
+   "needs_input_image": true
+  },
+  {
+   "id": "fal-ai/topaz/upscale/video",
+   "label": "Topaz Video Upscale",
+   "category": "video-to-video",
+   "output": "video",
+   "description": "Professional-grade video upscaling using Topaz technology. Enhance your videos with high-quality upscaling.",
+   "params": [
+    {
+     "name": "H264_output",
+     "type": "bool",
+     "default": false
+    },
+    {
+     "name": "model",
+     "type": "enum",
+     "values": [
+      "Proteus",
+      "Artemis HQ",
+      "Artemis MQ",
+      "Artemis LQ",
+      "Nyx",
+      "Nyx Fast",
+      "Nyx XL",
+      "Nyx HF",
+      "Gaia HQ",
+      "Gaia CG",
+      "Gaia 2",
+      "Starlight Precise 1",
+      "Starlight Precise 2",
+      "Starlight Precise 2.5",
+      "Starlight HQ",
+      "Starlight Mini",
+      "Starlight Sharp",
+      "Starlight Fast 1",
+      "Starlight Fast 2"
+     ],
+     "default": "Proteus"
+    },
+    {
+     "name": "upscale_factor",
+     "type": "float",
+     "default": 2,
+     "min": 1,
+     "max": 4
+    }
+   ],
+   "needs_input_video": true
+  },
+  {
+   "id": "google/gemini-omni-flash/edit",
+   "label": "Gemini Omni Flash",
+   "category": "video-to-video",
+   "output": "video",
+   "description": "Edits generated video across multiple conversational turns while preserving scene coherence. Applies iterative changes through natural-language instructions without regenerating th",
+   "params": [],
+   "needs_input_video": true
+  },
+  {
+   "id": "fal-ai/kling-video/v2.6/standard/motion-control",
+   "label": "Kling Video v2.6 Motion Control [Standard]",
+   "category": "video-to-video",
+   "output": "video",
+   "description": "Transfer movements from a reference video to any character image. Cost-effective mode for motion transfer, perfect for portraits and simple animations.",
+   "params": [
+    {
+     "name": "keep_original_sound",
+     "type": "bool",
+     "default": true
+    },
+    {
+     "name": "character_orientation",
+     "type": "enum",
+     "values": [
+      "image",
+      "video"
+     ]
+    }
+   ],
+   "needs_input_image": true,
+   "needs_input_video": true
+  },
+  {
+   "id": "fal-ai/kling-video/o3/pro/video-to-video/edit",
+   "label": "Kling O3 Edit Video [Pro]",
+   "category": "video-to-video",
+   "output": "video",
+   "description": "Edit videos using Kling O3 from Kling Team!",
+   "params": [
+    {
+     "name": "keep_audio",
+     "type": "bool",
+     "default": true
+    },
+    {
+     "name": "shot_type",
+     "type": "string",
+     "default": "customize"
+    }
+   ],
+   "needs_input_video": true
+  },
+  {
+   "id": "fal-ai/kling-video/v3/pro/motion-control",
+   "label": "Kling Video",
+   "category": "video-to-video",
+   "output": "video",
+   "description": "Transfer movements from a reference video to any character image. Cost-effective mode for motion transfer, perfect for portraits and simple animations.",
+   "params": [
+    {
+     "name": "keep_original_sound",
+     "type": "bool",
+     "default": true
+    },
+    {
+     "name": "character_orientation",
+     "type": "enum",
+     "values": [
+      "image",
+      "video"
+     ]
+    }
+   ],
+   "needs_input_image": true,
+   "needs_input_video": true
+  },
+  {
+   "id": "fal-ai/ffmpeg-api/merge-videos",
+   "label": "Ffmpeg Api",
+   "category": "video-to-video",
+   "output": "video",
+   "description": "Use ffmpeg capabilities to merge 2 or more videos.",
+   "params": []
+  },
+  {
+   "id": "fal-ai/sync-lipsync/v3",
+   "label": "sync-3 Lipsync",
+   "category": "video-to-video",
+   "output": "video",
+   "description": "sync-3 most powerful lipsync model yet, featuring native visual intelligence for professional-quality video.",
+   "params": [
+    {
+     "name": "sync_mode",
+     "type": "enum",
+     "values": [
+      "cut_off",
+      "loop",
+      "bounce",
+      "silence",
+      "remap"
+     ],
+     "default": "cut_off"
+    }
+   ],
+   "needs_input_video": true,
+   "needs_input_audio": true
+  },
+  {
+   "id": "fal-ai/sync-lipsync/v2",
+   "label": "Sync Lipsync 2.0",
+   "category": "video-to-video",
+   "output": "video",
+   "description": "Generate realistic lipsync animations from audio using advanced algorithms for high-quality synchronization with Sync Lipsync 2.0 model",
+   "params": [
+    {
+     "name": "model",
+     "type": "enum",
+     "values": [
+      "lipsync-2",
+      "lipsync-2-pro"
+     ],
+     "default": "lipsync-2"
+    },
+    {
+     "name": "sync_mode",
+     "type": "enum",
+     "values": [
+      "cut_off",
+      "loop",
+      "bounce",
+      "silence",
+      "remap"
+     ],
+     "default": "cut_off"
+    }
+   ],
+   "needs_input_video": true,
+   "needs_input_audio": true
+  },
+  {
+   "id": "fal-ai/ffmpeg-api/compose",
+   "label": "FFmpeg API Compose",
+   "category": "video-to-video",
+   "output": "video",
+   "description": "Compose videos from multiple media sources using FFmpeg API.",
+   "params": []
+  },
+  {
+   "id": "fal-ai/kling-video/v3/standard/motion-control",
+   "label": "Kling Video",
+   "category": "video-to-video",
+   "output": "video",
+   "description": "Transfer movements from a reference video to any character image. Cost-effective mode for motion transfer, perfect for portraits and simple animations.",
+   "params": [
+    {
+     "name": "keep_original_sound",
+     "type": "bool",
+     "default": true
+    },
+    {
+     "name": "character_orientation",
+     "type": "enum",
+     "values": [
+      "image",
+      "video"
+     ]
+    }
+   ],
+   "needs_input_image": true,
+   "needs_input_video": true
+  },
+  {
+   "id": "fal-ai/kling-video/v2.6/pro/motion-control",
+   "label": "Kling Video v2.6 Motion Control [Pro]",
+   "category": "video-to-video",
+   "output": "video",
+   "description": "Transfer movements from a reference video to any character image. Pro mode delivers higher quality output, ideal for complex dance moves and gestures.",
+   "params": [
+    {
+     "name": "keep_original_sound",
+     "type": "bool",
+     "default": true
+    },
+    {
+     "name": "character_orientation",
+     "type": "enum",
+     "values": [
+      "image",
+      "video"
+     ]
+    }
+   ],
+   "needs_input_image": true,
+   "needs_input_video": true
+  },
+  {
+   "id": "fal-ai/latentsync",
+   "label": "LatentSync",
+   "category": "video-to-video",
+   "output": "video",
+   "description": "LatentSync is a video-to-video model that generates lip sync animations from audio using advanced algorithms for high-quality synchronization.",
+   "params": [
+    {
+     "name": "guidance_scale",
+     "type": "float",
+     "default": 1,
+     "min": 1,
+     "max": 2
+    }
+   ],
+   "needs_input_audio": true,
+   "needs_input_video": true
+  },
+  {
+   "id": "fal-ai/ffmpeg-api/merge-audio-video",
+   "label": "Ffmpeg Api Merge Audio-Video",
+   "category": "video-to-video",
+   "output": "video",
+   "description": "Merge videos with standalone audio files or audio from video files.",
+   "params": [
+    {
+     "name": "start_offset",
+     "type": "float",
+     "default": 0,
+     "min": 0
+    }
+   ],
+   "needs_input_audio": true,
+   "needs_input_video": true
+  },
+  {
+   "id": "fal-ai/elevenlabs/dubbing",
+   "label": "ElevenLabs Dubbing",
+   "category": "audio-to-video",
+   "output": "video",
+   "description": "Generate dubbed videos or audios using ElevenLabs Dubbing feature!",
+   "params": [
+    {
+     "name": "highest_resolution",
+     "type": "bool",
+     "default": true
+    },
+    {
+     "name": "target_lang",
+     "type": "string"
+    }
+   ],
+   "needs_input_video": true,
+   "needs_input_audio": true
+  },
+  {
+   "id": "fal-ai/ltx-2.3/audio-to-video",
+   "label": "LTX 2.3 Video Pro",
+   "category": "audio-to-video",
+   "output": "video",
+   "description": "LTX-2.3 is a high-quality, fast AI video model available in Pro and Fast variants for text-to-video, image-to-video, and audio-to-video.",
+   "params": [
+    {
+     "name": "aspect_ratio",
+     "type": "enum",
+     "values": [
+      "auto",
+      "16:9",
+      "9:16"
+     ],
+     "default": "auto"
+    }
+   ],
+   "needs_input_audio": true,
+   "needs_input_image": true
+  },
+  {
+   "id": "fal-ai/ltx-2.3-quality/audio-to-video",
+   "label": "Ltx 2.3 Quality",
+   "category": "audio-to-video",
+   "output": "video",
+   "description": "Generate high-quality video with audio from audio, text and images using LTX-2",
+   "params": [
+    {
+     "name": "enable_prompt_expansion",
+     "type": "bool",
+     "default": true
+    },
+    {
+     "name": "enable_safety_checker",
+     "type": "bool",
+     "default": true
+    },
+    {
+     "name": "frames_per_second",
+     "type": "float",
+     "default": 24,
+     "min": 1,
+     "max": 60
+    },
+    {
+     "name": "generate_audio",
+     "type": "bool",
+     "default": true
+    },
+    {
+     "name": "guidance_scale",
+     "type": "float",
+     "default": 1,
+     "min": 1,
+     "max": 20
+    },
+    {
+     "name": "image_strength",
+     "type": "float",
+     "default": 0.7,
+     "min": 0,
+     "max": 1
+    },
+    {
+     "name": "match_audio_length",
+     "type": "bool",
+     "default": true
+    },
+    {
+     "name": "negative_prompt",
+     "type": "string",
+     "default": "color distortion, overexposure, static, blurry details, subtitles, style, artwork, painting, frame, still, dim overall tone, worst quality, low quality, JPEG compression artifacts, ugly, mutilated, extra fingers, poorly drawn hands, poorly drawn face, deformed, disfigured, malformed limbs, fused fingers, motionless frame, cluttered background, three legs, crowded background, walking backwards"
+    }
+   ],
+   "needs_input_audio": true,
+   "needs_input_image": true
+  },
+  {
+   "id": "fal-ai/ltx-2-19b/audio-to-video",
+   "label": "LTX-2 19B",
+   "category": "audio-to-video",
+   "output": "video",
+   "description": "Generate video with audio from audio, text and images using LTX-2",
+   "params": [
+    {
+     "name": "acceleration",
+     "type": "enum",
+     "values": [
+      "none",
+      "regular",
+      "high",
+      "full"
+     ],
+     "default": "regular"
+    },
+    {
+     "name": "audio_strength",
+     "type": "float",
+     "default": 1,
+     "min": 0,
+     "max": 1
+    },
+    {
+     "name": "camera_lora",
+     "type": "enum",
+     "values": [
+      "dolly_in",
+      "dolly_out",
+      "dolly_left",
+      "dolly_right",
+      "jib_up",
+      "jib_down",
+      "static",
+      "none"
+     ],
+     "default": "none"
+    },
+    {
+     "name": "camera_lora_scale",
+     "type": "float",
+     "default": 1,
+     "min": 0,
+     "max": 1
+    },
+    {
+     "name": "enable_prompt_expansion",
+     "type": "bool",
+     "default": true
+    },
+    {
+     "name": "enable_safety_checker",
+     "type": "bool",
+     "default": true
+    },
+    {
+     "name": "end_image_strength",
+     "type": "float",
+     "default": 1,
+     "min": 0,
+     "max": 1
+    },
+    {
+     "name": "fps",
+     "type": "float",
+     "default": 25,
+     "min": 1,
+     "max": 60
+    }
+   ],
+   "needs_input_audio": true,
+   "needs_input_image": true
+  },
+  {
+   "id": "fal-ai/ltx-2.3-22b/audio-to-video",
+   "label": "LTX-2.3 22B",
+   "category": "audio-to-video",
+   "output": "video",
+   "description": "Generate video with audio from audio, text and images using LTX-2",
+   "params": [
+    {
+     "name": "acceleration",
+     "type": "enum",
+     "values": [
+      "none",
+      "regular",
+      "high",
+      "full"
+     ],
+     "default": "regular"
+    },
+    {
+     "name": "audio_cfg_scale",
+     "type": "float",
+     "default": 7,
+     "min": 1,
+     "max": 20
+    },
+    {
+     "name": "audio_modality_scale",
+     "type": "float",
+     "default": 3,
+     "min": 0,
+     "max": 10
+    },
+    {
+     "name": "audio_rescaling_scale",
+     "type": "float",
+     "default": 0.7,
+     "min": 0,
+     "max": 1
+    },
+    {
+     "name": "audio_stg_scale",
+     "type": "float",
+     "default": 0,
+     "min": 0,
+     "max": 20
+    },
+    {
+     "name": "audio_strength",
+     "type": "float",
+     "default": 1,
+     "min": 0,
+     "max": 1
+    },
+    {
+     "name": "camera_lora",
+     "type": "enum",
+     "values": [
+      "dolly_in",
+      "dolly_out",
+      "dolly_left",
+      "dolly_right",
+      "jib_up",
+      "jib_down",
+      "static",
+      "none"
+     ],
+     "default": "none"
+    },
+    {
+     "name": "camera_lora_scale",
+     "type": "float",
+     "default": 1,
+     "min": 0,
+     "max": 1
+    }
+   ],
+   "needs_input_image": true,
+   "needs_input_audio": true
+  },
+  {
+   "id": "fal-ai/longcat-single-avatar/image-audio-to-video",
+   "label": "Longcat Single Avatar",
+   "category": "audio-to-video",
+   "output": "video",
+   "description": "LongCat-Video-Avatar is an audio-driven video generation model that can generates super-realistic, lip-synchronized long video generation with natural dynamics and consistent ident",
+   "params": [
+    {
+     "name": "audio_guidance_scale",
+     "type": "float",
+     "default": 4,
+     "min": 1,
+     "max": 10
+    },
+    {
+     "name": "enable_prompt_expansion",
+     "type": "bool",
+     "default": false
+    },
+    {
+     "name": "enable_safety_checker",
+     "type": "bool",
+     "default": true
+    },
+    {
+     "name": "negative_prompt",
+     "type": "string",
+     "default": "Close-up, Bright tones, overexposed, static, blurred details, subtitles, style, works, paintings, images, static, overall gray, worst quality, low quality, JPEG compression residue, ugly, incomplete, extra fingers, poorly drawn hands, poorly drawn faces, deformed, disfigured, misshapen limbs, fused fingers, still picture, messy background, three legs, many people in the background, walking backwards"
+    },
+    {
+     "name": "num_inference_steps",
+     "type": "int",
+     "default": 50,
+     "min": 10,
+     "max": 100
+    },
+    {
+     "name": "num_segments",
+     "type": "int",
+     "default": 1,
+     "min": 1,
+     "max": 10
+    },
+    {
+     "name": "resolution",
+     "type": "enum",
+     "values": [
+      "480p",
+      "720p"
+     ],
+     "default": "480p"
+    },
+    {
+     "name": "text_guidance_scale",
+     "type": "float",
+     "default": 4,
+     "min": 1,
+     "max": 10
+    }
+   ],
+   "needs_input_audio": true,
+   "needs_input_image": true
+  },
+  {
+   "id": "fal-ai/wan/v2.2-14b/speech-to-video",
+   "label": "Wan-2.2 Speech-to-Video 14B",
+   "category": "audio-to-video",
+   "output": "video",
+   "description": "Wan-S2V is a video model that generates high-quality videos from static images and audio, with realistic facial expressions, body movements, and professional camera work for film a",
+   "params": [
+    {
+     "name": "enable_output_safety_checker",
+     "type": "bool",
+     "default": false
+    },
+    {
+     "name": "enable_safety_checker",
+     "type": "bool",
+     "default": false
+    },
+    {
+     "name": "guidance_scale",
+     "type": "float",
+     "default": 3.5,
+     "min": 1,
+     "max": 10
+    },
+    {
+     "name": "negative_prompt",
+     "type": "string",
+     "default": ""
+    },
+    {
+     "name": "num_frames",
+     "type": "int",
+     "default": 80,
+     "min": 40,
+     "max": 120
+    },
+    {
+     "name": "num_inference_steps",
+     "type": "int",
+     "default": 27,
+     "min": 2,
+     "max": 40
+    },
+    {
+     "name": "resolution",
+     "type": "enum",
+     "values": [
+      "480p",
+      "580p",
+      "720p"
+     ],
+     "default": "480p"
+    },
+    {
+     "name": "shift",
+     "type": "float",
+     "default": 5,
+     "min": 1,
+     "max": 10
+    }
+   ],
+   "needs_input_audio": true,
+   "needs_input_image": true
+  },
+  {
+   "id": "fal-ai/ltx-2-19b/distilled/audio-to-video",
+   "label": "LTX-2 19B Distilled",
+   "category": "audio-to-video",
+   "output": "video",
+   "description": "Generate video with audio from audio, text and images using LTX-2 Distilled",
+   "params": [
+    {
+     "name": "acceleration",
+     "type": "enum",
+     "values": [
+      "none",
+      "regular",
+      "high",
+      "full"
+     ],
+     "default": "none"
+    },
+    {
+     "name": "audio_strength",
+     "type": "float",
+     "default": 1,
+     "min": 0,
+     "max": 1
+    },
+    {
+     "name": "camera_lora",
+     "type": "enum",
+     "values": [
+      "dolly_in",
+      "dolly_out",
+      "dolly_left",
+      "dolly_right",
+      "jib_up",
+      "jib_down",
+      "static",
+      "none"
+     ],
+     "default": "none"
+    },
+    {
+     "name": "camera_lora_scale",
+     "type": "float",
+     "default": 1,
+     "min": 0,
+     "max": 1
+    },
+    {
+     "name": "enable_prompt_expansion",
+     "type": "bool",
+     "default": true
+    },
+    {
+     "name": "enable_safety_checker",
+     "type": "bool",
+     "default": true
+    },
+    {
+     "name": "end_image_strength",
+     "type": "float",
+     "default": 1,
+     "min": 0,
+     "max": 1
+    },
+    {
+     "name": "fps",
+     "type": "float",
+     "default": 25,
+     "min": 1,
+     "max": 60
+    }
+   ],
+   "needs_input_audio": true,
+   "needs_input_image": true
+  },
+  {
+   "id": "veed/avatars/audio-to-video",
+   "label": "Avatars",
+   "category": "audio-to-video",
+   "output": "video",
+   "description": "Generate high-quality videos with UGC-like avatars from audio",
+   "params": [
+    {
+     "name": "avatar_id",
+     "type": "enum",
+     "values": [
+      "emily_vertical_primary",
+      "emily_vertical_secondary",
+      "marcus_vertical_primary",
+      "marcus_vertical_secondary",
+      "mira_vertical_primary",
+      "mira_vertical_secondary",
+      "jasmine_vertical_primary",
+      "jasmine_vertical_secondary",
+      "jasmine_vertical_walking",
+      "aisha_vertical_walking",
+      "elena_vertical_primary",
+      "elena_vertical_secondary",
+      "any_male_vertical_primary",
+      "any_female_vertical_primary",
+      "any_male_vertical_secondary",
+      "any_female_vertical_secondary",
+      "any_female_vertical_walking",
+      "emily_primary",
+      "emily_side",
+      "marcus_primary",
+      "marcus_side",
+      "aisha_walking",
+      "elena_primary",
+      "elena_side",
+      "any_male_primary",
+      "any_female_primary",
+      "any_male_side",
+      "any_female_side"
+     ]
+    }
+   ],
+   "needs_input_audio": true
+  },
+  {
+   "id": "fal-ai/ltx-2.3-quality/audio-to-video/lora",
+   "label": "Ltx 2.3 Quality",
+   "category": "audio-to-video",
+   "output": "video",
+   "description": "Generate high-quality video with audio from audio, text and images using LTX-2.3 and custom LoRA",
+   "params": [
+    {
+     "name": "enable_prompt_expansion",
+     "type": "bool",
+     "default": true
+    },
+    {
+     "name": "enable_safety_checker",
+     "type": "bool",
+     "default": true
+    },
+    {
+     "name": "frames_per_second",
+     "type": "float",
+     "default": 24,
+     "min": 1,
+     "max": 60
+    },
+    {
+     "name": "generate_audio",
+     "type": "bool",
+     "default": true
+    },
+    {
+     "name": "guidance_scale",
+     "type": "float",
+     "default": 1,
+     "min": 1,
+     "max": 20
+    },
+    {
+     "name": "image_strength",
+     "type": "float",
+     "default": 0.7,
+     "min": 0,
+     "max": 1
+    },
+    {
+     "name": "match_audio_length",
+     "type": "bool",
+     "default": true
+    },
+    {
+     "name": "negative_prompt",
+     "type": "string",
+     "default": "color distortion, overexposure, static, blurry details, subtitles, style, artwork, painting, frame, still, dim overall tone, worst quality, low quality, JPEG compression artifacts, ugly, mutilated, extra fingers, poorly drawn hands, poorly drawn face, deformed, disfigured, malformed limbs, fused fingers, motionless frame, cluttered background, three legs, crowded background, walking backwards"
+    }
+   ],
+   "needs_input_audio": true,
+   "needs_input_image": true
+  },
+  {
+   "id": "fal-ai/echomimic-v3",
+   "label": "EchoMimic V3",
+   "category": "audio-to-video",
+   "output": "video",
+   "description": "EchoMimic V3 generates a talking avatar model from a picture, audio and text prompt.",
+   "params": [
+    {
+     "name": "audio_guidance_scale",
+     "type": "float",
+     "default": 2.5,
+     "min": 0,
+     "max": 10
+    },
+    {
+     "name": "guidance_scale",
+     "type": "float",
+     "default": 4.5,
+     "min": 1,
+     "max": 10
+    },
+    {
+     "name": "negative_prompt",
+     "type": "string",
+     "default": ""
+    },
+    {
+     "name": "num_frames_per_generation",
+     "type": "int",
+     "default": 121,
+     "min": 49,
+     "max": 161
+    }
+   ],
+   "needs_input_image": true,
+   "needs_input_audio": true
+  },
+  {
+   "id": "fal-ai/ltx-2.3-22b/distilled/audio-to-video",
+   "label": "LTX-2.3 22B Distilled",
+   "category": "audio-to-video",
+   "output": "video",
+   "description": "Generate video with audio from audio, text and images using LTX-2 Distilled",
+   "params": [
+    {
+     "name": "acceleration",
+     "type": "enum",
+     "values": [
+      "none",
+      "regular",
+      "high",
+      "full"
+     ],
+     "default": "none"
+    },
+    {
+     "name": "audio_strength",
+     "type": "float",
+     "default": 1,
+     "min": 0,
+     "max": 1
+    },
+    {
+     "name": "camera_lora",
+     "type": "enum",
+     "values": [
+      "dolly_in",
+      "dolly_out",
+      "dolly_left",
+      "dolly_right",
+      "jib_up",
+      "jib_down",
+      "static",
+      "none"
+     ],
+     "default": "none"
+    },
+    {
+     "name": "camera_lora_scale",
+     "type": "float",
+     "default": 1,
+     "min": 0,
+     "max": 1
+    },
+    {
+     "name": "distill_lora_second_pass_scale",
+     "type": "float",
+     "default": 0.5,
+     "min": 0,
+     "max": 1
+    },
+    {
+     "name": "enable_prompt_expansion",
+     "type": "bool",
+     "default": true
+    },
+    {
+     "name": "enable_safety_checker",
+     "type": "bool",
+     "default": true
+    },
+    {
+     "name": "end_image_strength",
+     "type": "float",
+     "default": 1,
+     "min": 0,
+     "max": 1
+    }
+   ],
+   "needs_input_image": true,
+   "needs_input_audio": true
+  },
+  {
+   "id": "fal-ai/ltx-2-19b/audio-to-video/lora",
+   "label": "LTX-2 19B",
+   "category": "audio-to-video",
+   "output": "video",
+   "description": "Generate video with audio from audio, text and images using LTX-2 and custom LoRA",
+   "params": [
+    {
+     "name": "acceleration",
+     "type": "enum",
+     "values": [
+      "none",
+      "regular",
+      "high",
+      "full"
+     ],
+     "default": "regular"
+    },
+    {
+     "name": "audio_strength",
+     "type": "float",
+     "default": 1,
+     "min": 0,
+     "max": 1
+    },
+    {
+     "name": "camera_lora",
+     "type": "enum",
+     "values": [
+      "dolly_in",
+      "dolly_out",
+      "dolly_left",
+      "dolly_right",
+      "jib_up",
+      "jib_down",
+      "static",
+      "none"
+     ],
+     "default": "none"
+    },
+    {
+     "name": "camera_lora_scale",
+     "type": "float",
+     "default": 1,
+     "min": 0,
+     "max": 1
+    },
+    {
+     "name": "enable_prompt_expansion",
+     "type": "bool",
+     "default": true
+    },
+    {
+     "name": "enable_safety_checker",
+     "type": "bool",
+     "default": true
+    },
+    {
+     "name": "end_image_strength",
+     "type": "float",
+     "default": 1,
+     "min": 0,
+     "max": 1
+    },
+    {
+     "name": "fps",
+     "type": "float",
+     "default": 25,
+     "min": 1,
+     "max": 60
+    }
+   ],
+   "needs_input_audio": true,
+   "needs_input_image": true
+  },
+  {
+   "id": "fal-ai/elevenlabs/tts/eleven-v3",
+   "label": "Elevenlabs Tts Eleven V3",
+   "category": "text-to-audio",
+   "output": "audio",
+   "description": "Generate text-to-speech audio using Eleven-v3 from ElevenLabs.",
+   "params": [
+    {
+     "name": "apply_text_normalization",
+     "type": "enum",
+     "values": [
+      "auto",
+      "on",
+      "off"
+     ],
+     "default": "auto"
+    },
+    {
+     "name": "stability",
+     "type": "float",
+     "default": 0.5,
+     "min": 0,
+     "max": 1
+    },
+    {
+     "name": "timestamps",
+     "type": "bool",
+     "default": false
+    },
+    {
+     "name": "voice",
+     "type": "string",
+     "default": "Rachel"
+    },
+    {
+     "name": "text",
+     "type": "string"
+    }
+   ]
+  },
+  {
+   "id": "bytedance/seed-audio-1.0",
+   "label": "Seed Audio 1.0",
+   "category": "text-to-audio",
+   "output": "audio",
+   "description": "Seed Audio 1.0 is a new audio model from Bytedance that can generate high-quality, natural sounding audio using text, reference audios or an image.",
+   "params": [
+    {
+     "name": "output_format",
+     "type": "enum",
+     "values": [
+      "wav",
+      "mp3",
+      "pcm",
+      "ogg_opus"
+     ],
+     "default": "mp3"
+    },
+    {
+     "name": "pitch",
+     "type": "int",
+     "default": 0,
+     "min": -12,
+     "max": 12
+    },
+    {
+     "name": "sample_rate",
+     "type": "enum",
+     "values": [
+      8000,
+      16000,
+      24000,
+      32000,
+      44100,
+      48000
+     ],
+     "default": 24000
+    },
+    {
+     "name": "speed",
+     "type": "float",
+     "default": 1,
+     "min": 0.5,
+     "max": 2
+    },
+    {
+     "name": "volume",
+     "type": "float",
+     "default": 1,
+     "min": 0.5,
+     "max": 2
+    }
+   ],
+   "needs_input_image": true
+  },
+  {
+   "id": "fal-ai/elevenlabs/tts/multilingual-v2",
+   "label": "ElevenLabs TTS Multilingual v2",
+   "category": "text-to-audio",
+   "output": "audio",
+   "description": "Generate multilingual text-to-speech audio using ElevenLabs TTS Multilingual v2.",
+   "params": [
+    {
+     "name": "apply_text_normalization",
+     "type": "enum",
+     "values": [
+      "auto",
+      "on",
+      "off"
+     ],
+     "default": "auto"
+    },
+    {
+     "name": "similarity_boost",
+     "type": "float",
+     "default": 0.75,
+     "min": 0,
+     "max": 1
+    },
+    {
+     "name": "speed",
+     "type": "float",
+     "default": 1,
+     "min": 0.7,
+     "max": 1.2
+    },
+    {
+     "name": "stability",
+     "type": "float",
+     "default": 0.5,
+     "min": 0,
+     "max": 1
+    },
+    {
+     "name": "style",
+     "type": "float",
+     "default": 0,
+     "min": 0,
+     "max": 1
+    },
+    {
+     "name": "timestamps",
+     "type": "bool",
+     "default": false
+    },
+    {
+     "name": "voice",
+     "type": "string",
+     "default": "Rachel"
+    },
+    {
+     "name": "text",
+     "type": "string"
+    }
+   ]
+  },
+  {
+   "id": "fal-ai/stable-audio",
+   "label": "Stable Audio Open",
+   "category": "text-to-audio",
+   "output": "audio",
+   "description": "Open source text-to-audio model.",
+   "params": [
+    {
+     "name": "seconds_start",
+     "type": "int",
+     "default": 0,
+     "min": 0,
+     "max": 47
+    },
+    {
+     "name": "seconds_total",
+     "type": "int",
+     "default": 30,
+     "min": 0,
+     "max": 47
+    },
+    {
+     "name": "steps",
+     "type": "int",
+     "default": 100,
+     "min": 2,
+     "max": 1000
+    }
+   ]
+  },
+  {
+   "id": "fal-ai/elevenlabs/sound-effects/v2",
+   "label": "Elevenlabs Sound Effects V2",
+   "category": "text-to-audio",
+   "output": "audio",
+   "description": "Generate sound effects using ElevenLabs advanced sound effects model.",
+   "params": [
+    {
+     "name": "loop",
+     "type": "bool",
+     "default": false
+    },
+    {
+     "name": "output_format",
+     "type": "enum",
+     "values": [
+      "mp3_22050_32",
+      "mp3_44100_32",
+      "mp3_44100_64",
+      "mp3_44100_96",
+      "mp3_44100_128",
+      "mp3_44100_192",
+      "pcm_8000",
+      "pcm_16000",
+      "pcm_22050",
+      "pcm_24000",
+      "pcm_44100",
+      "pcm_48000",
+      "ulaw_8000",
+      "alaw_8000",
+      "opus_48000_32",
+      "opus_48000_64",
+      "opus_48000_96",
+      "opus_48000_128",
+      "opus_48000_192"
+     ],
+     "default": "mp3_44100_128"
+    },
+    {
+     "name": "prompt_influence",
+     "type": "float",
+     "default": 0.3,
+     "min": 0,
+     "max": 1
+    },
+    {
+     "name": "text",
+     "type": "string"
+    }
+   ]
+  },
+  {
+   "id": "fal-ai/elevenlabs/music",
+   "label": "Elevenlabs Music",
+   "category": "text-to-audio",
+   "output": "audio",
+   "description": "Generate high quality, realistic music with fine controls using Elevenlabs Music!",
+   "params": [
+    {
+     "name": "force_instrumental",
+     "type": "bool",
+     "default": false
+    },
+    {
+     "name": "output_format",
+     "type": "enum",
+     "values": [
+      "mp3_22050_32",
+      "mp3_44100_32",
+      "mp3_44100_64",
+      "mp3_44100_96",
+      "mp3_44100_128",
+      "mp3_44100_192",
+      "pcm_8000",
+      "pcm_16000",
+      "pcm_22050",
+      "pcm_24000",
+      "pcm_44100",
+      "pcm_48000",
+      "ulaw_8000",
+      "alaw_8000",
+      "opus_48000_32",
+      "opus_48000_64",
+      "opus_48000_96",
+      "opus_48000_128",
+      "opus_48000_192"
+     ],
+     "default": "mp3_44100_128"
+    },
+    {
+     "name": "respect_sections_durations",
+     "type": "bool",
+     "default": true
+    }
+   ]
+  },
+  {
+   "id": "cassetteai/music-generator",
+   "label": "music generator",
+   "category": "text-to-audio",
+   "output": "audio",
+   "description": "CassetteAI\u2019s model generates a 30-second sample in under 2 seconds and a full 3-minute track in under 10 seconds. At 44.1 kHz stereo audio, expect a level of professional consisten",
+   "params": [
+    {
+     "name": "duration",
+     "type": "int",
+     "min": 10,
+     "max": 180
+    }
+   ]
+  },
+  {
+   "id": "fal-ai/minimax-music/v2",
+   "label": "Minimax Music",
+   "category": "text-to-audio",
+   "output": "audio",
+   "description": "Generate music from text prompts using the MiniMax Music 2.0 model, which leverages advanced AI techniques to create high-quality, diverse musical compositions.",
+   "params": [
+    {
+     "name": "lyrics_prompt",
+     "type": "string"
+    }
+   ]
+  },
+  {
+   "id": "fal-ai/stable-audio-25/text-to-audio",
+   "label": "Stable Audio 2.5",
+   "category": "text-to-audio",
+   "output": "audio",
+   "description": "Generate high quality music and sound effects using Stable Audio 2.5 from StabilityAI",
+   "params": [
+    {
+     "name": "guidance_scale",
+     "type": "float",
+     "default": 1,
+     "min": 1,
+     "max": 25
+    },
+    {
+     "name": "num_inference_steps",
+     "type": "int",
+     "default": 8,
+     "min": 4,
+     "max": 8
+    },
+    {
+     "name": "seconds_total",
+     "type": "int",
+     "default": 190,
+     "min": 1,
+     "max": 190
+    },
+    {
+     "name": "sync_mode",
+     "type": "bool",
+     "default": false
+    }
+   ]
+  },
+  {
+   "id": "fal-ai/minimax-music/v2.6",
+   "label": "Minimax Music 2.6",
+   "category": "text-to-audio",
+   "output": "audio",
+   "description": "MiniMax Music 2.6 creates complete tracks with singing, backing music, and detailed arrangements from lyrics and a style description.",
+   "params": [
+    {
+     "name": "is_instrumental",
+     "type": "bool",
+     "default": false
+    },
+    {
+     "name": "lyrics",
+     "type": "string",
+     "default": ""
+    },
+    {
+     "name": "lyrics_optimizer",
+     "type": "bool",
+     "default": false
+    }
+   ]
+  },
+  {
+   "id": "fal-ai/lyria2",
+   "label": "Lyria2",
+   "category": "text-to-audio",
+   "output": "audio",
+   "description": "Lyria 2 is Google's latest music generation model, you can generate any type of music with this model.",
+   "params": [
+    {
+     "name": "negative_prompt",
+     "type": "string",
+     "default": "low quality"
+    }
+   ]
+  },
+  {
+   "id": "fal-ai/ace-step",
+   "label": "ACE Step",
+   "category": "text-to-audio",
+   "output": "audio",
+   "description": "Generate music with lyrics from text using ACE-Step",
+   "params": [
+    {
+     "name": "duration",
+     "type": "float",
+     "default": 60,
+     "min": 5,
+     "max": 240
+    },
+    {
+     "name": "granularity_scale",
+     "type": "int",
+     "default": 10,
+     "min": -100,
+     "max": 100
+    },
+    {
+     "name": "guidance_interval",
+     "type": "float",
+     "default": 0.5,
+     "min": 0,
+     "max": 1
+    },
+    {
+     "name": "guidance_interval_decay",
+     "type": "float",
+     "default": 0,
+     "min": 0,
+     "max": 1
+    },
+    {
+     "name": "guidance_scale",
+     "type": "float",
+     "default": 15,
+     "min": 0,
+     "max": 200
+    },
+    {
+     "name": "guidance_type",
+     "type": "enum",
+     "values": [
+      "cfg",
+      "apg",
+      "cfg_star"
+     ],
+     "default": "apg"
+    },
+    {
+     "name": "lyric_guidance_scale",
+     "type": "float",
+     "default": 1.5,
+     "min": 0,
+     "max": 10
+    },
+    {
+     "name": "lyrics",
+     "type": "string",
+     "default": ""
+    }
+   ]
+  },
+  {
+   "id": "fal-ai/demucs",
+   "label": "Demucs",
+   "category": "audio-to-audio",
+   "output": "audio",
+   "description": "SOTA stemming model for voice, drums, bass, guitar and more.",
+   "params": [
+    {
+     "name": "model",
+     "type": "enum",
+     "values": [
+      "htdemucs",
+      "htdemucs_ft",
+      "htdemucs_6s",
+      "hdemucs_mmi",
+      "mdx",
+      "mdx_extra",
+      "mdx_q",
+      "mdx_extra_q"
+     ],
+     "default": "htdemucs_6s"
+    },
+    {
+     "name": "output_format",
+     "type": "enum",
+     "values": [
+      "wav",
+      "mp3"
+     ],
+     "default": "mp3"
+    },
+    {
+     "name": "overlap",
+     "type": "float",
+     "default": 0.25,
+     "min": 0,
+     "max": 1
+    },
+    {
+     "name": "shifts",
+     "type": "int",
+     "default": 1,
+     "min": 1,
+     "max": 10
+    }
+   ],
+   "needs_input_audio": true
+  },
+  {
+   "id": "fal-ai/qwen-3-tts/clone-voice/1.7b",
+   "label": "Qwen 3 TTS - Clone Voice [1.7B]",
+   "category": "audio-to-audio",
+   "output": "audio",
+   "description": "Clone your voices using Qwen3-TTS Clone-Voice model with zero shot cloning capabilities and use it on text-to-speech models to create speeches of yours!",
+   "params": [],
+   "needs_input_audio": true
+  },
+  {
+   "id": "fal-ai/elevenlabs/voice-changer",
+   "label": "ElevenLabs Voice Changer",
+   "category": "audio-to-audio",
+   "output": "audio",
+   "description": "Change the voices in your audios with voices in ElevenLabs!",
+   "params": [
+    {
+     "name": "output_format",
+     "type": "enum",
+     "values": [
+      "mp3_22050_32",
+      "mp3_44100_32",
+      "mp3_44100_64",
+      "mp3_44100_96",
+      "mp3_44100_128",
+      "mp3_44100_192",
+      "pcm_8000",
+      "pcm_16000",
+      "pcm_22050",
+      "pcm_24000",
+      "pcm_44100",
+      "pcm_48000",
+      "ulaw_8000",
+      "alaw_8000",
+      "opus_48000_32",
+      "opus_48000_64",
+      "opus_48000_96",
+      "opus_48000_128",
+      "opus_48000_192"
+     ],
+     "default": "mp3_44100_128"
+    },
+    {
+     "name": "remove_background_noise",
+     "type": "bool",
+     "default": false
+    },
+    {
+     "name": "voice",
+     "type": "string",
+     "default": "Rachel"
+    },
+    {
+     "name": "seed",
+     "type": "int",
+     "optional": true
+    }
+   ],
+   "needs_input_audio": true
+  },
+  {
+   "id": "fal-ai/kling-video/create-voice",
+   "label": "Kling Video Create Voice",
+   "category": "audio-to-audio",
+   "output": "audio",
+   "description": "Create Voices to be used with Kling Models Voice Control",
+   "params": []
+  },
+  {
+   "id": "fal-ai/sam-audio/separate",
+   "label": "Sam Audio",
+   "category": "audio-to-audio",
+   "output": "audio",
+   "description": "Audio separation with SAM Audio. Isolate any sound using natural language\u2014professional-grade audio editing made simple for creators, researchers, and accessibility applications.",
+   "params": [
+    {
+     "name": "acceleration",
+     "type": "enum",
+     "values": [
+      "fast",
+      "balanced",
+      "quality"
+     ],
+     "default": "balanced"
+    },
+    {
+     "name": "chunk_overlap",
+     "type": "float",
+     "default": 5,
+     "min": 0,
+     "max": 30
+    },
+    {
+     "name": "max_chunk_duration",
+     "type": "float",
+     "default": 60,
+     "min": 10,
+     "max": 60
+    },
+    {
+     "name": "output_format",
+     "type": "enum",
+     "values": [
+      "wav",
+      "mp3"
+     ],
+     "default": "wav"
+    },
+    {
+     "name": "predict_spans",
+     "type": "bool",
+     "default": false
+    },
+    {
+     "name": "reranking_candidates",
+     "type": "int",
+     "default": 1,
+     "min": 1,
+     "max": 7
+    }
+   ],
+   "needs_input_audio": true
+  },
+  {
+   "id": "fal-ai/deepfilternet3",
+   "label": "DeepFilterNet 3",
+   "category": "audio-to-audio",
+   "output": "audio",
+   "description": "Enhance speech audio by removing background noise and upsampling to 48KHz",
+   "params": [
+    {
+     "name": "audio_format",
+     "type": "enum",
+     "values": [
+      "mp3",
+      "aac",
+      "m4a",
+      "ogg",
+      "opus",
+      "flac",
+      "wav"
+     ],
+     "default": "mp3"
+    },
+    {
+     "name": "bitrate",
+     "type": "string",
+     "default": "192k"
+    },
+    {
+     "name": "sync_mode",
+     "type": "bool",
+     "default": false
+    }
+   ],
+   "needs_input_audio": true
+  },
+  {
+   "id": "fal-ai/ace-step/audio-to-audio",
+   "label": "ACE Step Audio To Audio",
+   "category": "audio-to-audio",
+   "output": "audio",
+   "description": "Generate music from a lyrics and example audio using ACE-Step",
+   "params": [
+    {
+     "name": "edit_mode",
+     "type": "enum",
+     "values": [
+      "lyrics",
+      "remix"
+     ],
+     "default": "remix"
+    },
+    {
+     "name": "granularity_scale",
+     "type": "int",
+     "default": 10,
+     "min": -100,
+     "max": 100
+    },
+    {
+     "name": "guidance_interval",
+     "type": "float",
+     "default": 0.5,
+     "min": 0,
+     "max": 1
+    },
+    {
+     "name": "guidance_interval_decay",
+     "type": "float",
+     "default": 0,
+     "min": 0,
+     "max": 1
+    },
+    {
+     "name": "guidance_scale",
+     "type": "float",
+     "default": 15,
+     "min": 0,
+     "max": 200
+    },
+    {
+     "name": "guidance_type",
+     "type": "enum",
+     "values": [
+      "cfg",
+      "apg",
+      "cfg_star"
+     ],
+     "default": "apg"
+    },
+    {
+     "name": "lyric_guidance_scale",
+     "type": "float",
+     "default": 1.5,
+     "min": 0,
+     "max": 10
+    },
+    {
+     "name": "lyrics",
+     "type": "string",
+     "default": ""
+    }
+   ],
+   "needs_input_audio": true
+  },
+  {
+   "id": "fal-ai/ffmpeg-api/merge-audios",
+   "label": "FFmpeg API [Merge Audios]",
+   "category": "audio-to-audio",
+   "output": "audio",
+   "description": "Merge audios into a single audio using FFmpeg API!",
+   "params": []
+  },
+  {
+   "id": "fal-ai/stable-audio-25/audio-to-audio",
+   "label": "Stable Audio 2.5",
+   "category": "audio-to-audio",
+   "output": "audio",
+   "description": "Generate high quality music and sound effects using Stable Audio 2.5 from StabilityAI",
+   "params": [
+    {
+     "name": "guidance_scale",
+     "type": "float",
+     "default": 1,
+     "min": 1,
+     "max": 25
+    },
+    {
+     "name": "num_inference_steps",
+     "type": "int",
+     "default": 8,
+     "min": 4,
+     "max": 8
+    },
+    {
+     "name": "strength",
+     "type": "float",
+     "default": 0.8,
+     "min": 0.01,
+     "max": 1
+    },
+    {
+     "name": "sync_mode",
+     "type": "bool",
+     "default": false
+    }
+   ],
+   "needs_input_audio": true
+  },
+  {
+   "id": "fal-ai/stable-audio-3/medium/audio-to-audio",
+   "label": "Stable Audio 3 Medium Audio to Audio",
+   "category": "audio-to-audio",
+   "output": "audio",
+   "description": "Stable Audio 3 Medium audio-to-audio is a 1.4 billion parameter latent diffusion model that transforms an input audio clip into new stereo variations up to 6 minutes guided by a te",
+   "params": [
+    {
+     "name": "bitrate",
+     "type": "string",
+     "default": "192k"
+    },
+    {
+     "name": "duration",
+     "type": "float",
+     "default": 30,
+     "min": 1,
+     "max": 380
+    },
+    {
+     "name": "enable_prompt_expansion",
+     "type": "bool",
+     "default": false
+    },
+    {
+     "name": "enable_safety_checker",
+     "type": "bool",
+     "default": true
+    },
+    {
+     "name": "guidance_scale",
+     "type": "float",
+     "default": 1,
+     "min": 0,
+     "max": 25
+    },
+    {
+     "name": "init_noise_level",
+     "type": "float",
+     "default": 0.9,
+     "min": 0,
+     "max": 1
+    },
+    {
+     "name": "negative_prompt",
+     "type": "string",
+     "default": ""
+    },
+    {
+     "name": "num_inference_steps",
+     "type": "int",
+     "default": 8,
+     "min": 1,
+     "max": 100
+    }
+   ],
+   "needs_input_audio": true
+  },
+  {
+   "id": "fal-ai/audio-understanding",
+   "label": "Audio Understanding",
+   "category": "audio-to-audio",
+   "output": "audio",
+   "description": "A audio understanding model to analyze audio content and answer questions about what's happening in the audio based on user prompts.",
+   "params": [
+    {
+     "name": "detailed_analysis",
+     "type": "bool",
+     "default": false
+    }
+   ],
+   "needs_input_audio": true
+  },
+  {
+   "id": "fal-ai/ace-step/audio-inpaint",
+   "label": "ACE Step Audio Inpaint",
+   "category": "audio-to-audio",
+   "output": "audio",
+   "description": "Modify a portion of provided audio with lyrics and/or style using ACE-Step",
+   "params": [
+    {
+     "name": "end_time",
+     "type": "float",
+     "default": 30,
+     "min": 0,
+     "max": 240
+    },
+    {
+     "name": "end_time_relative_to",
+     "type": "enum",
+     "values": [
+      "start",
+      "end"
+     ],
+     "default": "start"
+    },
+    {
+     "name": "granularity_scale",
+     "type": "int",
+     "default": 10,
+     "min": -100,
+     "max": 100
+    },
+    {
+     "name": "guidance_interval",
+     "type": "float",
+     "default": 0.5,
+     "min": 0,
+     "max": 1
+    },
+    {
+     "name": "guidance_interval_decay",
+     "type": "float",
+     "default": 0,
+     "min": 0,
+     "max": 1
+    },
+    {
+     "name": "guidance_scale",
+     "type": "float",
+     "default": 15,
+     "min": 0,
+     "max": 200
+    },
+    {
+     "name": "guidance_type",
+     "type": "enum",
+     "values": [
+      "cfg",
+      "apg",
+      "cfg_star"
+     ],
+     "default": "apg"
+    },
+    {
+     "name": "lyric_guidance_scale",
+     "type": "float",
+     "default": 1.5,
+     "min": 0,
+     "max": 10
+    }
+   ],
+   "needs_input_audio": true
+  },
+  {
+   "id": "fal-ai/kling-video/video-to-audio",
+   "label": "Kling Video",
+   "category": "video-to-audio",
+   "output": "audio",
+   "description": "Generate audio from input videos using Kling",
+   "params": [
+    {
+     "name": "asmr_mode",
+     "type": "bool",
+     "default": false
+    }
+   ],
+   "needs_input_video": true
+  },
+  {
+   "id": "mirelo-ai/sfx-v1.5/video-to-audio",
+   "label": "Mirelo SFX V1.5",
+   "category": "video-to-audio",
+   "output": "audio",
+   "description": "Generate synced sounds for any video, and return the new sound track (like MMAudio)",
+   "params": [],
+   "needs_input_video": true
+  },
+  {
+   "id": "sonilo/v1.1/video-to-music",
+   "label": "V1.1",
+   "category": "video-to-audio",
+   "output": "audio",
+   "description": "Analyzes your video's pacing, mood, and timing to generate a frame-synced, commercial-ready soundtrack in seconds",
+   "params": [
+    {
+     "name": "num_samples",
+     "type": "int",
+     "default": 1,
+     "min": 1,
+     "max": 3
+    }
+   ],
+   "needs_input_video": true
+  },
+  {
+   "id": "mirelo-ai/sfx-v1/video-to-audio",
+   "label": "Mirelo SFX",
+   "category": "video-to-audio",
+   "output": "audio",
+   "description": "Generate synced sounds for any video, and return the new sound track (like MMAudio)",
+   "params": [],
+   "needs_input_video": true
+  },
+  {
+   "id": "fal-ai/sam-audio/visual-separate",
+   "label": "Sam Audio",
+   "category": "video-to-audio",
+   "output": "audio",
+   "description": "Audio separation with SAM Audio. Isolate any sound using natural language\u2014professional-grade audio editing made simple for creators, researchers, and accessibility applications.",
+   "params": [
+    {
+     "name": "acceleration",
+     "type": "enum",
+     "values": [
+      "fast",
+      "balanced",
+      "quality"
+     ],
+     "default": "balanced"
+    },
+    {
+     "name": "chunk_overlap",
+     "type": "float",
+     "default": 5,
+     "min": 0,
+     "max": 30
+    },
+    {
+     "name": "max_chunk_duration",
+     "type": "float",
+     "default": 60,
+     "min": 10,
+     "max": 60
+    },
+    {
+     "name": "output_format",
+     "type": "enum",
+     "values": [
+      "wav",
+      "mp3"
+     ],
+     "default": "wav"
+    },
+    {
+     "name": "reranking_candidates",
+     "type": "int",
+     "default": 1,
+     "min": 1,
+     "max": 4
+    }
+   ],
+   "needs_input_video": true
+  },
+  {
+   "id": "fal-ai/elevenlabs/tts/turbo-v2.5",
+   "label": "ElevenLabs TTS Turbo v2.5",
+   "category": "text-to-speech",
+   "output": "audio",
+   "description": "Generate high-speed text-to-speech audio using ElevenLabs TTS Turbo v2.5.",
+   "params": [
+    {
+     "name": "apply_text_normalization",
+     "type": "enum",
+     "values": [
+      "auto",
+      "on",
+      "off"
+     ],
+     "default": "auto"
+    },
+    {
+     "name": "similarity_boost",
+     "type": "float",
+     "default": 0.75,
+     "min": 0,
+     "max": 1
+    },
+    {
+     "name": "speed",
+     "type": "float",
+     "default": 1,
+     "min": 0.7,
+     "max": 1.2
+    },
+    {
+     "name": "stability",
+     "type": "float",
+     "default": 0.5,
+     "min": 0,
+     "max": 1
+    },
+    {
+     "name": "style",
+     "type": "float",
+     "default": 0,
+     "min": 0,
+     "max": 1
+    },
+    {
+     "name": "timestamps",
+     "type": "bool",
+     "default": false
+    },
+    {
+     "name": "voice",
+     "type": "string",
+     "default": "Rachel"
+    },
+    {
+     "name": "text",
+     "type": "string"
+    }
+   ]
+  },
+  {
+   "id": "fal-ai/minimax/speech-02-hd",
+   "label": "MiniMax Speech-02 HD",
+   "category": "text-to-speech",
+   "output": "audio",
+   "description": "Generate speech from text prompts and different voices using the MiniMax Speech-02 HD model, which leverages advanced AI techniques to create high-quality text-to-speech.",
+   "params": [
+    {
+     "name": "output_format",
+     "type": "enum",
+     "values": [
+      "url",
+      "hex"
+     ],
+     "default": "hex"
+    },
+    {
+     "name": "text",
+     "type": "string"
+    }
+   ]
+  },
+  {
+   "id": "fal-ai/gemini-3.1-flash-tts",
+   "label": "Gemini 3.1 Flash Tts",
+   "category": "text-to-speech",
+   "output": "audio",
+   "description": "Newest audio model from Google introduces granular audio tags that give you precise control to direct AI speech for expressive audio generation.",
+   "params": [
+    {
+     "name": "output_format",
+     "type": "enum",
+     "values": [
+      "wav",
+      "mp3",
+      "ogg_opus"
+     ],
+     "default": "mp3"
+    },
+    {
+     "name": "temperature",
+     "type": "float",
+     "default": 1,
+     "min": 0,
+     "max": 2
+    },
+    {
+     "name": "voice",
+     "type": "enum",
+     "values": [
+      "Achernar",
+      "Achird",
+      "Algenib",
+      "Algieba",
+      "Alnilam",
+      "Aoede",
+      "Autonoe",
+      "Callirrhoe",
+      "Charon",
+      "Despina",
+      "Enceladus",
+      "Erinome",
+      "Fenrir",
+      "Gacrux",
+      "Iapetus",
+      "Kore",
+      "Laomedeia",
+      "Leda",
+      "Orus",
+      "Pulcherrima",
+      "Puck",
+      "Rasalgethi",
+      "Sadachbia",
+      "Sadaltager",
+      "Schedar",
+      "Sulafat",
+      "Umbriel",
+      "Vindemiatrix",
+      "Zephyr",
+      "Zubenelgenubi"
+     ],
+     "default": "Kore"
+    }
+   ]
+  },
+  {
+   "id": "fal-ai/minimax/speech-2.8-hd",
+   "label": "MiniMax Speech 2.8 [HD]",
+   "category": "text-to-speech",
+   "output": "audio",
+   "description": "Generate speech from text prompts and different voices using the MiniMax Speech-2.8 HD model, which leverages advanced AI techniques to create high-quality text-to-speech.",
+   "params": [
+    {
+     "name": "output_format",
+     "type": "enum",
+     "values": [
+      "url",
+      "hex"
+     ],
+     "default": "hex"
+    }
+   ]
+  },
+  {
+   "id": "fal-ai/minimax/voice-clone",
+   "label": "MiniMax Voice Cloning",
+   "category": "text-to-speech",
+   "output": "audio",
+   "description": "Clone a voice from a sample audio and generate speech from text prompts using the MiniMax model, which leverages advanced AI techniques to create high-quality text-to-speech.",
+   "params": [
+    {
+     "name": "model",
+     "type": "enum",
+     "values": [
+      "speech-02-hd",
+      "speech-02-turbo",
+      "speech-01-hd",
+      "speech-01-turbo"
+     ],
+     "default": "speech-02-hd"
+    },
+    {
+     "name": "need_volume_normalization",
+     "type": "bool",
+     "default": false
+    },
+    {
+     "name": "noise_reduction",
+     "type": "bool",
+     "default": false
+    }
+   ],
+   "needs_input_audio": true
+  },
+  {
+   "id": "fal-ai/qwen-3-tts/text-to-speech/1.7b",
+   "label": "Qwen 3 TTS - Text to Speech [1.7B]",
+   "category": "text-to-speech",
+   "output": "audio",
+   "description": "Bring speech to your texts using Qwen3-TTS Custom-Voice model with pre-trained voices or use your custom voice with Qwen3-TTS Clone Voice model",
+   "params": [
+    {
+     "name": "language",
+     "type": "enum",
+     "values": [
+      "Auto",
+      "English",
+      "Chinese",
+      "Spanish",
+      "French",
+      "German",
+      "Italian",
+      "Japanese",
+      "Korean",
+      "Portuguese",
+      "Russian"
+     ],
+     "default": "Auto"
+    },
+    {
+     "name": "text",
+     "type": "string"
+    }
+   ]
+  },
+  {
+   "id": "fal-ai/minimax/speech-2.8-turbo",
+   "label": "MiniMax Speech 2.8 [Turbo]",
+   "category": "text-to-speech",
+   "output": "audio",
+   "description": "Generate speech from text prompts and different voices using the MiniMax Speech-2.8 Turbo model, which leverages advanced AI techniques to create high-quality text-to-speech.",
+   "params": [
+    {
+     "name": "output_format",
+     "type": "enum",
+     "values": [
+      "url",
+      "hex"
+     ],
+     "default": "hex"
+    }
+   ]
+  },
+  {
+   "id": "fal-ai/minimax/speech-02-turbo",
+   "label": "MiniMax Speech-02 Turbo",
+   "category": "text-to-speech",
+   "output": "audio",
+   "description": "Generate fast speech from text prompts and different voices using the MiniMax Speech-02 Turbo model, which leverages advanced AI techniques to create high-quality text-to-speech.",
+   "params": [
+    {
+     "name": "output_format",
+     "type": "enum",
+     "values": [
+      "url",
+      "hex"
+     ],
+     "default": "hex"
+    },
+    {
+     "name": "text",
+     "type": "string"
+    }
+   ]
+  },
+  {
+   "id": "fal-ai/chatterbox/text-to-speech",
+   "label": "Chatterbox",
+   "category": "text-to-speech",
+   "output": "audio",
+   "description": "Whether you're working on memes, videos, games, or AI agents, Chatterbox brings your content to life. Use the first tts from resemble ai.",
+   "params": [
+    {
+     "name": "cfg",
+     "type": "float",
+     "default": 0.5,
+     "min": 0.1,
+     "max": 1
+    },
+    {
+     "name": "exaggeration",
+     "type": "float",
+     "default": 0.25,
+     "min": 0,
+     "max": 1
+    },
+    {
+     "name": "temperature",
+     "type": "float",
+     "default": 0.7,
+     "min": 0.05,
+     "max": 2
+    },
+    {
+     "name": "text",
+     "type": "string"
+    }
+   ],
+   "needs_input_audio": true
+  },
+  {
+   "id": "xai/tts/v1",
+   "label": "xAI Text to Speech",
+   "category": "text-to-speech",
+   "output": "audio",
+   "description": "Generate speech with expressive and realistic voices from xAI",
+   "params": [
+    {
+     "name": "language",
+     "type": "enum",
+     "values": [
+      "auto",
+      "en",
+      "ar-EG",
+      "ar-SA",
+      "ar-AE",
+      "bn",
+      "zh",
+      "fr",
+      "de",
+      "hi",
+      "id",
+      "it",
+      "ja",
+      "ko",
+      "pt-BR",
+      "pt-PT",
+      "ru",
+      "es-MX",
+      "es-ES",
+      "tr",
+      "vi"
+     ],
+     "default": "auto"
+    },
+    {
+     "name": "voice",
+     "type": "enum",
+     "values": [
+      "eve",
+      "ara",
+      "rex",
+      "sal",
+      "leo"
+     ],
+     "default": "eve"
+    },
+    {
+     "name": "text",
+     "type": "string"
+    }
+   ]
+  },
+  {
+   "id": "fal-ai/index-tts-2/text-to-speech",
+   "label": "Index TTS 2.0",
+   "category": "text-to-speech",
+   "output": "audio",
+   "description": "Generate natural, clear speeches using Index TTS 2.0 from IndexTeam",
+   "params": [
+    {
+     "name": "should_use_prompt_for_emotion",
+     "type": "bool",
+     "default": false
+    },
+    {
+     "name": "strength",
+     "type": "float",
+     "default": 1,
+     "min": 0,
+     "max": 1
+    }
+   ],
+   "needs_input_audio": true
+  },
+  {
+   "id": "fal-ai/inworld-tts",
+   "label": "Inworld TTS-1.5 Max",
+   "category": "text-to-speech",
+   "output": "audio",
+   "description": "Text to Speech Endpoint for Inworld's TTS-1.5 Max.",
+   "params": [
+    {
+     "name": "sample_rate_hertz",
+     "type": "enum",
+     "values": [
+      8000,
+      16000,
+      24000,
+      32000,
+      40000,
+      48000
+     ],
+     "default": 48000
+    },
+    {
+     "name": "voice",
+     "type": "enum",
+     "values": [
+      "Loretta (en)",
+      "Darlene (en)",
+      "Marlene (en)",
+      "Hank (en)",
+      "Evelyn (en)",
+      "Celeste (en)",
+      "Pippa (en)",
+      "Tessa (en)",
+      "Liam (en)",
+      "Callum (en)",
+      "Hamish (en)",
+      "Abby (en)",
+      "Graham (en)",
+      "Rupert (en)",
+      "Mortimer (en)",
+      "Snik (en)",
+      "Anjali (en)",
+      "Saanvi (en)",
+      "Arjun (en)",
+      "Claire (en)",
+      "Oliver (en)",
+      "Simon (en)",
+      "Elliot (en)",
+      "James (en)",
+      "Serena (en)",
+      "Gareth (en)",
+      "Vinny (en)",
+      "Lauren (en)",
+      "Jessica (en)",
+      "Ethan (en)",
+      "Tyler (en)",
+      "Jason (en)",
+      "Chloe (en)",
+      "Veronica (en)",
+      "Victoria (en)",
+      "Miranda (en)",
+      "Sebastian (en)",
+      "Victor (en)",
+      "Malcolm (en)",
+      "Kayla (en)",
+      "Nate (en)",
+      "Jake (en)",
+      "Brian (en)",
+      "Amina (en)",
+      "Kelsey (en)",
+      "Derek (en)",
+      "Grant (en)",
+      "Evan (en)",
+      "Alex (en)",
+      "Ashley (en)",
+      "Craig (en)",
+      "Deborah (en)",
+      "Dennis (en)",
+      "Edward (en)",
+      "Elizabeth (en)",
+      "Hades (en)",
+      "Julia (en)",
+      "Pixie (en)",
+      "Mark (en)",
+      "Olivia (en)",
+      "Priya (en)",
+      "Ronald (en)",
+      "Sarah (en)",
+      "Shaun (en)",
+      "Theodore (en)",
+      "Timothy (en)",
+      "Wendy (en)",
+      "Dominus (en)",
+      "Hana (en)",
+      "Clive (en)",
+      "Carter (en)",
+      "Blake (en)",
+      "Luna (en)",
+      "Yichen (zh)",
+      "Xiaoyin (zh)",
+      "Xinyi (zh)",
+      "Jing (zh)",
+      "Erik (nl)",
+      "Katrien (nl)",
+      "Lennart (nl)",
+      "Lore (nl)",
+      "Alain (fr)",
+      "H\u00e9l\u00e8ne (fr)",
+      "Mathieu (fr)",
+      "\u00c9tienne (fr)",
+      "Johanna (de)",
+      "Josef (de)",
+      "Gianni (it)",
+      "Orietta (it)",
+      "Asuka (ja)",
+      "Satoshi (ja)",
+      "Hyunwoo (ko)",
+      "Minji (ko)",
+      "Seojun (ko)",
+      "Yoona (ko)",
+      "Szymon (pl)",
+      "Wojciech (pl)",
+      "Heitor (pt)",
+      "Mait\u00ea (pt)",
+      "Diego (es)",
+      "Lupita (es)",
+      "Miguel (es)",
+      "Rafael (es)",
+      "Svetlana (ru)",
+      "Elena (ru)",
+      "Dmitry (ru)",
+      "Nikolai (ru)",
+      "Riya (hi)",
+      "Manoj (hi)",
+      "Yael (he)",
+      "Oren (he)",
+      "Nour (ar)",
+      "Omar (ar)"
+     ],
+     "default": "Craig (en)"
+    },
+    {
+     "name": "text",
+     "type": "string"
+    }
+   ]
+  },
+  {
+   "id": "fal-ai/minimax/speech-2.6-hd",
+   "label": "MiniMax Speech 2.6 [HD]",
+   "category": "text-to-speech",
+   "output": "audio",
+   "description": "Generate speech from text prompts and different voices using the MiniMax Speech-2.6 HD model, which leverages advanced AI techniques to create high-quality text-to-speech.",
+   "params": [
+    {
+     "name": "output_format",
+     "type": "enum",
+     "values": [
+      "url",
+      "hex"
+     ],
+     "default": "hex"
+    }
+   ]
+  },
+  {
+   "id": "fal-ai/chatterbox/speech-to-speech",
+   "label": "Chatterbox",
+   "category": "speech-to-speech",
+   "output": "audio",
+   "description": "Whether you're working on memes, videos, games, or AI agents, Chatterbox brings your content to life. Use the first tts from resemble ai.",
+   "params": []
+  },
+  {
+   "id": "resemble-ai/chatterboxhd/speech-to-speech",
+   "label": "Chatterboxhd",
+   "category": "speech-to-speech",
+   "output": "audio",
+   "description": "Transform voices using Resemble AI's Chatterbox. Convert audio to new voices or your own samples, with expressive results and built-in perceptual watermarking.",
+   "params": [
+    {
+     "name": "high_quality_audio",
+     "type": "bool",
+     "default": false
+    },
+    {
+     "name": "target_voice",
+     "type": "enum",
+     "values": [
+      "Aurora",
+      "Blade",
+      "Britney",
+      "Carl",
+      "Cliff",
+      "Richard",
+      "Rico",
+      "Siobhan",
+      "Vicky"
+     ],
+     "optional": true
+    }
+   ]
+  },
+  {
+   "id": "fal-ai/elevenlabs/speech-to-text/scribe-v2",
+   "label": "ElevenLabs Speech to Text - Scribe V2",
+   "category": "speech-to-text",
+   "output": "text",
+   "description": "Use Scribe-V2 from ElevenLabs to do blazingly fast speech to text inferences!",
+   "params": [
+    {
+     "name": "diarize",
+     "type": "bool",
+     "default": true
+    },
+    {
+     "name": "tag_audio_events",
+     "type": "bool",
+     "default": true
+    }
+   ],
+   "needs_input_audio": true
+  },
+  {
+   "id": "fal-ai/elevenlabs/speech-to-text",
+   "label": "ElevenLabs Speech to Text",
+   "category": "speech-to-text",
+   "output": "text",
+   "description": "Generate text from speech using ElevenLabs advanced speech-to-text model.",
+   "params": [
+    {
+     "name": "diarize",
+     "type": "bool",
+     "default": true
+    },
+    {
+     "name": "tag_audio_events",
+     "type": "bool",
+     "default": true
+    }
+   ],
+   "needs_input_audio": true
+  },
+  {
+   "id": "fal-ai/cohere-transcribe",
+   "label": "Cohere Transcribe",
+   "category": "speech-to-text",
+   "output": "text",
+   "description": "Cohere Transcribe turns your business audio into accurate text, ready for search, analytics, and automation",
+   "params": [
+    {
+     "name": "language",
+     "type": "enum",
+     "values": [
+      "en",
+      "fr",
+      "de",
+      "it",
+      "es",
+      "pt",
+      "el",
+      "nl",
+      "pl",
+      "zh",
+      "ja",
+      "ko",
+      "vi",
+      "ar"
+     ],
+     "default": "en"
+    },
+    {
+     "name": "max_new_tokens",
+     "type": "int",
+     "default": 256,
+     "min": 1,
+     "max": 1014
+    },
+    {
+     "name": "punctuation",
+     "type": "bool",
+     "default": true
+    }
+   ],
+   "needs_input_audio": true
+  },
+  {
+   "id": "fal-ai/speech-to-text",
+   "label": "Speech-to-Text",
+   "category": "speech-to-text",
+   "output": "text",
+   "description": "Leverage the rapid processing capabilities of AI models to enable accurate and efficient real-time speech-to-text transcription.",
+   "params": [
+    {
+     "name": "use_pnc",
+     "type": "bool",
+     "default": true
+    }
+   ],
+   "needs_input_audio": true
+  },
+  {
+   "id": "fal-ai/speech-to-text/turbo",
+   "label": "Speech-to-Text",
+   "category": "speech-to-text",
+   "output": "text",
+   "description": "Leverage the rapid processing capabilities of AI models to enable accurate and efficient real-time speech-to-text transcription.",
+   "params": [
+    {
+     "name": "use_pnc",
+     "type": "bool",
+     "default": true
+    }
+   ],
+   "needs_input_audio": true
+  },
+  {
+   "id": "nvidia/nemotron-asr-multilingual/asr",
+   "label": "Nemotron Asr Multilingual",
+   "category": "speech-to-text",
+   "output": "text",
+   "description": "Nemotron-ASR-Streaming is a multi lingual, streaming Automatic Speech Recognition (ASR) engineered to deliver high-quality multi lingual transcription across both low-latency strea",
+   "params": [
+    {
+     "name": "acceleration",
+     "type": "enum",
+     "values": [
+      "none",
+      "regular",
+      "high",
+      "full"
+     ],
+     "default": "regular"
+    },
+    {
+     "name": "language",
+     "type": "enum",
+     "values": [
+      "auto",
+      "en-US",
+      "en-GB",
+      "es-US",
+      "es-ES",
+      "de-DE",
+      "fr-FR",
+      "fr-CA",
+      "it-IT",
+      "ar-AR",
+      "ja-JP",
+      "ko-KR",
+      "pt-BR",
+      "pt-PT",
+      "ru-RU",
+      "hi-IN",
+      "zh-CN",
+      "vi-VN",
+      "he-IL",
+      "nl-NL",
+      "cs-CZ",
+      "da-DK",
+      "pl-PL",
+      "nn-NO",
+      "nb-NO",
+      "sv-SE",
+      "th-TH",
+      "tr-TR",
+      "bg-BG",
+      "el-GR",
+      "et-EE",
+      "fi-FI",
+      "hr-HR",
+      "hu-HU",
+      "lt-LT",
+      "lv-LV",
+      "ro-RO",
+      "sk-SK",
+      "uk-UA",
+      "mt-MT",
+      "sl-SI"
+     ],
+     "default": "auto"
+    }
+   ],
+   "needs_input_audio": true
+  },
+  {
+   "id": "fal-ai/smart-turn",
+   "label": "Pipecat's Smart Turn model",
+   "category": "speech-to-text",
+   "output": "text",
+   "description": "An open source, community-driven and native audio turn detection model by Pipecat AI.\n\n",
+   "params": [],
+   "needs_input_audio": true
+  },
+  {
+   "id": "fal-ai/speech-to-text/stream",
+   "label": "Speech-To-text",
+   "category": "speech-to-text",
+   "output": "text",
+   "description": "Leverage the rapid processing capabilities of AI models to enable accurate and efficient real-time speech-to-text transcription.",
+   "params": [
+    {
+     "name": "use_pnc",
+     "type": "bool",
+     "default": true
+    }
+   ],
+   "needs_input_audio": true
+  },
+  {
+   "id": "fal-ai/speech-to-text/turbo/stream",
+   "label": "Speech-to-Text",
+   "category": "speech-to-text",
+   "output": "text",
+   "description": "Leverage the rapid processing capabilities of AI models to enable accurate and efficient real-time speech-to-text transcription.",
+   "params": [
+    {
+     "name": "use_pnc",
+     "type": "bool",
+     "default": true
+    }
+   ],
+   "needs_input_audio": true
+  },
+  {
+   "id": "fal-ai/silero-vad",
+   "label": "Silero VAD",
+   "category": "audio-to-text",
+   "output": "text",
+   "description": "Detect speech presence and timestamps with accuracy and speed using the ultra-lightweight Silero VAD model",
+   "params": [],
+   "needs_input_audio": true
+  },
+  {
+   "id": "nvidia/nemotron-3-nano-omni/audio",
+   "label": "Nemotron 3 Nano Omni",
+   "category": "audio-to-text",
+   "output": "text",
+   "description": "Audio reasoning variant of NVIDIA's Nemotron 3 Nano Omni. 30B A3B hybrid Transformer-Mamba MoE - accepts audio plus a prompt and returns text.",
+   "params": [
+    {
+     "name": "max_tokens",
+     "type": "int",
+     "default": 1024,
+     "min": 1,
+     "max": 20000
+    },
+    {
+     "name": "reasoning_mode",
+     "type": "enum",
+     "values": [
+      "think",
+      "no_think"
+     ],
+     "default": "no_think"
+    },
+    {
+     "name": "temperature",
+     "type": "float",
+     "default": 0.7,
+     "min": 0,
+     "max": 2
+    },
+    {
+     "name": "top_p",
+     "type": "float",
+     "default": 0.95,
+     "min": 0,
+     "max": 1
+    }
+   ],
+   "needs_input_audio": true
+  },
+  {
+   "id": "openrouter/router/video",
+   "label": "OpenRouter [Video]",
+   "category": "video-to-text",
+   "output": "text",
+   "description": "Run any video-capable LLM with fal. Analyze, summarize, and understand video files using Gemini (Google) models. Supports mp4, mpeg, mov, webm, and YouTube links. Powered by OpenRo",
+   "params": [
+    {
+     "name": "reasoning",
+     "type": "bool",
+     "default": false
+    },
+    {
+     "name": "temperature",
+     "type": "float",
+     "default": 1,
+     "min": 0,
+     "max": 2
+    },
+    {
+     "name": "model",
+     "type": "string"
+    }
+   ]
+  },
+  {
+   "id": "nvidia/nemotron-3-nano-omni/video",
+   "label": "Nemotron 3 Nano Omni",
+   "category": "video-to-text",
+   "output": "text",
+   "description": "Video reasoning variant of NVIDIA's Nemotron 3 Nano Omni. 30B A3B hybrid Transformer-Mamba MoE - accepts video plus a prompt and returns text.",
+   "params": [
+    {
+     "name": "max_tokens",
+     "type": "int",
+     "default": 1024,
+     "min": 1,
+     "max": 20000
+    },
+    {
+     "name": "reasoning_mode",
+     "type": "enum",
+     "values": [
+      "think",
+      "no_think"
+     ],
+     "default": "no_think"
+    },
+    {
+     "name": "temperature",
+     "type": "float",
+     "default": 0.7,
+     "min": 0,
+     "max": 2
+    },
+    {
+     "name": "top_p",
+     "type": "float",
+     "default": 0.95,
+     "min": 0,
+     "max": 1
+    }
+   ],
+   "needs_input_video": true
+  },
+  {
+   "id": "openrouter/router/video/enterprise",
+   "label": "OpenRouter [Video][Enterprise]",
+   "category": "video-to-text",
+   "output": "text",
+   "description": "Run any VLM (Video Language Model) with fal, powered by OpenRouter.",
+   "params": [
+    {
+     "name": "reasoning",
+     "type": "bool",
+     "default": false
+    },
+    {
+     "name": "temperature",
+     "type": "float",
+     "default": 1,
+     "min": 0,
+     "max": 2
+    },
+    {
+     "name": "model",
+     "type": "string"
+    }
+   ]
+  },
+  {
+   "id": "nvidia/nemotron-3-nano-omni/vision",
+   "label": "Nemotron 3 Nano Omni",
+   "category": "image-to-text",
+   "output": "text",
+   "description": "Vision reasoning variant of NVIDIA's Nemotron 3 Nano Omni. 30B A3B hybrid Transformer-Mamba MoE - accepts an image plus a prompt and returns text.",
+   "params": [
+    {
+     "name": "max_tokens",
+     "type": "int",
+     "default": 1024,
+     "min": 1,
+     "max": 20000
+    },
+    {
+     "name": "reasoning_mode",
+     "type": "enum",
+     "values": [
+      "think",
+      "no_think"
+     ],
+     "default": "no_think"
+    },
+    {
+     "name": "temperature",
+     "type": "float",
+     "default": 0.7,
+     "min": 0,
+     "max": 2
+    },
+    {
+     "name": "top_p",
+     "type": "float",
+     "default": 0.95,
+     "min": 0,
+     "max": 1
+    }
+   ],
+   "needs_input_image": true
+  },
+  {
+   "id": "openrouter/router/vision",
+   "label": "OpenRouter [Vision]",
+   "category": "vision",
+   "output": "text",
+   "description": "Run any Vision Language Model with fal. Analyze and understand images using Claude (Anthropic), GPT-5 / GPT-4o (OpenAI), Gemini (Google), Grok (xAI), Llama (Meta), Qwen, Pixtral (M",
+   "params": [
+    {
+     "name": "reasoning",
+     "type": "bool",
+     "default": false
+    },
+    {
+     "name": "temperature",
+     "type": "float",
+     "default": 1,
+     "min": 0,
+     "max": 2
+    },
+    {
+     "name": "model",
+     "type": "string"
+    }
+   ]
+  },
+  {
+   "id": "fal-ai/x-ailab/nsfw",
+   "label": "NSFW Checker",
+   "category": "vision",
+   "output": "text",
+   "description": "Predict whether an image is NSFW or SFW.",
+   "params": []
+  },
+  {
+   "id": "fal-ai/video-understanding",
+   "label": "Video Understanding",
+   "category": "vision",
+   "output": "text",
+   "description": "A video understanding model to analyze video content and answer questions about what's happening in the video based on user prompts.",
+   "params": [
+    {
+     "name": "detailed_analysis",
+     "type": "bool",
+     "default": false
+    }
+   ],
+   "needs_input_video": true
+  },
+  {
+   "id": "fal-ai/moondream3-preview/query",
+   "label": "Moondream 3 Preview [Query]",
+   "category": "vision",
+   "output": "text",
+   "description": "Moondream 3 is a vision language model that brings frontier-level visual reasoning with native object detection, pointing, and OCR capabilities to real-world applications requiring",
+   "params": [
+    {
+     "name": "reasoning",
+     "type": "bool",
+     "default": true
+    }
+   ],
+   "needs_input_image": true
+  },
+  {
+   "id": "fal-ai/moondream3-preview/detect",
+   "label": "Moondream3 Preview [Detect]",
+   "category": "vision",
+   "output": "text",
+   "description": "Moondream 3 is a vision language model that brings frontier-level visual reasoning with native object detection, pointing, and OCR capabilities to real-world applications requiring",
+   "params": [
+    {
+     "name": "preview",
+     "type": "bool",
+     "default": false
+    }
+   ],
+   "needs_input_image": true
+  },
+  {
+   "id": "fal-ai/moondream3-preview/caption",
+   "label": "Moondream3 Preview [Caption]",
+   "category": "vision",
+   "output": "text",
+   "description": "Moondream 3 is a vision language model that brings frontier-level visual reasoning with native object detection, pointing, and OCR capabilities to real-world applications requiring",
+   "params": [
+    {
+     "name": "length",
+     "type": "enum",
+     "values": [
+      "short",
+      "normal",
+      "long"
+     ],
+     "default": "normal"
+    }
+   ],
+   "needs_input_image": true
+  },
+  {
+   "id": "fal-ai/moondream2/object-detection",
+   "label": "Moondream2",
+   "category": "vision",
+   "output": "text",
+   "description": "Moondream2 is a highly efficient open-source vision language model that combines powerful image understanding capabilities with a remarkably small footprint.",
+   "params": [
+    {
+     "name": "object",
+     "type": "string"
+    }
+   ],
+   "needs_input_image": true
+  },
+  {
+   "id": "fal-ai/moondream2/visual-query",
+   "label": "Moondream2",
+   "category": "vision",
+   "output": "text",
+   "description": "Moondream2 is a highly efficient open-source vision language model that combines powerful image understanding capabilities with a remarkably small footprint.",
+   "params": [],
+   "needs_input_image": true
+  },
+  {
+   "id": "fal-ai/llava-next",
+   "label": "LLaVA v1.6 34B",
+   "category": "vision",
+   "output": "text",
+   "description": "Vision",
+   "params": [
+    {
+     "name": "max_tokens",
+     "type": "int",
+     "default": 64
+    },
+    {
+     "name": "temperature",
+     "type": "float",
+     "default": 0.2,
+     "max": 1
+    },
+    {
+     "name": "top_p",
+     "type": "float",
+     "default": 1,
+     "min": 0,
+     "max": 1
+    }
+   ],
+   "needs_input_image": true
+  },
+  {
+   "id": "fal-ai/hunyuan-3d/v3.1/pro/text-to-3d",
+   "label": "Hunyuan 3D Pro Text to 3D",
+   "category": "text-to-3d",
+   "output": "3d",
+   "description": "Generate 3D models from text prompts with Hunyuan 3D Pro",
+   "params": [
+    {
+     "name": "enable_pbr",
+     "type": "bool",
+     "default": false
+    },
+    {
+     "name": "face_count",
+     "type": "int",
+     "default": 500000,
+     "min": 40000,
+     "max": 1500000
+    },
+    {
+     "name": "generate_type",
+     "type": "enum",
+     "values": [
+      "Normal",
+      "Geometry"
+     ],
+     "default": "Normal"
+    }
+   ]
+  },
+  {
+   "id": "fal-ai/meshy/v6/text-to-3d",
+   "label": "Meshy 6",
+   "category": "text-to-3d",
+   "output": "3d",
+   "description": "Meshy-6 is the latest model from Meshy. It generates realistic and production ready 3D models.",
+   "params": [
+    {
+     "name": "animation_action_id",
+     "type": "int",
+     "default": 92
+    },
+    {
+     "name": "enable_animation",
+     "type": "bool",
+     "default": false
+    },
+    {
+     "name": "enable_pbr",
+     "type": "bool",
+     "default": false
+    },
+    {
+     "name": "enable_prompt_expansion",
+     "type": "bool",
+     "default": false
+    },
+    {
+     "name": "enable_rigging",
+     "type": "bool",
+     "default": false
+    },
+    {
+     "name": "enable_safety_checker",
+     "type": "bool",
+     "default": true
+    },
+    {
+     "name": "is_a_t_pose",
+     "type": "bool",
+     "default": false
+    },
+    {
+     "name": "mode",
+     "type": "enum",
+     "values": [
+      "preview",
+      "full"
+     ],
+     "default": "full"
+    }
+   ]
+  },
+  {
+   "id": "tripo3d/h3.1/text-to-3d",
+   "label": "Tripo H3.1 Text to 3D",
+   "category": "text-to-3d",
+   "output": "3d",
+   "description": "Generate 3D models from text descriptions using Tripo H3.1.",
+   "params": [
+    {
+     "name": "auto_size",
+     "type": "bool",
+     "default": false
+    },
+    {
+     "name": "geometry_quality",
+     "type": "enum",
+     "values": [
+      "standard",
+      "detailed"
+     ],
+     "default": "standard"
+    },
+    {
+     "name": "pbr",
+     "type": "bool",
+     "default": true
+    },
+    {
+     "name": "quad",
+     "type": "bool",
+     "default": false
+    },
+    {
+     "name": "texture",
+     "type": "bool",
+     "default": true
+    },
+    {
+     "name": "texture_quality",
+     "type": "enum",
+     "values": [
+      "standard",
+      "detailed"
+     ],
+     "default": "standard"
+    }
+   ]
+  },
+  {
+   "id": "fal-ai/hunyuan-motion",
+   "label": "Hunyuan Motion [1B]",
+   "category": "text-to-3d",
+   "output": "3d",
+   "description": "Generate 3D human motions via text-to-generation interface of Hunyuan Motion!",
+   "params": [
+    {
+     "name": "duration",
+     "type": "float",
+     "default": 5,
+     "min": 0.5,
+     "max": 12
+    },
+    {
+     "name": "guidance_scale",
+     "type": "float",
+     "default": 5,
+     "min": 1,
+     "max": 10
+    },
+    {
+     "name": "output_format",
+     "type": "enum",
+     "values": [
+      "fbx",
+      "dict"
+     ],
+     "default": "fbx"
+    }
+   ]
+  },
+  {
+   "id": "fal-ai/meshy/v6-preview/text-to-3d",
+   "label": "Meshy 6 Preview",
+   "category": "text-to-3d",
+   "output": "3d",
+   "description": "Meshy-6-Preview is the latest model from Meshy. It generates realistic and production ready 3D models.",
+   "params": [
+    {
+     "name": "animation_action_id",
+     "type": "int",
+     "default": 92
+    },
+    {
+     "name": "enable_animation",
+     "type": "bool",
+     "default": false
+    },
+    {
+     "name": "enable_pbr",
+     "type": "bool",
+     "default": false
+    },
+    {
+     "name": "enable_prompt_expansion",
+     "type": "bool",
+     "default": false
+    },
+    {
+     "name": "enable_rigging",
+     "type": "bool",
+     "default": false
+    },
+    {
+     "name": "enable_safety_checker",
+     "type": "bool",
+     "default": true
+    },
+    {
+     "name": "is_a_t_pose",
+     "type": "bool",
+     "default": false
+    },
+    {
+     "name": "mode",
+     "type": "enum",
+     "values": [
+      "preview",
+      "full"
+     ],
+     "default": "full"
+    }
+   ]
+  },
+  {
+   "id": "fal-ai/hunyuan-3d/v3.1/rapid/text-to-3d",
+   "label": "Hunyuan 3d",
+   "category": "text-to-3d",
+   "output": "3d",
+   "description": "Create detailed, fully-textured 3D models with text",
+   "params": [
+    {
+     "name": "enable_geometry",
+     "type": "bool",
+     "default": false
+    },
+    {
+     "name": "enable_pbr",
+     "type": "bool",
+     "default": false
+    }
+   ]
+  },
+  {
+   "id": "fal-ai/hyper3d/rodin/v2.5/text-to-3d",
+   "label": "Hyper3D - Rodin V2.5 - Text to 3D",
+   "category": "text-to-3d",
+   "output": "3d",
+   "description": "Rodin V2.5 by Hyper3D generates realistic and production ready 3D models from text or images. ",
+   "params": [
+    {
+     "name": "TAPose",
+     "type": "bool",
+     "default": false
+    },
+    {
+     "name": "enable_creative_mode",
+     "type": "bool",
+     "default": false
+    },
+    {
+     "name": "geometry_file_format",
+     "type": "enum",
+     "values": [
+      "glb",
+      "usdz",
+      "fbx",
+      "obj",
+      "stl"
+     ],
+     "default": "glb"
+    },
+    {
+     "name": "hd_texture",
+     "type": "bool",
+     "default": false
+    },
+    {
+     "name": "is_micro",
+     "type": "bool",
+     "default": false
+    },
+    {
+     "name": "material",
+     "type": "enum",
+     "values": [
+      "PBR",
+      "Shaded",
+      "All",
+      "None"
+     ],
+     "default": "All"
+    },
+    {
+     "name": "quality_mesh_option",
+     "type": "enum",
+     "values": [
+      "Auto",
+      "4K Quad",
+      "8K Quad",
+      "18K Quad",
+      "50K Quad",
+      "100K Quad",
+      "200K Quad",
+      "2K Triangle",
+      "20K Triangle",
+      "50K Triangle",
+      "150K Triangle",
+      "500K Triangle",
+      "1M Triangle",
+      "2M Triangle"
+     ],
+     "default": "Auto"
+    },
+    {
+     "name": "texture_delight",
+     "type": "bool",
+     "default": false
+    }
+   ]
+  },
+  {
+   "id": "fal-ai/hunyuan3d-v3/text-to-3d",
+   "label": "Hunyuan3d V3",
+   "category": "text-to-3d",
+   "output": "3d",
+   "description": "Turn simple sketches into detailed, fully-textured 3D models. Instantly convert your concept designs into formats ready for Unity, Unreal, and Blender.",
+   "params": [
+    {
+     "name": "enable_pbr",
+     "type": "bool",
+     "default": false
+    },
+    {
+     "name": "face_count",
+     "type": "int",
+     "default": 500000,
+     "min": 40000,
+     "max": 1500000
+    },
+    {
+     "name": "generate_type",
+     "type": "enum",
+     "values": [
+      "Normal",
+      "LowPoly",
+      "Geometry"
+     ],
+     "default": "Normal"
+    },
+    {
+     "name": "polygon_type",
+     "type": "enum",
+     "values": [
+      "triangle",
+      "quadrilateral"
+     ],
+     "default": "triangle"
+    }
+   ]
+  },
+  {
+   "id": "fal-ai/hunyuan-motion/fast",
+   "label": "Hunyuan Motion [0.46B]",
+   "category": "text-to-3d",
+   "output": "3d",
+   "description": "Generate 3D human motions via text-to-generation interface of Hunyuan Motion!",
+   "params": [
+    {
+     "name": "duration",
+     "type": "float",
+     "default": 5,
+     "min": 0.5,
+     "max": 12
+    },
+    {
+     "name": "guidance_scale",
+     "type": "float",
+     "default": 5,
+     "min": 1,
+     "max": 10
+    },
+    {
+     "name": "output_format",
+     "type": "enum",
+     "values": [
+      "fbx",
+      "dict"
+     ],
+     "default": "fbx"
+    }
+   ]
+  },
+  {
+   "id": "tripo3d/p1/text-to-3d",
+   "label": "Tripo P1 Text to 3D",
+   "category": "text-to-3d",
+   "output": "3d",
+   "description": "Generate 3D models from text descriptions using Tripo P1.",
+   "params": [
+    {
+     "name": "texture",
+     "type": "bool",
+     "default": true
+    }
+   ]
+  },
+  {
+   "id": "fal-ai/hyper3d/rodin/v2.5/text-to-3d/fast",
+   "label": "Hyper3D - Rodin V2.5 - Text to 3D - Fast",
+   "category": "text-to-3d",
+   "output": "3d",
+   "description": "Rodin V2.5 by Hyper3D generates realistic and production ready 3D models from text or images. Do fast prototyping using the fast model. ",
+   "params": [
+    {
+     "name": "TAPose",
+     "type": "bool",
+     "default": false
+    },
+    {
+     "name": "enable_creative_mode",
+     "type": "bool",
+     "default": false
+    },
+    {
+     "name": "geometry_file_format",
+     "type": "enum",
+     "values": [
+      "glb",
+      "usdz",
+      "fbx",
+      "obj",
+      "stl"
+     ],
+     "default": "glb"
+    },
+    {
+     "name": "hd_texture",
+     "type": "bool",
+     "default": false
+    },
+    {
+     "name": "is_micro",
+     "type": "bool",
+     "default": false
+    },
+    {
+     "name": "material",
+     "type": "enum",
+     "values": [
+      "PBR",
+      "Shaded",
+      "All",
+      "None"
+     ],
+     "default": "Shaded"
+    },
+    {
+     "name": "quality_mesh_option",
+     "type": "enum",
+     "values": [
+      "Auto",
+      "1K Quad",
+      "4K Quad",
+      "8K Quad",
+      "18K Quad",
+      "20K Quad",
+      "2K Triangle",
+      "4K Triangle",
+      "8K Triangle",
+      "10K Triangle",
+      "20K Triangle"
+     ],
+     "default": "Auto"
+    },
+    {
+     "name": "texture_delight",
+     "type": "bool",
+     "default": false
+    }
+   ]
+  },
+  {
+   "id": "fal-ai/hunyuan-3d/v3.1/pro/image-to-3d",
+   "label": "Hunyuan 3D Pro Image to 3D",
+   "category": "image-to-3d",
+   "output": "3d",
+   "description": "Generate 3D models from images with Hunyuan 3D Pro",
+   "params": [
+    {
+     "name": "enable_pbr",
+     "type": "bool",
+     "default": false
+    },
+    {
+     "name": "face_count",
+     "type": "int",
+     "default": 500000,
+     "min": 40000,
+     "max": 1500000
+    },
+    {
+     "name": "generate_type",
+     "type": "enum",
+     "values": [
+      "Normal",
+      "Geometry"
+     ],
+     "default": "Normal"
+    }
+   ],
+   "needs_input_image": true
+  },
+  {
+   "id": "fal-ai/trellis-2",
+   "label": "Trellis 2",
+   "category": "image-to-3d",
+   "output": "3d",
+   "description": "Generate 3D models from your images using Trellis 2. A native 3D generative model enabling versatile and high-quality 3D asset creation.",
+   "params": [
+    {
+     "name": "decimation_target",
+     "type": "int",
+     "default": 500000,
+     "min": 5000,
+     "max": 2000000
+    },
+    {
+     "name": "remesh",
+     "type": "bool",
+     "default": true
+    },
+    {
+     "name": "remesh_band",
+     "type": "float",
+     "default": 1,
+     "min": 0,
+     "max": 4
+    },
+    {
+     "name": "remesh_project",
+     "type": "float",
+     "default": 0,
+     "min": 0,
+     "max": 1
+    },
+    {
+     "name": "resolution",
+     "type": "enum",
+     "values": [
+      512,
+      1024,
+      1536
+     ],
+     "default": 1024
+    },
+    {
+     "name": "shape_slat_guidance_interval_end",
+     "type": "float",
+     "default": 1,
+     "min": 0,
+     "max": 1
+    },
+    {
+     "name": "shape_slat_guidance_interval_start",
+     "type": "float",
+     "default": 0.6,
+     "min": 0,
+     "max": 1
+    },
+    {
+     "name": "shape_slat_guidance_rescale",
+     "type": "float",
+     "default": 0.5,
+     "min": 0,
+     "max": 1
+    }
+   ],
+   "needs_input_image": true
+  },
+  {
+   "id": "fal-ai/trellis",
+   "label": "Trellis",
+   "category": "image-to-3d",
+   "output": "3d",
+   "description": "Generate 3D models from your images using Trellis. A native 3D generative model enabling versatile and high-quality 3D asset creation.",
+   "params": [
+    {
+     "name": "mesh_simplify",
+     "type": "float",
+     "default": 0.95,
+     "min": 0.9,
+     "max": 0.98
+    },
+    {
+     "name": "slat_guidance_strength",
+     "type": "float",
+     "default": 3,
+     "min": 0,
+     "max": 10
+    },
+    {
+     "name": "slat_sampling_steps",
+     "type": "int",
+     "default": 12,
+     "min": 1,
+     "max": 50
+    },
+    {
+     "name": "ss_guidance_strength",
+     "type": "float",
+     "default": 7.5,
+     "min": 0,
+     "max": 10
+    },
+    {
+     "name": "ss_sampling_steps",
+     "type": "int",
+     "default": 12,
+     "min": 1,
+     "max": 50
+    },
+    {
+     "name": "texture_size",
+     "type": "enum",
+     "values": [
+      512,
+      1024,
+      2048
+     ],
+     "default": 1024
+    }
+   ],
+   "needs_input_image": true
+  },
+  {
+   "id": "fal-ai/meshy/v6/image-to-3d",
+   "label": "Meshy 6",
+   "category": "image-to-3d",
+   "output": "3d",
+   "description": "Meshy-6 is the latest model from Meshy. It generates realistic and production ready 3D models.\n",
+   "params": [
+    {
+     "name": "animation_action_id",
+     "type": "int",
+     "default": 92
+    },
+    {
+     "name": "enable_animation",
+     "type": "bool",
+     "default": false
+    },
+    {
+     "name": "enable_pbr",
+     "type": "bool",
+     "default": false
+    },
+    {
+     "name": "enable_rigging",
+     "type": "bool",
+     "default": false
+    },
+    {
+     "name": "enable_safety_checker",
+     "type": "bool",
+     "default": true
+    },
+    {
+     "name": "is_a_t_pose",
+     "type": "bool",
+     "default": false
+    },
+    {
+     "name": "model_type",
+     "type": "enum",
+     "values": [
+      "standard",
+      "lowpoly"
+     ],
+     "default": "standard"
+    },
+    {
+     "name": "pose_mode",
+     "type": "enum",
+     "values": [
+      "a-pose",
+      "t-pose",
+      ""
+     ],
+     "default": ""
+    }
+   ],
+   "needs_input_image": true
+  },
+  {
+   "id": "tripo3d/h3.1/image-to-3d",
+   "label": "Tripo H3.1 Image to 3D",
+   "category": "image-to-3d",
+   "output": "3d",
+   "description": "Generate high-quality 3D models from a single image using Tripo H3.1.",
+   "params": [
+    {
+     "name": "auto_size",
+     "type": "bool",
+     "default": false
+    },
+    {
+     "name": "geometry_quality",
+     "type": "enum",
+     "values": [
+      "standard",
+      "detailed"
+     ],
+     "default": "standard"
+    },
+    {
+     "name": "orientation",
+     "type": "enum",
+     "values": [
+      "default",
+      "align_image"
+     ],
+     "default": "default"
+    },
+    {
+     "name": "pbr",
+     "type": "bool",
+     "default": true
+    },
+    {
+     "name": "quad",
+     "type": "bool",
+     "default": false
+    },
+    {
+     "name": "texture",
+     "type": "bool",
+     "default": true
+    },
+    {
+     "name": "texture_alignment",
+     "type": "enum",
+     "values": [
+      "original_image",
+      "geometry"
+     ],
+     "default": "original_image"
+    },
+    {
+     "name": "texture_quality",
+     "type": "enum",
+     "values": [
+      "standard",
+      "detailed"
+     ],
+     "default": "standard"
+    }
+   ],
+   "needs_input_image": true
+  },
+  {
+   "id": "fal-ai/hunyuan3d-v3/image-to-3d",
+   "label": "Hunyuan3d V3",
+   "category": "image-to-3d",
+   "output": "3d",
+   "description": "Transform your photos into ultra-high-resolution 3D models in seconds. Film-quality geometry with PBR textures, ready for games, e-commerce, and 3D printing.",
+   "params": [
+    {
+     "name": "enable_pbr",
+     "type": "bool",
+     "default": false
+    },
+    {
+     "name": "face_count",
+     "type": "int",
+     "default": 500000,
+     "min": 40000,
+     "max": 1500000
+    },
+    {
+     "name": "generate_type",
+     "type": "enum",
+     "values": [
+      "Normal",
+      "LowPoly",
+      "Geometry"
+     ],
+     "default": "Normal"
+    },
+    {
+     "name": "polygon_type",
+     "type": "enum",
+     "values": [
+      "triangle",
+      "quadrilateral"
+     ],
+     "default": "triangle"
+    }
+   ],
+   "needs_input_image": true
+  },
+  {
+   "id": "fal-ai/sam-3/3d-objects",
+   "label": "Sam 3",
+   "category": "image-to-3d",
+   "output": "3d",
+   "description": "SAM 3D enables precise 3D reconstruction of objects from real images, while accurately reconstructing their geometry and texture.",
+   "params": [
+    {
+     "name": "export_textured_glb",
+     "type": "bool",
+     "default": false
+    }
+   ],
+   "needs_input_image": true
+  },
+  {
+   "id": "fal-ai/hyper3d/rodin/v2.5",
+   "label": "Hyper3D - Rodin V2.5 - Image to 3D",
+   "category": "image-to-3d",
+   "output": "3d",
+   "description": "Rodin V2.5 by Hyper3D generates realistic and production ready 3D models from text or images. ",
+   "params": [
+    {
+     "name": "TAPose",
+     "type": "bool",
+     "default": false
+    },
+    {
+     "name": "enable_creative_mode",
+     "type": "bool",
+     "default": false
+    },
+    {
+     "name": "geometry_file_format",
+     "type": "enum",
+     "values": [
+      "glb",
+      "usdz",
+      "fbx",
+      "obj",
+      "stl"
+     ],
+     "default": "glb"
+    },
+    {
+     "name": "hd_texture",
+     "type": "bool",
+     "default": false
+    },
+    {
+     "name": "is_micro",
+     "type": "bool",
+     "default": false
+    },
+    {
+     "name": "material",
+     "type": "enum",
+     "values": [
+      "PBR",
+      "Shaded",
+      "All",
+      "None"
+     ],
+     "default": "All"
+    },
+    {
+     "name": "preview_render",
+     "type": "bool",
+     "default": false
+    },
+    {
+     "name": "quality_mesh_option",
+     "type": "enum",
+     "values": [
+      "Auto",
+      "4K Quad",
+      "8K Quad",
+      "18K Quad",
+      "50K Quad",
+      "100K Quad",
+      "200K Quad",
+      "2K Triangle",
+      "20K Triangle",
+      "50K Triangle",
+      "150K Triangle",
+      "500K Triangle",
+      "1M Triangle",
+      "2M Triangle"
+     ],
+     "default": "Auto"
+    }
+   ]
+  },
+  {
+   "id": "tripo3d/tripo/v2.5/image-to-3d",
+   "label": "Tripo3D",
+   "category": "image-to-3d",
+   "output": "3d",
+   "description": "State of the art Image to 3D Object generation. Generate 3D model from a single image!",
+   "params": [
+    {
+     "name": "texture",
+     "type": "enum",
+     "values": [
+      "no",
+      "standard",
+      "HD"
+     ],
+     "default": "standard"
+    }
+   ],
+   "needs_input_image": true
+  },
+  {
+   "id": "fal-ai/hyper3d/rodin/v2",
+   "label": "Hyper3d",
+   "category": "image-to-3d",
+   "output": "3d",
+   "description": "Rodin by Hyper3D generates realistic and production ready 3D models from text or images.",
+   "params": [
+    {
+     "name": "TAPose",
+     "type": "bool",
+     "default": false
+    },
+    {
+     "name": "geometry_file_format",
+     "type": "enum",
+     "values": [
+      "glb",
+      "usdz",
+      "fbx",
+      "obj",
+      "stl"
+     ],
+     "default": "glb"
+    },
+    {
+     "name": "material",
+     "type": "enum",
+     "values": [
+      "PBR",
+      "Shaded",
+      "All"
+     ],
+     "default": "All"
+    },
+    {
+     "name": "preview_render",
+     "type": "bool",
+     "default": false
+    },
+    {
+     "name": "quality_mesh_option",
+     "type": "enum",
+     "values": [
+      "4K Quad",
+      "8K Quad",
+      "18K Quad",
+      "50K Quad",
+      "2K Triangle",
+      "20K Triangle",
+      "150K Triangle",
+      "500K Triangle"
+     ],
+     "default": "500K Triangle"
+    },
+    {
+     "name": "use_original_alpha",
+     "type": "bool",
+     "default": false
+    }
+   ]
+  },
+  {
+   "id": "fal-ai/meshy/v6-preview/image-to-3d",
+   "label": "Meshy 6 Preview",
+   "category": "image-to-3d",
+   "output": "3d",
+   "description": "Meshy-6-Preview is the latest model from Meshy. It generates realistic and production ready 3D models.\n",
+   "params": [
+    {
+     "name": "animation_action_id",
+     "type": "int",
+     "default": 92
+    },
+    {
+     "name": "enable_animation",
+     "type": "bool",
+     "default": false
+    },
+    {
+     "name": "enable_pbr",
+     "type": "bool",
+     "default": false
+    },
+    {
+     "name": "enable_rigging",
+     "type": "bool",
+     "default": false
+    },
+    {
+     "name": "enable_safety_checker",
+     "type": "bool",
+     "default": true
+    },
+    {
+     "name": "is_a_t_pose",
+     "type": "bool",
+     "default": false
+    },
+    {
+     "name": "model_type",
+     "type": "enum",
+     "values": [
+      "standard",
+      "lowpoly"
+     ],
+     "default": "standard"
+    },
+    {
+     "name": "pose_mode",
+     "type": "enum",
+     "values": [
+      "a-pose",
+      "t-pose",
+      ""
+     ],
+     "default": ""
+    }
+   ],
+   "needs_input_image": true
+  },
+  {
+   "id": "fal-ai/meshy/rigging/multi-animation",
+   "label": "Meshy Rigging Multi Animation",
+   "category": "3d-to-3d",
+   "output": "3d",
+   "description": "Meshy auto-rigs a humanoid 3D model fitting a skeleton and binding the mesh, then applies several motion presets from its animation library",
+   "params": [
+    {
+     "name": "enable_safety_checker",
+     "type": "bool",
+     "default": true
+    },
+    {
+     "name": "height_meters",
+     "type": "float",
+     "default": 1.7
+    }
+   ]
+  },
+  {
+   "id": "fal-ai/meshy/v5/retexture",
+   "label": "Meshy 5 Retexture",
+   "category": "3d-to-3d",
+   "output": "3d",
+   "description": "Meshy-5 retexture applies new, high-quality textures to existing 3D models using either text prompts or reference images. It supports PBR material generation for realistic, product",
+   "params": [
+    {
+     "name": "enable_original_uv",
+     "type": "bool",
+     "default": true
+    },
+    {
+     "name": "enable_pbr",
+     "type": "bool",
+     "default": false
+    },
+    {
+     "name": "enable_safety_checker",
+     "type": "bool",
+     "default": true
+    }
+   ]
+  },
+  {
+   "id": "fal-ai/meshy/rigging",
+   "label": "Meshy Rigging",
+   "category": "3d-to-3d",
+   "output": "3d",
+   "description": "Rig humanoid 3D models from GLB URLs with Meshy, returning rigged GLB/FBX files plus basic   animations.",
+   "params": [
+    {
+     "name": "animation_action_id",
+     "type": "int",
+     "default": 92
+    },
+    {
+     "name": "enable_animation",
+     "type": "bool",
+     "default": false
+    },
+    {
+     "name": "enable_safety_checker",
+     "type": "bool",
+     "default": true
+    },
+    {
+     "name": "height_meters",
+     "type": "float",
+     "default": 1.7
+    }
+   ]
+  },
+  {
+   "id": "fal-ai/hunyuan-3d/v3.1/smart-topology",
+   "label": "Hunyuan 3D Smart Topology",
+   "category": "3d-to-3d",
+   "output": "3d",
+   "description": "Optimize 3D mesh topology with Hunyuan 3D Smart Topology.",
+   "params": [
+    {
+     "name": "face_level",
+     "type": "enum",
+     "values": [
+      "high",
+      "medium",
+      "low"
+     ],
+     "default": "medium"
+    },
+    {
+     "name": "input_file_type",
+     "type": "enum",
+     "values": [
+      "glb",
+      "obj"
+     ],
+     "default": "glb"
+    },
+    {
+     "name": "polygon_type",
+     "type": "enum",
+     "values": [
+      "triangle",
+      "quadrilateral"
+     ],
+     "default": "triangle"
+    }
+   ]
+  },
+  {
+   "id": "fal-ai/meshy/v5/remesh",
+   "label": "Meshy 5 Remesh",
+   "category": "3d-to-3d",
+   "output": "3d",
+   "description": "Meshy-5 remesh allows you to remesh and export existing 3D models into various formats",
+   "params": [
+    {
+     "name": "resize_height",
+     "type": "float",
+     "default": 0,
+     "min": 0
+    },
+    {
+     "name": "target_polycount",
+     "type": "int",
+     "default": 30000,
+     "min": 100,
+     "max": 300000
+    },
+    {
+     "name": "topology",
+     "type": "enum",
+     "values": [
+      "quad",
+      "triangle"
+     ],
+     "default": "triangle"
+    }
+   ]
+  },
+  {
+   "id": "fal-ai/hunyuan-3d/v3.1/part",
+   "label": "Hunyuan 3D Part Splitter",
+   "category": "3d-to-3d",
+   "output": "3d",
+   "description": "Split 3D models into parts with Hunyuan 3D",
+   "params": []
+  },
+  {
+   "id": "fal-ai/sam-3/3d-align",
+   "label": "Sam 3",
+   "category": "3d-to-3d",
+   "output": "3d",
+   "description": "SAM 3D enables full scene reconstructions, placing objects and humans in a shared context together.",
+   "params": [],
+   "needs_input_image": true
+  }
+ ]
 }

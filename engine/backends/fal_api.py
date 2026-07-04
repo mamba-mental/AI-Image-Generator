@@ -27,7 +27,10 @@ def _models() -> dict:
 
 
 _ENGINE_ONLY_KEYS = {"image", "category", "enabled_loras", "num_outputs",
-                     "width", "height", "prompt_strength"}
+                     "width", "height", "prompt_strength", "_inputs"}
+
+_INPUT_ARG_NAME = {"image": "image_url", "video": "video_url",
+                   "audio": "audio_url", "mesh": "model_mesh_url"}
 
 
 def _build_args(entry: dict, params: dict) -> dict:
@@ -42,28 +45,31 @@ def _build_args(entry: dict, params: dict) -> dict:
             and params.get("width") and params.get("height")):
         args["image_size"] = {"width": int(params["width"]), "height": int(params["height"])}
 
-    # Local input media -> fal storage URL
-    input_path = params.get("image")
-    if input_path and (entry.get("needs_input_image") or entry.get("needs_input_video")):
-        if str(input_path).startswith("http"):
-            url = str(input_path)
-        else:
-            from pathlib import Path
-            url = fal_client.upload_file(Path(input_path))
-        args["video_url" if entry.get("needs_input_video") else "image_url"] = url
+    # Local input media (one slot per kind: image/video/audio/mesh) -> fal storage URLs
+    inputs = dict(params.get("_inputs") or {})
+    if params.get("image") and "image" not in inputs:  # legacy single-image path
+        inputs["image"] = params["image"]
+    from pathlib import Path
+    for kind, path in inputs.items():
+        if not path:
+            continue
+        url = str(path) if str(path).startswith("http") else fal_client.upload_file(Path(path))
+        args[_INPUT_ARG_NAME.get(kind, f"{kind}_url")] = url
 
     return args
 
 
-def _extract_outputs(result: dict) -> list:
-    """Normalize fal result shapes to a list of URL strings."""
+def _extract_outputs(result: dict, output_kind: str = "image") -> list:
+    """Normalize fal result shapes to a list of URL strings / {'text': ...} dicts."""
     urls = []
     if not isinstance(result, dict):
         return urls
-    for item in result.get("images") or []:
-        if isinstance(item, dict) and item.get("url"):
-            urls.append(item["url"])
-    for key in ("image", "video", "audio", "audio_file", "audio_url"):
+    for list_key in ("images", "videos", "outputs", "audios"):
+        for item in result.get(list_key) or []:
+            if isinstance(item, dict) and item.get("url"):
+                urls.append(item["url"])
+    for key in ("image", "video", "audio", "audio_file", "audio_url",
+                "model_mesh", "mesh", "file", "output_file"):
         val = result.get(key)
         if isinstance(val, dict) and val.get("url"):
             urls.append(val["url"])
@@ -71,6 +77,14 @@ def _extract_outputs(result: dict) -> list:
             urls.append(val)
     if not urls and result.get("url"):
         urls.append(result["url"])
+    if not urls and output_kind == "text":
+        for key in ("text", "output", "caption", "transcription", "description"):
+            val = result.get(key)
+            if isinstance(val, str) and val.strip():
+                urls.append({"text": val})
+                break
+        else:  # structured text result — dump it whole
+            urls.append({"text": json.dumps(result, indent=1, default=str)})
     return urls
 
 
@@ -118,7 +132,7 @@ def generate(model_id: str, params: dict, progress=None, cancel_event=None) -> l
             return [f"fal Error (validation — model schema may have drifted): {msg[:400]}"]
         return [f"fal Error: {msg[:400]}"]
 
-    urls = _extract_outputs(result)
+    urls = _extract_outputs(result, entry.get("output", "image"))
     if not urls:
         return [f"fal Error: no output URL in result — keys: {list(result.keys()) if isinstance(result, dict) else type(result).__name__}"]
     return urls

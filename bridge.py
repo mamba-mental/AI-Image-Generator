@@ -78,7 +78,11 @@ class Api:
         model_id = req.get("model", "")
         params = dict(req.get("params", {}))
         params["prompt"] = req.get("prompt", "")
-        if req.get("input_image_path"):
+        if req.get("input_files"):
+            params["_inputs"] = dict(req["input_files"])
+            if params["_inputs"].get("image"):
+                params["image"] = params["_inputs"]["image"]  # legacy backends read this
+        elif req.get("input_image_path"):
             params["image"] = req["input_image_path"]
         if req.get("category"):
             params["category"] = req["category"]
@@ -162,15 +166,25 @@ class Api:
             return {"ok": True, "path": str(dest)}
         return {"ok": False}
 
-    def pick_input_image(self) -> dict:
+    _PICK_FILTERS = {
+        "image": "Images (*.png;*.jpg;*.jpeg;*.webp)",
+        "video": "Video (*.mp4;*.webm;*.mov)",
+        "audio": "Audio (*.mp3;*.wav;*.m4a;*.flac)",
+        "mesh": "3D models (*.glb;*.obj;*.stl)",
+    }
+
+    def pick_input_file(self, kind: str = "image") -> dict:
         import webview
         win = webview.windows[0]
         picked = win.create_file_dialog(
             webview.OPEN_DIALOG,
-            file_types=("Images (*.png;*.jpg;*.jpeg;*.webp)",))
+            file_types=(self._PICK_FILTERS.get(kind, "All files (*.*)"),))
         if picked:
             return {"path": picked[0] if isinstance(picked, (list, tuple)) else str(picked)}
         return {"path": None}
+
+    def pick_input_image(self) -> dict:  # legacy alias
+        return self.pick_input_file("image")
 
     def set_key(self, service: str, key: str) -> dict:
         field = engine_config.KEY_FIELDS.get(service, (None, None))[0]
