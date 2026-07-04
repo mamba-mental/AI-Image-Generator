@@ -20,6 +20,8 @@ KEY_FIELDS = {
     "huggingface": ("huggingface_token", "HUGGINGFACE_TOKEN"),
     "gemini": ("gemini_api_key", "GEMINI_API_KEY"),
     "fal": ("fal_api_key", "FAL_KEY"),
+    "openai": ("openai_api_key", "OPENAI_API_KEY"),
+    "nvidia": ("nvidia_api_key", "NVIDIA_API_KEY"),
 }
 
 

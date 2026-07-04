@@ -75,5 +75,21 @@
     "gemini-3.1-flash-image-preview"
   ],
   "recent_models_fal": [],
-  "last_used_model_fal": "fal-ai/flux/schnell"
+  "last_used_model_fal": "fal-ai/flux/schnell",
+  "recent_models_openai": [
+    "gpt-image-2",
+    "gpt-image-1",
+    "gpt-image-1-mini",
+    "dall-e-3"
+  ],
+  "recent_models_nvidia": [
+    "black-forest-labs/flux.1-dev",
+    "black-forest-labs/flux.1-schnell",
+    "black-forest-labs/flux.1-kontext-dev",
+    "stabilityai/stable-diffusion-3.5-large",
+    "stabilityai/sdxl-turbo",
+    "briaai/bria-2.3"
+  ],
+  "last_used_model_openai": "gpt-image-2",
+  "last_used_model_nvidia": "black-forest-labs/flux.1-dev"
 }

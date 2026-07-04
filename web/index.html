@@ -86,10 +86,14 @@
 <section class="stage">
   <div class="stagehdr">
     <span id="outinfo">OUTPUT · generated_images/</span>
-    <span id="viewinfo"></span>
+    <div class="viewtoggle" id="viewtoggle">
+      <button data-view="session" class="on">SESSION</button>
+      <button data-view="history">HISTORY</button>
+    </div>
   </div>
   <div class="gwrap">
     <div class="gallery" id="gallery"></div>
+    <div class="history" id="history" hidden></div>
     <div class="emptystate" id="empty">nothing generated yet — write a prompt and hit GENERATE</div>
   </div>
 </section>

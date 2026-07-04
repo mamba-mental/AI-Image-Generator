@@ -7,7 +7,7 @@ import os
 from pathlib import Path
 
 from engine import config as engine_config
-from engine import mediaserver
+from engine import history, mediaserver
 from engine.jobs import REGISTRY
 from loramanager import LoRAManager
 
@@ -35,7 +35,7 @@ class Api:
 
     def get_state(self) -> dict:
         return {
-            "services": ["fal", "replicate", "huggingface", "gemini"],
+            "services": ["fal", "openai", "nvidia", "replicate", "huggingface", "gemini"],
             "active_service": self.config.get("service", "fal"),
             "config": {k: v for k, v in self.config.items()
                        if k not in ("replicate_api_key", "huggingface_token",
@@ -46,6 +46,8 @@ class Api:
                 "huggingface": self.config.get("recent_models_hf", []),
                 "gemini": self.config.get("recent_models_gemini", []),
                 "fal": self.config.get("recent_models_fal", []),
+                "openai": self.config.get("recent_models_openai", []),
+                "nvidia": self.config.get("recent_models_nvidia", []),
             },
             "recent_prompts": self.config.get("recent_prompts", []),
             "loras": {
@@ -75,6 +77,8 @@ class Api:
         "replicate": ("https://api.replicate.com/v1/account", lambda k: {"Authorization": f"Token {k}"}),
         "gemini": ("https://generativelanguage.googleapis.com/v1beta/models", lambda k: {"x-goog-api-key": k}),
         "huggingface": ("https://huggingface.co/api/whoami-v2", lambda k: {"Authorization": f"Bearer {k}"}),
+        "openai": ("https://api.openai.com/v1/models", lambda k: {"Authorization": f"Bearer {k}"}),
+        "nvidia": ("https://integrate.api.nvidia.com/v1/models", lambda k: {"Authorization": f"Bearer {k}"}),
     }
 
     def validate_key(self, service: str, key: str = "") -> dict:
@@ -106,6 +110,9 @@ class Api:
         result = self.validate_key(service)  # validates the now-resolved key
         return {"validation": result, "keys_status": self.keys_status}
 
+    def get_history(self, limit: int = 300) -> list:
+        return history.read(self.config["output_directory"], limit)
+
     def get_balance(self, service: str) -> dict:
         """Credit/quota status for the footer. Only fal exposes a real balance
         (via FAL_KEY_ADMIN); the rest are usage-based or free-tier. Key never returned."""
@@ -131,6 +138,10 @@ class Api:
                 return {"label": "usage-based · no balance API", "kind": "info"}
             if service == "huggingface":
                 return {"label": "free / PRO tier", "kind": "info"}
+            if service == "openai":
+                return {"label": "usage-based · platform.openai.com/usage", "kind": "info"}
+            if service == "nvidia":
+                return {"label": "NIM credits · usage-based", "kind": "info"}
         except Exception as e:
             return {"label": f"balance unavailable ({type(e).__name__})", "kind": "none"}
         return {"label": "", "kind": "none"}
@@ -140,7 +151,9 @@ class Api:
             return _load_fal_models()
         key = {"replicate": "recent_models_replicate",
                "huggingface": "recent_models_hf",
-               "gemini": "recent_models_gemini"}.get(service, "")
+               "gemini": "recent_models_gemini",
+               "openai": "recent_models_openai",
+               "nvidia": "recent_models_nvidia"}.get(service, "")
         return [{"id": m, "label": m, "category": "text-to-image"}
                 for m in self.config.get(key, [])]
 
@@ -173,7 +186,8 @@ class Api:
             recents.insert(0, prompt)
             del recents[20:]
         model_key = {"replicate": "recent_models_replicate", "huggingface": "recent_models_hf",
-                     "gemini": "recent_models_gemini", "fal": "recent_models_fal"}.get(service)
+                     "gemini": "recent_models_gemini", "fal": "recent_models_fal",
+                     "openai": "recent_models_openai", "nvidia": "recent_models_nvidia"}.get(service)
         if model_key and model_id:
             recents = self.config.setdefault(model_key, [])
             if model_id in recents:

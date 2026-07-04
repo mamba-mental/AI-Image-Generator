@@ -6,7 +6,7 @@ import threading
 import traceback
 import uuid
 
-from . import save
+from . import history, save
 from .backends import BACKENDS
 
 
@@ -77,11 +77,14 @@ class JobRegistry:
             paths = save.make_output_paths(output_dir, len(results))
             saved, errors = save.persist_results(results, paths)
             if saved:
+                meta = {"service": service, "model": model_id,
+                        "prompt": params.get("prompt", ""), "seed": params.get("seed")}
+                history.record(output_dir, {**meta, "files": saved,
+                                            "params": {k: v for k, v in params.items()
+                                                       if k not in ("prompt", "_inputs", "image",
+                                                                     "enabled_loras")}})
                 self.emit({"type": "job_done", "job_id": job_id, "files": saved,
-                           "errors": errors,
-                           "meta": {"service": service, "model": model_id,
-                                    "prompt": params.get("prompt", ""),
-                                    "seed": params.get("seed")}})
+                           "errors": errors, "meta": meta})
             else:
                 self.emit({"type": "job_error", "job_id": job_id,
                            "error": (errors[0] if errors else "No results returned.")})

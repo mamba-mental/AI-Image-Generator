@@ -24,7 +24,7 @@ function catList() {
 }
 const INPUT_KINDS = { needs_input_image: "image", needs_input_video: "video",
                       needs_input_audio: "audio", needs_input_mesh: "mesh" };
-const SVC_LABELS = { fal: "Fal", replicate: "Replicate", huggingface: "HF", gemini: "Gemini" };
+const SVC_LABELS = { fal: "Fal", openai: "OpenAI", nvidia: "NVIDIA", replicate: "Replicate", huggingface: "HF", gemini: "Gemini" };
 
 // legacy param set for replicate / hf / gemini (ported from the CTk panel)
 const LEGACY_PARAMS = [
@@ -41,6 +41,7 @@ const state = {
   service: "fal", category: "text-to-image", model: null,
   inputFiles: {}, job: null, gallery: [], selected: null,
   genCount: 0, loras: {}, mediaBase: "", outDirName: "generated_images",
+  view: "session",
 };
 
 /* ---------- bridge helpers ---------- */
@@ -92,12 +93,14 @@ $("themepick").addEventListener("click", e => { const b = e.target.closest("butt
 /* ---------- settings modal (API keys) ---------- */
 const KEY_HINTS = {
   fal: "FAL_KEY · fal.ai/dashboard/keys",
+  openai: "OPENAI_API_KEY · platform.openai.com/api-keys",
+  nvidia: "NVIDIA_API_KEY · build.nvidia.com (nvapi-…)",
   replicate: "REPLICATE_API_TOKEN · replicate.com/account/api-tokens",
   gemini: "GEMINI_API_KEY · aistudio.google.com/apikey (free)",
   huggingface: "HUGGINGFACE_TOKEN · huggingface.co/settings/tokens",
 };
 function renderKeyRows() {
-  $("keyrows").innerHTML = ["fal", "replicate", "huggingface", "gemini"].map(s => `
+  $("keyrows").innerHTML = ["fal", "openai", "nvidia", "replicate", "huggingface", "gemini"].map(s => `
     <div class="keyrow" data-svc="${s}">
       <div class="keyrow-head">
         <span class="svc-name">${SVC_LABELS[s]}</span>
@@ -105,8 +108,8 @@ function renderKeyRows() {
       </div>
       <div class="keyrow-in">
         <input type="password" placeholder="paste new ${SVC_LABELS[s]} key to override…" data-keyin>
-        <button data-validate>Validate</button>
-        <button data-save>Save + Check</button>
+        <button data-save>Save &amp; Validate</button>
+        <button data-check title="check the key already in use, without changing it">Check current</button>
       </div>
       <div class="hint">${KEY_HINTS[s]}</div>
     </div>`).join("");
@@ -117,21 +120,24 @@ function renderKeyRows() {
     const input = row.querySelector("[data-keyin]");
     const setStatus = (cls, txt) => { status.className = "status " + cls; status.textContent = txt; };
 
-    row.querySelector("[data-validate]").addEventListener("click", async () => {
-      setStatus("checking", "checking…");
-      const r = await api().validate_key(s, input.value);
-      setStatus(r.valid ? "valid" : "invalid", r.valid ? `valid (${r.http})` : `${r.detail} (${r.http})`);
-    });
+    // ONE save path — always persists then validates (no "validated but not saved" trap)
     row.querySelector("[data-save]").addEventListener("click", async () => {
-      if (!input.value.trim()) { setStatus("invalid", "empty"); return; }
+      if (!input.value.trim()) { setStatus("invalid", "enter a key first"); return; }
       setStatus("checking", "saving…");
       const r = await api().save_and_validate_key(s, input.value);
       state.keys = r.keys_status;
       const v = r.validation;
-      setStatus(v.valid ? "valid" : "invalid", v.valid ? `saved · valid (${v.http})` : `saved · ${v.detail}`);
+      setStatus(v.valid ? "valid" : "invalid",
+                v.valid ? `saved · valid (${v.http})` : `saved · ${v.detail} (${v.http})`);
       input.value = "";
-      renderService();            // reflect new key state in the dropdown
+      renderService();            // reflect new key state in the dropdown immediately
       if (s === state.service) refreshBalance();
+    });
+    // read-only check of the key already in use (does not save)
+    row.querySelector("[data-check]").addEventListener("click", async () => {
+      setStatus("checking", "checking…");
+      const r = await api().validate_key(s, "");
+      setStatus(r.valid ? "valid" : "invalid", r.valid ? `valid (${r.http})` : `${r.detail} (${r.http})`);
     });
   });
 }
@@ -281,7 +287,7 @@ function mediaTag(f) {
   return `<img src="${fileUrl(f)}" alt="">`;
 }
 function renderGallery() {
-  $("empty").style.display = state.gallery.length ? "none" : "";
+  $("empty").style.display = (state.view === "session" && !state.gallery.length) ? "" : "none";
   $("gallery").innerHTML = state.gallery.map((g, i) => `
     <div class="tile ${i === state.selected ? "sel" : ""}" data-i="${i}">
       ${mediaTag(g.file)}
@@ -302,6 +308,64 @@ function renderGallery() {
   $("gallery").querySelectorAll("[data-open]").forEach(b => b.addEventListener("click", () =>
     api().open_output_folder()));
 }
+
+/* ---------- history view ---------- */
+async function renderHistory() {
+  const wrap = $("history");
+  wrap.innerHTML = `<div class="emptystate">loading history…</div>`;
+  let rows = [];
+  try { rows = await api().get_history(300); } catch (e) { rows = []; }
+  if (!rows.length) {
+    wrap.innerHTML = `<div class="emptystate">no history yet — every generation is logged here across sessions</div>`;
+    return;
+  }
+  wrap.innerHTML = rows.map((r, i) => {
+    const files = (r.files || []);
+    const thumbs = files.map(f => `<div class="h-thumb">${mediaTag(f)}</div>`).join("");
+    const when = (r.ts || "").replace("T", " ").slice(0, 16);
+    return `<div class="h-row" data-i="${i}">
+      <div class="h-thumbs">${thumbs || '<div class="h-thumb none">—</div>'}</div>
+      <div class="h-meta">
+        <div class="h-prompt">${escapeHtml(r.prompt || "(no prompt)")}</div>
+        <div class="h-sub"><b>${(r.model || "").split("/").pop()}</b> · ${r.service || ""} · ${when}${r.seed ? " · seed " + r.seed : ""}</div>
+        <div class="h-acts">
+          <button data-reuse="${i}">↻ reuse prompt</button>
+          <button data-copy="${i}">copy prompt</button>
+        </div>
+      </div>
+    </div>`;
+  }).join("");
+
+  wrap.querySelectorAll("[data-reuse]").forEach(b => b.addEventListener("click", () => {
+    const r = rows[+b.dataset.reuse];
+    $("prompt").value = r.prompt || "";
+    if (state.services.includes(r.service)) {
+      state.service = r.service; state.model = r.model;
+      renderService();
+      const m = state.falModels.find(x => x.id === r.model);
+      if (m) state.category = m.category;
+      render();
+    }
+    setView("session");
+  }));
+  wrap.querySelectorAll("[data-copy]").forEach(b => b.addEventListener("click", () => {
+    navigator.clipboard.writeText(rows[+b.dataset.copy].prompt || "");
+    b.textContent = "copied";
+    setTimeout(() => { b.textContent = "copy prompt"; }, 1200);
+  }));
+}
+function escapeHtml(s) {
+  return String(s).replace(/[&<>"]/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]));
+}
+function setView(v) {
+  state.view = v;
+  document.querySelectorAll("#viewtoggle button").forEach(b => b.classList.toggle("on", b.dataset.view === v));
+  $("gallery").hidden = v !== "session";
+  $("history").hidden = v !== "history";
+  $("empty").style.display = (v === "session" && !state.gallery.length) ? "" : "none";
+  if (v === "history") renderHistory();
+}
+$("viewtoggle").addEventListener("click", e => { const b = e.target.closest("button"); if (b) setView(b.dataset.view); });
 
 /* ---------- generation ---------- */
 function setBusy(busy) {
