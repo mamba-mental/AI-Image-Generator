@@ -1,0 +1,27 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>AI Studio Void</title>
+<style>
+  body { background:#000; color:#ece6e4; font-family:monospace; display:grid;
+         place-items:center; height:100vh; margin:0; }
+  .boot { text-align:center; }
+  .boot b { color:#8B5CF6; }
+</style>
+</head>
+<body>
+  <div class="boot">
+    <h1>AI <b>Studio</b> Void</h1>
+    <p id="status">bridge: connecting…</p>
+  </div>
+  <script>
+    window.onEngineEvent = (evt) => console.log("engine event", evt);
+    window.addEventListener("pywebviewready", async () => {
+      const state = await window.pywebview.api.get_state();
+      document.getElementById("status").textContent =
+        `bridge: OK — services [${state.services.join(", ")}], active: ${state.active_service}`;
+    });
+  </script>
+</body>
+</html>

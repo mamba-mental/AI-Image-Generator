@@ -3,7 +3,6 @@
 Returns a list of image URLs on success, or a single-element ["Replicate Error: ..."] list.
 """
 import os
-import random
 import traceback
 
 import replicate
