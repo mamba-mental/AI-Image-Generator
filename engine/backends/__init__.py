@@ -1,0 +1,15 @@
+"""Backend dispatch table. Each backend exposes generate(model_id, params, progress, cancel_event)
+and returns a list of results: URL strings, PIL Images, bytes tuples, or "…Error…" strings."""
+from . import replicate_api, hf_api, gemini_api
+
+BACKENDS = {
+    "replicate": replicate_api.generate,
+    "huggingface": hf_api.generate,
+    "gemini": gemini_api.generate,
+}
+
+try:  # fal lands in Phase 3; optional so the engine imports without fal-client installed
+    from . import fal_api
+    BACKENDS["fal"] = fal_api.generate
+except ImportError:
+    pass
