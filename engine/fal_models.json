@@ -1,0 +1,104 @@
+{
+  "version": 1,
+  "note": "Curated fal.ai flagship table — single source of truth for the app AND the fal skill (C:/AI CoWork/.claude/skills/fal). params are FORM-RENDERING HINTS only; the engine passes the params dict through verbatim. Refresh a model's schema via the fal skill's get-schema when it drifts.",
+  "models": [
+    { "id": "fal-ai/flux/schnell", "label": "FLUX Schnell", "category": "text-to-image", "output": "image", "price": "~$0.003/MP",
+      "params": [
+        {"name": "image_size", "type": "enum", "values": ["square_hd", "square", "landscape_4_3", "portrait_4_3", "landscape_16_9", "portrait_16_9"], "default": "landscape_4_3"},
+        {"name": "num_inference_steps", "type": "int", "default": 4, "max": 12},
+        {"name": "num_images", "type": "int", "default": 1, "max": 4},
+        {"name": "seed", "type": "int", "optional": true}
+      ]},
+    { "id": "fal-ai/flux/dev", "label": "FLUX Dev", "category": "text-to-image", "output": "image", "price": "~$0.025/MP",
+      "params": [
+        {"name": "image_size", "type": "enum", "values": ["square_hd", "square", "landscape_4_3", "portrait_4_3", "landscape_16_9", "portrait_16_9"], "default": "landscape_4_3"},
+        {"name": "num_inference_steps", "type": "int", "default": 28, "max": 50},
+        {"name": "guidance_scale", "type": "float", "default": 3.5, "max": 20},
+        {"name": "num_images", "type": "int", "default": 1, "max": 4},
+        {"name": "seed", "type": "int", "optional": true}
+      ]},
+    { "id": "fal-ai/nano-banana-pro", "label": "Nano Banana Pro", "category": "text-to-image", "output": "image", "price": "~$0.05/img",
+      "params": [
+        {"name": "aspect_ratio", "type": "enum", "values": ["1:1", "4:3", "3:4", "16:9", "9:16"], "default": "4:3"},
+        {"name": "num_images", "type": "int", "default": 1, "max": 4}
+      ]},
+    { "id": "fal-ai/ideogram/v3", "label": "Ideogram v3 (text-in-image)", "category": "text-to-image", "output": "image", "price": "~$0.06/img",
+      "params": [
+        {"name": "aspect_ratio", "type": "enum", "values": ["1:1", "4:3", "3:4", "16:9", "9:16"], "default": "1:1"},
+        {"name": "style", "type": "enum", "values": ["AUTO", "GENERAL", "REALISTIC", "DESIGN"], "default": "AUTO"}
+      ]},
+    { "id": "fal-ai/recraft/v3/text-to-image", "label": "Recraft v3 (design/vector)", "category": "text-to-image", "output": "image", "price": "~$0.04/img",
+      "params": [
+        {"name": "image_size", "type": "enum", "values": ["square_hd", "landscape_4_3", "portrait_4_3", "landscape_16_9", "portrait_16_9"], "default": "square_hd"},
+        {"name": "style", "type": "enum", "values": ["realistic_image", "digital_illustration", "vector_illustration"], "default": "realistic_image"}
+      ]},
+
+    { "id": "fal-ai/flux/dev/image-to-image", "label": "FLUX Dev img2img", "category": "image-to-image", "output": "image", "price": "~$0.025/MP", "needs_input_image": true,
+      "params": [
+        {"name": "strength", "type": "float", "default": 0.85, "max": 1},
+        {"name": "num_inference_steps", "type": "int", "default": 28, "max": 50},
+        {"name": "guidance_scale", "type": "float", "default": 3.5, "max": 20},
+        {"name": "seed", "type": "int", "optional": true}
+      ]},
+    { "id": "fal-ai/flux-pro/kontext", "label": "FLUX Kontext (edit by instruction)", "category": "image-to-image", "output": "image", "price": "~$0.04/img", "needs_input_image": true,
+      "params": [
+        {"name": "guidance_scale", "type": "float", "default": 3.5, "max": 20},
+        {"name": "seed", "type": "int", "optional": true}
+      ]},
+    { "id": "fal-ai/flux/dev/inpainting", "label": "FLUX Dev Inpainting", "category": "image-to-image", "output": "image", "price": "~$0.025/MP", "needs_input_image": true,
+      "params": [
+        {"name": "strength", "type": "float", "default": 0.85, "max": 1},
+        {"name": "num_inference_steps", "type": "int", "default": 28, "max": 50}
+      ]},
+
+    { "id": "fal-ai/veo3.1", "label": "Veo 3.1 (t2v + audio)", "category": "text-to-video", "output": "video", "price": "~$0.40/s",
+      "params": [
+        {"name": "aspect_ratio", "type": "enum", "values": ["16:9", "9:16"], "default": "16:9"},
+        {"name": "duration", "type": "enum", "values": ["4s", "6s", "8s"], "default": "8s"},
+        {"name": "generate_audio", "type": "bool", "default": true}
+      ]},
+    { "id": "fal-ai/bytedance/seedance/v1/pro/text-to-video", "label": "Seedance 1.0 Pro (t2v)", "category": "text-to-video", "output": "video", "price": "~$0.15-0.75/clip",
+      "params": [
+        {"name": "aspect_ratio", "type": "enum", "values": ["16:9", "9:16", "1:1"], "default": "16:9"},
+        {"name": "resolution", "type": "enum", "values": ["480p", "720p", "1080p"], "default": "720p"},
+        {"name": "duration", "type": "enum", "values": ["5", "10"], "default": "5"}
+      ]},
+
+    { "id": "fal-ai/kling-video/v2.6/pro/image-to-video", "label": "Kling 2.6 Pro (i2v)", "category": "image-to-video", "output": "video", "price": "~$0.35-0.70/clip", "needs_input_image": true,
+      "params": [
+        {"name": "duration", "type": "enum", "values": ["5", "10"], "default": "5"},
+        {"name": "cfg_scale", "type": "float", "default": 0.5, "max": 1}
+      ]},
+    { "id": "fal-ai/bytedance/seedance/v1.5/pro/image-to-video", "label": "Seedance 1.5 Pro (i2v)", "category": "image-to-video", "output": "video", "price": "~$0.15-0.75/clip", "needs_input_image": true,
+      "params": [
+        {"name": "resolution", "type": "enum", "values": ["480p", "720p", "1080p"], "default": "720p"},
+        {"name": "duration", "type": "enum", "values": ["5", "10"], "default": "5"}
+      ]},
+
+    { "id": "fal-ai/aura-sr", "label": "AuraSR Upscale (4x, fast)", "category": "upscale", "output": "image", "price": "~$0.01/img", "needs_input_image": true,
+      "params": [
+        {"name": "upscaling_factor", "type": "enum", "values": ["4"], "default": "4"}
+      ]},
+    { "id": "fal-ai/clarity-upscaler", "label": "Clarity Upscaler (creative)", "category": "upscale", "output": "image", "price": "~$0.03/img", "needs_input_image": true,
+      "params": [
+        {"name": "upscale_factor", "type": "float", "default": 2, "max": 4},
+        {"name": "creativity", "type": "float", "default": 0.35, "max": 1}
+      ]},
+    { "id": "fal-ai/topaz/upscale/video", "label": "Topaz Video Upscale", "category": "upscale", "output": "video", "price": "usage-based", "needs_input_video": true,
+      "params": [
+        {"name": "upscale_factor", "type": "enum", "values": ["2", "4"], "default": "2"}
+      ]},
+
+    { "id": "fal-ai/birefnet/v2", "label": "BiRefNet v2 (bg removal)", "category": "bg-removal", "output": "image", "price": "~$0.002/img", "needs_input_image": true,
+      "params": []},
+
+    { "id": "fal-ai/minimax-music", "label": "MiniMax Music", "category": "music", "output": "audio", "price": "~$0.035/gen",
+      "params": [
+        {"name": "reference_audio_url", "type": "string", "optional": true}
+      ]},
+    { "id": "fal-ai/minimax/speech-02-hd", "label": "MiniMax Speech HD (TTS)", "category": "tts", "output": "audio", "price": "~$0.10/1k chars",
+      "params": [
+        {"name": "voice_setting", "type": "string", "optional": true}
+      ]}
+  ]
+}
