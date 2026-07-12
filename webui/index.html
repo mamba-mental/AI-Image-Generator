@@ -1,0 +1,78 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>AI Studio Void</title>
+<link rel="stylesheet" href="app.css">
+</head>
+<body>
+<header>
+  <div class="mark"><span class="v">V</span><span><b>VOID</b>&nbsp;STUDIO</span></div>
+  <div class="tabs" id="tabs">
+    <span class="on" data-tab="image">Image</span>
+    <span data-tab="video" data-disabled data-reason="Video generation ships in v2">Video</span>
+    <span data-tab="virality" data-disabled data-reason="Virality Predictor was Higgsfield-only; Higgsfield is retired">Virality</span>
+  </div>
+  <div class="prompt">
+    <input id="prompt" placeholder="Describe what you want to see..." autocomplete="off">
+    <span class="hist" data-api="history_list" id="histBtn">History &#9662;</span>
+    <button class="gen" data-api="generate" id="genBtn">Generate &#10022;</button>
+  </div>
+  <div class="credits" id="status">ready</div>
+</header>
+
+<aside>
+  <h3>Model</h3>
+  <div class="sect">
+    <div class="model">
+      <div><div class="nm" id="modelName">FLUX.2 [Turbo]</div><div class="prov" id="modelProv">fal.ai</div></div>
+    </div>
+    <div class="ladder" id="providers" data-api="providers">
+      <span class="chip on" data-provider="fal">fal</span>
+      <span class="chip" data-provider="replicate">replicate</span>
+      <span class="chip" data-provider="hf">hf</span>
+      <span class="chip" data-provider="gemini">gemini</span>
+    </div>
+    <select id="modelSelect" class="mSelect" data-api="models"></select>
+  </div>
+
+  <h3>LoRA Stack</h3>
+  <div class="lora" id="loraStack" data-api="lora_list">
+    <div class="lrow addrow" data-api="lora_add" id="addLora">+ Add LoRA</div>
+  </div>
+
+  <h3>Dimensions</h3>
+  <div class="sect dims" id="dims">
+    <span class="dim on" data-dim="1:1">1:1</span>
+    <span class="dim" data-dim="3:4">3:4</span>
+    <span class="dim" data-dim="4:3">4:3</span>
+    <span class="dim" data-dim="16:9">16:9</span>
+    <span class="dim" data-dim="9:16">9:16</span>
+    <span class="dim" data-dim="2K">2K</span>
+  </div>
+
+  <h3>Parameters</h3>
+  <div class="sect">
+    <div class="krow"><span class="k">Batch</span><span class="v" id="batchV">4</span></div>
+    <input class="slider" type="range" min="1" max="8" value="4" id="batch">
+    <div class="krow"><span class="k">Guidance</span><span class="v" id="guidV">3.5</span></div>
+    <input class="slider" type="range" min="0" max="10" value="3.5" step="0.5" id="guidance">
+    <div class="krow"><span class="k">Seed</span><span class="v" id="seedV">random &#8635;</span></div>
+    <div class="krow"><span class="k">Prompt Enhance</span><span class="tgl off" id="enhance"></span></div>
+  </div>
+</aside>
+
+<main>
+  <div class="mas" id="gallery" data-api="gallery"></div>
+  <div class="empty" id="empty" style="display:none">No generations yet &mdash; type a prompt and hit Generate.</div>
+</main>
+
+<footer>
+  <b>AI Studio Void</b> &middot; Power-User Studio (Direction 4) &middot; fal primary &middot;
+  built in Claude Code session 2026-07-12 &middot; entry <code>app_web.py</code>
+</footer>
+
+<script src="app.js"></script>
+</body>
+</html>
