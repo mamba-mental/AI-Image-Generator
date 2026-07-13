@@ -112,14 +112,19 @@ def _resolve_one(cfg: dict, config_field: str, env_name: str) -> str:
 
 
 def resolve_keys(cfg: dict) -> dict:
-    """Resolve final key per service (config-wins-over-env), export to env for the
-    client libraries, and return {service: bool} status. Values never leave this module."""
+    """Resolve keys per service (config-wins-over-env), build the multi-key POOL (#13),
+    export the active key to env for the client libraries, and return {service: bool} status.
+    Values never leave this module."""
+    from . import keypool
     status = {}
     for service, (config_field, env_name) in KEY_FIELDS.items():
         final = _resolve_one(cfg, config_field, env_name)
         if final:
             os.environ[env_name] = final
-        status[service] = bool(final)
+        # #13 — pool from config (single or list) + primary env + numbered/comma env variants
+        pool_cfg = cfg.get(config_field + "s") or cfg.get(config_field)
+        n = keypool.build(service, env_name, pool_cfg if pool_cfg else final)
+        status[service] = bool(final) or n > 0
     # library behavior flags (ported from setup_services :567)
     os.environ["FLUX_DISABLE_SAFETY"] = "true"
     os.environ["FLUX_GO_FAST"] = "true"

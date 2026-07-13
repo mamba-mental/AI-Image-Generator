@@ -6,8 +6,19 @@ import threading
 import traceback
 import uuid
 
-from . import history, logbuf, save
+from . import history, keypool, logbuf, save
 from .backends import BACKENDS
+
+_RATE_LIMIT_MARKERS = ("401", "403", "429", "rate limit", "rate-limit",
+                       "quota", "exhaust", "insufficient", "too many requests")
+
+
+def _looks_rate_limited(results) -> bool:
+    """A single error-string result that reads like an auth/rate-limit failure (#13 auto-swap trigger)."""
+    if len(results) == 1 and isinstance(results[0], str) and "Error" in results[0]:
+        low = results[0].lower()
+        return any(m in low for m in _RATE_LIMIT_MARKERS)
+    return False
 
 
 class JobRegistry:
@@ -76,10 +87,18 @@ class JobRegistry:
                 self.emit({"type": "job_progress", "job_id": job_id,
                            "message": str(message), "pct": pct})
 
-            results = backend(model_id, params, progress=progress, cancel_event=cancel)
-            if cancel.is_set():
-                self.emit({"type": "job_error", "job_id": job_id, "error": "Cancelled."})
-                return
+            # #13 — on a rate-limit/auth failure, rotate to the next pooled key and retry
+            results = []
+            attempts = max(1, keypool.size(service))
+            for attempt in range(attempts):
+                results = backend(model_id, params, progress=progress, cancel_event=cancel)
+                if cancel.is_set():
+                    self.emit({"type": "job_error", "job_id": job_id, "error": "Cancelled."})
+                    return
+                if attempt < attempts - 1 and _looks_rate_limited(results) and keypool.rotate(service):
+                    progress(f"key rate-limited — switching to key {attempt + 2}/{attempts}…")
+                    continue
+                break
 
             progress("saving…")  # #15 — explicit save stage: queued -> running -> saving -> done
             paths = save.make_output_paths(output_dir, len(results))

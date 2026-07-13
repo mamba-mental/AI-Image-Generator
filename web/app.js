@@ -41,7 +41,7 @@ const state = {
   service: "fal", category: "text-to-image", model: null,
   inputFiles: {}, job: null, gallery: [], selected: null,
   genCount: 0, loras: {}, mediaBase: "", outDirName: "generated_images",
-  view: "session", grid: "m", lbFile: null,
+  view: "session", grid: "m", lbFile: null, nsfw: true,
 };
 
 /* ---------- bridge helpers ---------- */
@@ -51,6 +51,7 @@ async function boot() {
   const s = await api().get_state();
   state.services = s.services;
   state.keys = s.keys_status;
+  state.keyPools = s.key_pools || {};
   state.falModels = s.fal_models;
   state.recentModels = s.recent_models;
   state.loras = s.loras || {};
@@ -68,6 +69,7 @@ async function boot() {
   if (cfg.ui_theme) setTheme(cfg.ui_theme, false);
   if (cfg.ui_layout) setLayout(cfg.ui_layout, false);
   if (cfg.ui_grid) setGrid(cfg.ui_grid, false);
+  state.nsfw = cfg.ui_nsfw !== false;   // #1 permissive-by-default (max coverage); persisted
   if (cfg.parameters && cfg.parameters.negative_prompt) $("negprompt").value = cfg.parameters.negative_prompt;
   $("conn").classList.remove("off");
   $("connlabel").textContent = Object.entries(state.keys)
@@ -118,7 +120,7 @@ function renderKeyRows() {
     <div class="keyrow" data-svc="${s}">
       <div class="keyrow-head">
         <span class="svc-name">${SVC_LABELS[s]}</span>
-        <span class="status ${state.keys[s] ? "set" : "unset"}" data-status>${state.keys[s] ? "key set" : "not set"}</span>
+        <span class="status ${state.keys[s] ? "set" : "unset"}" data-status>${state.keys[s] ? "key set" : "not set"}${(state.keyPools && state.keyPools[s] > 1) ? ` · ${state.keyPools[s]} keys (auto-swap)` : ""}</span>
       </div>
       <div class="keyrow-in">
         <input type="password" placeholder="paste new ${SVC_LABELS[s]} key to override…" data-keyin>
@@ -209,8 +211,12 @@ function render() {
   $("hdrinfo").textContent = `${state.service} · ${cur ? (cur.label || cur.id) : "—"}`;
 
   renderInputPickers(cur);
-  $("negwrap").style.display = (isFal && state.category !== "text-to-image" && state.category !== "image-to-image") ? "none" : "";
+  renderPromptGuide(cur);
+  // #12 — negative prompt only where the family actually uses it (FLUX/gpt-image/nano-banana hide it)
+  const fam = PROMPT_GUIDE[modelFamily(cur && cur.id)] || PROMPT_GUIDE.generic;
+  $("negwrap").style.display = fam.neg ? "" : "none";
   renderParams(cur);
+  renderNsfw(cur);
   renderLoras();
   if (state.view === "session") renderGallery();  // refresh stage (browse landing or session gallery)
 }
@@ -240,6 +246,51 @@ const SAFETY_LABELS = {
   "5": "5 — Permissive (artistic nudity allowed)",
   "6": "6 — Most permissive (minimal filtering)",
 };
+
+// #1 — in-app content-policy reference (provider -> policy -> required config).
+// Grounded in a provider-capability audit; hard-filter providers cannot be overridden.
+const NSFW_POLICY = [
+  { p: "fal", allow: "yes", policy: "Permissive — artistic/implied nudity on many models via safety params.",
+    config: "enable_safety_checker=false (28 models) + safety_tolerance up to 6 (15 models). The toggle sets these on models that declare them." },
+  { p: "huggingface", allow: "partial", policy: "Model-dependent; many SDXL/community checkpoints are uncensored.",
+    config: "Steer with negative_prompt; no global flag. FLUX_DISABLE_SAFETY honored where the model reads it." },
+  { p: "replicate", allow: "yes", policy: "Most image models expose disable_safety_checker.",
+    config: "disable_safety_checker=true sent by the replicate backend (permissive)." },
+  { p: "gemini", allow: "no", policy: "Hard filter — nudity blocked, no override.", config: "n/a (provider-enforced)." },
+  { p: "nvidia", allow: "no", policy: "Hard filter — no override.", config: "n/a (provider-enforced)." },
+  { p: "openai", allow: "no", policy: "Hard no — gpt-image refuses explicit content.", config: "n/a (provider-enforced)." },
+];
+function modelSafetyParams(model) {
+  const names = new Set(((model && model.params) || []).map(p => p.name));
+  return { checker: names.has("enable_safety_checker"), tolerance: names.has("safety_tolerance") };
+}
+
+// #12 — per-family canonical prompting guidance + negative-prompt gating (from a provider audit).
+function modelFamily(id) {
+  const s = (id || "").toLowerCase();
+  if (s.includes("flux")) return "flux";
+  if (s.includes("nano-banana")) return "nano-banana";
+  if (s.includes("gpt-image") || s.includes("dall-e")) return "gpt-image";
+  if (s.includes("imagen")) return "imagen";
+  if (s.includes("seedream") || s.includes("seedance")) return "seedream";
+  if (s.includes("kling") || s.includes("veo") || s.includes("wan") || s.includes("-video")) return "video";
+  if (s.includes("sdxl") || s.includes("stable-diffusion")) return "sdxl";
+  return "generic";
+}
+const PROMPT_GUIDE = {
+  flux: { tip: "FLUX — natural descriptive sentences; no weight syntax, no negative prompt. Put exclusions IN the prompt (\"no text, no watermark\"). Strong on scene + style + lighting detail.", neg: false, src: "fal FLUX docs" },
+  "nano-banana": { tip: "Nano-Banana (Gemini image) — conversational edit-style instructions; describe the change/scene plainly. No negative prompt.", neg: false, src: "fal nano-banana" },
+  "gpt-image": { tip: "gpt-image — plain descriptive prompt; the model handles composition. No negative prompt: describe what you want, not what to avoid.", neg: false, src: "OpenAI Images" },
+  imagen: { tip: "Imagen — descriptive prompt + optional negative_prompt to exclude elements; responds to style/quality descriptors.", neg: true, src: "Google Imagen" },
+  seedream: { tip: "Seedream/Seedance — prompt + negative_prompt supported; responds well to cinematic + camera terms.", neg: true, src: "fal Seedream" },
+  sdxl: { tip: "SDXL — prompt + strong negative_prompt (comma tags). Weighted terms (word:1.2) work; use negatives for quality (\"blurry, extra fingers\").", neg: true, src: "SDXL" },
+  video: { tip: "Video (Kling/Veo/Wan) — describe motion + camera + subject; negative_prompt supported to suppress artifacts.", neg: true, src: "fal video" },
+  generic: { tip: "Describe subject, style, composition, and lighting clearly.", neg: true, src: "" },
+};
+function renderPromptGuide(model) {
+  const g = PROMPT_GUIDE[modelFamily(model && model.id)] || PROMPT_GUIDE.generic;
+  $("promptguide").innerHTML = `<span class="pg-tip">${escapeHtml(g.tip)}</span>${g.src ? `<span class="pg-src">ref: ${g.src}</span>` : ""}`;
+}
 
 function paramControl(p) {
   const v = p.default !== undefined ? p.default : "";
@@ -288,6 +339,47 @@ function collectParams(model) {
   if (neg && $("negwrap").style.display !== "none") out.negative_prompt = neg;
   return out;
 }
+
+/* ---------- #1 NSFW / content-policy toggle + reference ---------- */
+function syncSafetyControls() {
+  // The Content toggle governs the safety params; mirror it into the param controls
+  // (which #5 still renders as labeled) so collectParams reads the right values.
+  const chk = $("params").querySelector('[data-p="enable_safety_checker"]');
+  if (chk) chk.checked = !state.nsfw;                 // permissive -> checker OFF
+  const tol = $("params").querySelector('[data-p="safety_tolerance"]');
+  if (tol && state.nsfw) tol.value = "6";             // permissive -> max tolerance
+}
+function nsfwNote() {
+  $("nsfwnote").textContent = state.nsfw
+    ? "permissive — safety filter off where the model supports it"
+    : "safety filter ON (provider default)";
+}
+function renderNsfw(model) {
+  const sp = modelSafetyParams(model);
+  const show = state.service === "fal" && (sp.checker || sp.tolerance);
+  $("nsfwwrap").style.display = show ? "" : "none";
+  if (!show) return;
+  $("nsfw").checked = state.nsfw;
+  syncSafetyControls();
+  nsfwNote();
+}
+$("nsfw").addEventListener("change", () => {
+  state.nsfw = $("nsfw").checked;
+  syncSafetyControls();
+  nsfwNote();
+  api().set_config({ ui_nsfw: state.nsfw });
+});
+$("nsfwinfo").addEventListener("click", () => {
+  $("nsfwrows").innerHTML = NSFW_POLICY.map(r => `
+    <div class="nsfw-row allow-${r.allow}">
+      <div class="nsfw-head"><b>${SVC_LABELS[r.p] || r.p}</b><span class="nsfw-badge">${r.allow === "yes" ? "permitted" : r.allow === "partial" ? "model-dependent" : "hard filter"}</span></div>
+      <div class="nsfw-pol">${r.policy}</div>
+      <div class="nsfw-cfg"><span>config</span> ${escapeHtml(r.config)}</div>
+    </div>`).join("");
+  $("nsfwpanel").hidden = false;
+});
+$("nsfwpanelclose").addEventListener("click", () => { $("nsfwpanel").hidden = true; });
+$("nsfwpanel").addEventListener("click", e => { if (e.target.id === "nsfwpanel") $("nsfwpanel").hidden = true; });
 
 function renderLoras() {
   const svc = state.service === "huggingface" ? "huggingface" : state.service === "replicate" ? "replicate" : null;

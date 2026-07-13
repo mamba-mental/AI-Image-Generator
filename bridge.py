@@ -55,10 +55,16 @@ class Api:
                 "replicate": self.lora_managers["replicate"].get_loras(),
             },
             "keys_status": self.keys_status,
+            "key_pools": self._key_pools(),
             "media_base": self.media_base,
             "output_dir_name": Path(self.config["output_directory"]).name,
             "busy": REGISTRY.is_busy(),
         }
+
+    def _key_pools(self) -> dict:
+        """#13 — how many keys are pooled per service (for the settings UI)."""
+        from engine import keypool
+        return {s: keypool.size(s) for s in engine_config.KEY_FIELDS}
 
     def set_config(self, patch: dict) -> dict:
         for k, v in dict(patch).items():

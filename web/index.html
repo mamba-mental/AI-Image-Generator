@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <title>AI Studio Void</title>
 <link rel="stylesheet" href="tokens.css">
-<link rel="stylesheet" href="app.css?v=7">
+<link rel="stylesheet" href="app.css?v=8">
 </head>
 <body>
 <header>
@@ -52,10 +52,16 @@
     <div class="sec">
       <div class="lbl">Prompt</div>
       <textarea id="prompt" placeholder="describe what to generate…"></textarea>
+      <div class="promptguide" id="promptguide"></div>
     </div>
     <div class="sec" id="negwrap">
       <div class="lbl">Negative Prompt</div>
       <input type="text" id="negprompt" placeholder="what to avoid…">
+    </div>
+    <div class="sec" id="nsfwwrap" style="display:none">
+      <div class="lbl">Content <span class="phelp" id="nsfwinfo" title="Per-provider content policy">&#9432; policy</span></div>
+      <label class="nsfw-toggle"><input type="checkbox" id="nsfw"> Allow mature / artistic-nude content</label>
+      <div class="nsfw-note" id="nsfwnote"></div>
     </div>
     <div class="sec" id="inputimgwrap" style="display:none">
       <div class="lbl">Input Image</div>
@@ -119,6 +125,14 @@
   <span id="sessioninfo">v2.0</span>
 </footer>
 
+<div class="modal-overlay" id="nsfwpanel" hidden>
+  <div class="modal">
+    <div class="modal-head"><h2>Content policy by provider</h2><button id="nsfwpanelclose">✕</button></div>
+    <p class="modal-sub">Which providers permit mature / artistic-nude output and the exact config used. Grounded in a provider-capability audit — hard-filter providers cannot be overridden.</p>
+    <div id="nsfwrows"></div>
+  </div>
+</div>
+
 <div class="lightbox" id="lightbox" hidden>
   <div class="lb-inner">
     <button class="lb-close" id="lbclose" title="close">✕</button>
@@ -140,6 +154,6 @@
   </div>
 </div>
 
-<script src="app.js?v=7"></script>
+<script src="app.js?v=8"></script>
 </body>
 </html>

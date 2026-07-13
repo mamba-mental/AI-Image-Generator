@@ -60,6 +60,12 @@ def _build_args(entry: dict, params: dict) -> dict:
     if "prompt" in args and "text" in declared:
         args.setdefault("text", args.pop("prompt"))
 
+    # #1 — wire the previously-dead FLUX_DISABLE_SAFETY env flag: when set, default
+    # supported models to permissive (enable_safety_checker=false) if the UI didn't send it.
+    if os.environ.get("FLUX_DISABLE_SAFETY") == "true" \
+            and "enable_safety_checker" in declared and "enable_safety_checker" not in args:
+        args["enable_safety_checker"] = False
+
     return args
 
 
