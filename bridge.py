@@ -113,6 +113,17 @@ class Api:
     def get_history(self, limit: int = 300) -> list:
         return history.read(self.config["output_directory"], limit)
 
+    def recent_files(self, limit: int = 24) -> list:
+        """Newest media in the output dir (for the browse landing). Basename only —
+        the JS resolves it against the media server, same as the session gallery."""
+        exts = {".png", ".jpg", ".jpeg", ".webp", ".mp4", ".webm", ".mov"}
+        d = Path(self.config["output_directory"])
+        if not d.exists():
+            return []
+        files = [f for f in d.iterdir() if f.is_file() and f.suffix.lower() in exts]
+        files.sort(key=lambda f: f.stat().st_mtime, reverse=True)
+        return [{"file": f.name} for f in files[:int(limit)]]
+
     def get_balance(self, service: str) -> dict:
         """Credit/quota status for the footer. Only fal exposes a real balance
         (via FAL_KEY_ADMIN); the rest are usage-based or free-tier. Key never returned."""

@@ -224,3 +224,27 @@ footer .sp { flex: 1; }
 [data-layout="pro"] .tile img, [data-layout="pro"] .tile video { aspect-ratio: auto; }
 [data-layout="pro"] .meta { border-top: 1px solid var(--border); }
 [data-layout="pro"] footer { height: 32px; padding: 0 18px; font-size: 9.5px; }
+
+/* ---------- browse landing (Mobbin-informed, additive) ---------- */
+.browse[hidden] { display: none; }
+.s2lbl { font-size: 10px; letter-spacing: 1.5px; text-transform: uppercase; color: var(--txt3); font-weight: 600; margin: 4px 0 12px; display: flex; justify-content: space-between; }
+.s2lbl:not(:first-child) { margin-top: 24px; }
+.s2lbl em { color: var(--accent-hi); font-style: normal; font-family: var(--mono); font-size: 9.5px; }
+.mstrip { display: flex; gap: 12px; overflow-x: auto; padding-bottom: 12px; }
+.mstrip::-webkit-scrollbar { height: 7px; }
+.mstrip::-webkit-scrollbar-thumb { background: var(--border-hi); border-radius: 4px; }
+.mcard { flex: none; width: 128px; border: 1px solid var(--border); border-radius: 12px; overflow: hidden; background: var(--card); cursor: pointer; transition: border-color .15s, transform .15s; }
+.mcard:hover { transform: translateY(-3px); border-color: var(--border-hi); }
+.mcard.on { border-color: var(--accent); box-shadow: 0 0 16px var(--accent-glow); }
+.mcard img { width: 100%; height: 88px; object-fit: cover; display: block; }
+.mc-ph { width: 100%; height: 88px; display: flex; align-items: center; justify-content: center; background: linear-gradient(135deg, var(--accent-soft), var(--card)); color: var(--accent-hi); font-family: var(--mono); font-size: 22px; text-transform: uppercase; }
+.mc-t { font-size: 11px; font-weight: 600; padding: 7px 9px 2px; color: var(--txt); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.mc-p { font-family: var(--mono); font-size: 9.5px; color: var(--accent-hi); padding: 0 9px 8px; min-height: 8px; }
+.wmason { columns: 3 240px; column-gap: 14px; }
+.wtile { break-inside: avoid; margin-bottom: 14px; border-radius: 12px; overflow: hidden; border: 1px solid var(--border); position: relative; background: var(--card); cursor: pointer; }
+.wtile img, .wtile video { width: 100%; display: block; }
+.wmeta { position: absolute; left: 0; right: 0; bottom: 0; display: flex; justify-content: space-between; align-items: center; padding: 7px 10px; font-family: var(--mono); font-size: 9px; color: var(--txt2); background: linear-gradient(transparent, rgba(0,0,0,.82)); opacity: 0; transition: opacity .15s; }
+.wtile:hover .wmeta { opacity: 1; }
+.wmeta b { color: var(--accent-hi); font-weight: 400; }
+.wmeta span { cursor: pointer; }
+.wmeta span:hover { color: var(--accent-hi); }

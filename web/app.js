@@ -198,6 +198,7 @@ function render() {
   $("negwrap").style.display = (isFal && state.category !== "text-to-image" && state.category !== "image-to-image") ? "none" : "";
   renderParams(cur);
   renderLoras();
+  if (state.view === "session") renderGallery();  // refresh stage (browse landing or session gallery)
 }
 
 function paramControl(p) {
@@ -287,7 +288,12 @@ function mediaTag(f) {
   return `<img src="${fileUrl(f)}" alt="">`;
 }
 function renderGallery() {
-  $("empty").style.display = (state.view === "session" && !state.gallery.length) ? "" : "none";
+  // Empty session -> the browse landing (models strip + recent work) instead of a bare message.
+  const emptySession = state.view === "session" && !state.gallery.length;
+  $("browse").hidden = !emptySession;
+  $("gallery").hidden = emptySession;
+  $("empty").hidden = true;
+  if (emptySession) { renderBrowse(); return; }
   $("gallery").innerHTML = state.gallery.map((g, i) => `
     <div class="tile ${i === state.selected ? "sel" : ""}" data-i="${i}">
       ${mediaTag(g.file)}
@@ -307,6 +313,50 @@ function renderGallery() {
     api().save_as(state.gallery[+b.dataset.save].file)));
   $("gallery").querySelectorAll("[data-open]").forEach(b => b.addEventListener("click", () =>
     api().open_output_folder()));
+}
+
+/* ---------- browse landing (models strip + recent work) ---------- */
+async function renderBrowse() {
+  const wrap = $("browse");
+  const models = modelsFor(state.service, state.category);
+  const cur = currentModel();
+  const cards = models.slice(0, 24).map(m => {
+    const on = cur && m.id === cur.id ? " on" : "";
+    const img = m.thumb ? `<img src="${m.thumb}" loading="lazy">` : `<div class="mc-ph">${(m.label || m.id).slice(0, 2)}</div>`;
+    return `<div class="mcard${on}" data-mid="${m.id}">${img}
+      <div class="mc-t" title="${m.label || m.id}">${m.label || m.id}</div>
+      <div class="mc-p">${m.price || ""}</div></div>`;
+  }).join("");
+
+  wrap.innerHTML = `
+    <div class="s2lbl">Models <em>${models.length} in ${CAT_LABELS[state.category] || state.category}${state.service === "fal" ? " · fal" : ""}</em></div>
+    <div class="mstrip" id="mstrip">${cards || '<div class="emptystate">no models here</div>'}</div>
+    <div class="s2lbl">Recent work <em>continue from any</em></div>
+    <div class="wmason" id="wmason"><div class="emptystate">loading…</div></div>`;
+
+  wrap.querySelectorAll(".mcard").forEach(c => c.addEventListener("click", () => {
+    const m = models.find(x => x.id === c.dataset.mid);
+    if (!m) return;
+    state.model = m.id;
+    if (state.service === "fal" && m.category) state.category = m.category;
+    render();
+    $("prompt").focus();
+  }));
+
+  // recent work = the actual output folder (rich), newest first
+  let files = [];
+  try { files = await api().recent_files(30); } catch (e) { files = []; }
+  const mason = $("wmason");
+  if (!mason) return;
+  if (!files.length) { mason.innerHTML = `<div class="emptystate">nothing generated yet — write a prompt and hit GENERATE</div>`; return; }
+  mason.innerHTML = files.map((r, i) => `
+    <div class="wtile" data-wi="${i}">
+      ${mediaTag(r.file)}
+      <div class="wmeta"><b>${r.file.split(".").pop()}</b><span data-open="${i}">open folder</span></div>
+    </div>`).join("");
+  mason.querySelectorAll("[data-open]").forEach(s => s.addEventListener("click", (e) => {
+    e.stopPropagation(); api().open_output_folder();
+  }));
 }
 
 /* ---------- history view ---------- */
