@@ -10,6 +10,8 @@ import base64, json, os, threading, time, urllib.request
 import http.server, socketserver
 from pathlib import Path
 
+import providers as _providers  # provider adapters (fal live; more in P4)
+
 try:
     from dotenv import load_dotenv
     load_dotenv(Path(__file__).resolve().parent / ".env")
@@ -118,8 +120,53 @@ class Api:
         return out
 
     def models(self):
-        """Full registry — UI filters by provider + tab kind and renders param forms."""
+        """Full static registry (non-fal providers / legacy UI). fal uses catalog() live."""
         return self._registry
+
+    # ---------- schema-driven catalog + forms (P1) ----------
+    def catalog(self, provider, kind=None, refresh=False):
+        """[{id,label,kind}] for a provider. fal = live; others = static registry."""
+        adapter = _providers.get(provider)
+        if adapter:
+            return adapter.list_models(kind=kind, refresh=refresh) if refresh else adapter.list_models(kind=kind)
+        out = [{"id": m["id"], "label": m["label"], "kind": m["kind"]}
+               for m in self._registry["models"] if m["provider"] == provider]
+        return [m for m in out if not kind or m["kind"] == kind]
+
+    def form_spec(self, model_id, provider=None):
+        """Live FormSpec for fal; static FormSpec for other providers."""
+        if provider is None:
+            provider = self._provider_of(model_id)
+        adapter = _providers.get(provider)
+        if adapter:
+            return adapter.form_spec(model_id)
+        return self._static_form_spec(model_id)
+
+    def _provider_of(self, model_id):
+        for p in _providers.registry():
+            if any(m["id"] == model_id for m in _providers.get(p).list_models()):
+                return p
+        entry = next((m for m in self._registry["models"] if m["id"] == model_id), None)
+        return entry["provider"] if entry else "fal"
+
+    _DIMS = ["1:1", "4:3", "16:9", "3:4", "9:16", "2K"]
+
+    def _static_form_spec(self, model_id):
+        """Basic per-param form for non-fal models (from models.json 'params')."""
+        entry = next((m for m in self._registry["models"] if m["id"] == model_id), {})
+        want = set(entry.get("params", []))
+        fields = []
+        if "batch" in want:
+            fields.append({"name": "num_images", "widget": "number", "int": True, "default": 1, "label": "Batch"})
+        if "dims" in want:
+            fields.append({"name": "dims", "widget": "select", "enum": self._DIMS, "default": "1:1", "label": "Dimensions"})
+        if "guidance" in want:
+            fields.append({"name": "guidance", "widget": "slider", "min": 0, "max": 10, "step": 0.5, "default": 3.5, "int": False, "label": "Guidance"})
+        if "seed" in want:
+            fields.append({"name": "seed", "widget": "number", "int": True, "label": "Seed"})
+        if entry.get("image_input"):
+            fields.append({"name": entry["image_input"], "widget": "image", "multi": entry["image_input"].endswith("s"), "label": "Source image"})
+        return fields
 
     # ---------- LoRA stack ----------
     def lora_add(self, url, scale=0.8):
@@ -171,34 +218,45 @@ class Api:
         items.sort(key=lambda x: x["mtime"], reverse=True)
         return items[:int(limit)]
 
-    # ---------- generate ----------
-    def generate(self, prompt, model="fal-ai/flux-2/turbo", provider="fal",
-                 batch=1, seed=None, dims="1:1", guidance=3.5,
-                 prompt_enhance=False, dry_run=False, image_data=None):
-        """image_data: base64 data URI from the UI file picker (img2img / i2v models)."""
-        prompt = (prompt or "").strip()
+    # ---------- generate (P1: params dict from the schema-driven form) ----------
+    def generate(self, model_id, params, provider="fal"):
+        """params carries 'prompt' + the model's schema fields (from webui/form.js collectParams)."""
+        params = dict(params or {})
+        prompt = (params.get("prompt") or "").strip()
         if not prompt:
             return {"error": "empty prompt"}
-        entry = next((m for m in self._registry["models"] if m["id"] == model), {})
-        kind = entry.get("kind", "image")
         try:
-            if provider == "fal":
-                return self._gen_fal(prompt, model, entry, kind, batch, seed, dims, guidance, dry_run, image_data)
-            if provider == "together":
-                return self._gen_together(prompt, model, batch, dry_run)
-            if provider == "openai":
-                return self._gen_openai(prompt, model, batch, dims, dry_run)
-            if provider == "replicate":
-                return self._gen_replicate(prompt, model, seed, dims, guidance, dry_run)
-            if provider == "gemini":
-                return self._gen_gemini(prompt, model, dims, dry_run)
-            if provider == "hf":
-                if not os.environ.get("HUGGINGFACE_TOKEN"):
-                    return {"error": "HUGGINGFACE_TOKEN not set — HF provider is greyed until a token is added to .env"}
-                return self._gen_hf(prompt, model, seed)
-            return {"error": f"unknown provider '{provider}'"}
+            adapter = _providers.get(provider)
+            if adapter:  # fal (live schema path)
+                spec = adapter.form_spec(model_id)
+                if any(f.get("widget") == "loras" for f in spec):
+                    enabled = [l for l in self._lora.get_loras() if l.get("enabled")]
+                    if enabled:
+                        params["loras"] = [{"path": l["url"], "scale": l["scale"]} for l in enabled]
+                return adapter.submit(model_id, params)
+            return self._gen_legacy(provider, model_id, params)  # non-fal (static path)
         except Exception as e:
             return {"error": f"{provider} generation failed: {type(e).__name__}: {e}"}
+
+    def _gen_legacy(self, provider, model_id, params):
+        prompt = params.get("prompt", "")
+        batch = int(params.get("num_images", 1))
+        seed = params.get("seed")
+        dims = params.get("dims", "1:1")
+        guidance = params.get("guidance", 3.5)
+        if provider == "together":
+            return self._gen_together(prompt, model_id, batch, False)
+        if provider == "openai":
+            return self._gen_openai(prompt, model_id, batch, dims, False)
+        if provider == "replicate":
+            return self._gen_replicate(prompt, model_id, seed, dims, guidance, False)
+        if provider == "gemini":
+            return self._gen_gemini(prompt, model_id, dims, False)
+        if provider == "hf":
+            if not os.environ.get("HUGGINGFACE_TOKEN"):
+                return {"error": "HUGGINGFACE_TOKEN not set — HF is greyed until a token is added to .env"}
+            return self._gen_hf(prompt, model_id, seed)
+        return {"error": f"unknown provider '{provider}'"}
 
     # ----- fal (image + video) -----
     def _gen_fal(self, prompt, model, entry, kind, batch, seed, dims, guidance, dry_run, image_data):

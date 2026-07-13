@@ -1,108 +1,118 @@
-/* AI Studio Void — web UI client v2. Registry-driven (webui/models.json via bridge). */
+/* AI Studio Void — schema-driven client (P1). Catalog + per-model form come from the bridge live. */
 const $ = (s) => document.querySelector(s);
 const $$ = (s) => Array.from(document.querySelectorAll(s));
 
 const state = {
-  tab: "image",            // image | video (virality disabled)
+  tab: "image",
   provider: "fal",
-  model: "fal-ai/flux-2/turbo",
-  dims: "1:1", batch: 4, guidance: 3.5, seed: null, enhance: false,
-  imageData: null,         // base64 data URI for img2img / i2v
-  registry: { providers: {}, models: [] },
-  ready: {},               // provider -> bool (env key present)
+  model: null,
+  catalog: [],        // [{id,label,kind}] for current provider+tab
+  ready: {},          // provider -> bool
+  providerLabels: {}, // provider -> label
 };
 
 function api() { return window.pywebview && window.pywebview.api; }
-function toast(msg) {
+function toast(m) {
   let t = $("#toast"); if (!t) { t = document.createElement("div"); t.id = "toast"; t.className = "toast"; document.body.appendChild(t); }
-  t.textContent = msg; t.classList.add("show"); setTimeout(() => t.classList.remove("show"), 3200);
+  t.textContent = m; t.classList.add("show"); setTimeout(() => t.classList.remove("show"), 3400);
 }
 function setStatus(s) { $("#status").textContent = s; }
-
-function currentEntry() { return state.registry.models.find(m => m.id === state.model) || {}; }
-function modelsFor(provider, kind) { return state.registry.models.filter(m => m.provider === provider && m.kind === kind); }
+function asObj(v) { return typeof v === "string" ? JSON.parse(v) : v; }  // some pywebview builds return JSON strings
 
 async function boot() {
-  let tries = 0;
-  while (!api() && tries++ < 50) await new Promise(r => setTimeout(r, 100));
-  if (!api()) { setStatus("bridge offline"); return; }
-  state.registry = await api().models();
-  (await api().providers()).forEach(p => state.ready[p.name] = p.ready);
-  wireProviders();
-  rebuildModelSelect();
-  await renderLoras();
-  await renderGallery();
-  wireControls();
-  setStatus("ready");
+  try {
+    let tries = 0;
+    while (!api() && tries++ < 80) await new Promise(r => setTimeout(r, 100));
+    if (!api()) { setStatus("bridge offline"); return; }
+    const provs = asObj(await api().providers());
+    provs.forEach(p => { state.ready[p.name] = p.ready; state.providerLabels[p.name] = p.label; });
+    wireProviders(); wireTabs(); wireControls();
+    await loadCatalog();
+    await renderGallery();
+    setStatus("ready");
+  } catch (e) { setStatus("boot error: " + (e.message || e)); console.error(e); }
 }
 
 function wireProviders() {
   $$("#providers .chip[data-provider]").forEach(c => {
     const p = c.dataset.provider;
-    if (!state.ready[p]) { c.style.opacity = ".38"; c.title = "no API key in .env — greyed until added"; }
-    c.onclick = () => {
-      if (!state.ready[p]) { toast(`${p}: no API key set — add ${state.registry.providers[p].key_env} to .env`); return; }
-      if (!modelsFor(p, state.tab).length) { toast(`${p} has no ${state.tab} models`); return; }
+    if (!state.ready[p]) { c.style.opacity = ".38"; c.title = "no API key in .env"; }
+    c.onclick = async () => {
+      if (!state.ready[p]) { toast(`${p}: no API key set`); return; }
       state.provider = p;
-      $$("#providers .chip[data-provider]").forEach(x => x.classList.toggle("on", x.dataset.provider === p));
-      rebuildModelSelect();
+      $$("#providers .chip").forEach(x => x.classList.toggle("on", x.dataset.provider === p));
+      await loadCatalog();
     };
   });
 }
 
-function rebuildModelSelect() {
-  const list = modelsFor(state.provider, state.tab);
+function wireTabs() {
+  $$("#tabs span").forEach(t => t.onclick = async () => {
+    if (t.hasAttribute("data-disabled")) { toast(t.getAttribute("data-reason")); return; }
+    state.tab = t.dataset.tab;
+    $$("#tabs span").forEach(x => x.classList.toggle("on", x === t));
+    await loadCatalog();
+  });
+}
+
+async function loadCatalog(refresh) {
+  setStatus(refresh ? "refreshing catalog…" : "loading models…");
+  let cat = [];
+  try { cat = asObj(await api().catalog(state.provider, state.tab, !!refresh)); }
+  catch (e) { toast("catalog error: " + (e.message || e)); }
+  // provider may not serve this tab's kind (e.g. only fal has video) -> fall to fal
+  if (!cat.length && state.tab === "video" && state.provider !== "fal" && state.ready.fal) {
+    state.provider = "fal";
+    $$("#providers .chip").forEach(x => x.classList.toggle("on", x.dataset.provider === "fal"));
+    cat = asObj(await api().catalog("fal", "video"));
+  }
+  state.catalog = cat || [];
+  renderModelOptions();
+  setStatus(`ready · ${state.catalog.length} ${state.tab} models`);
+}
+
+function renderModelOptions() {
+  const filter = ($("#modelFilter").value || "").toLowerCase();
   const sel = $("#modelSelect"); sel.innerHTML = "";
-  list.forEach(m => { const o = document.createElement("option"); o.value = m.id; o.textContent = m.label; sel.appendChild(o); });
-  state.model = list.length ? list[0].id : "";
-  sel.value = state.model;
-  sel.onchange = () => { state.model = sel.value; refreshModelUI(); };
-  refreshModelUI();
+  const shown = state.catalog.filter(m => !filter || m.id.toLowerCase().includes(filter) || (m.label || "").toLowerCase().includes(filter));
+  shown.forEach(m => { const o = document.createElement("option"); o.value = m.id; o.textContent = m.label || m.id; sel.appendChild(o); });
+  $("#modelCount").textContent = shown.length === state.catalog.length ? `(${state.catalog.length})` : `(${shown.length}/${state.catalog.length})`;
+  if (shown.length) { sel.value = (shown.find(m => m.id === state.model) ? state.model : shown[0].id); selectModel(sel.value); }
+  else { state.model = null; $("#dynForm").innerHTML = '<div class="fhint">no models match</div>'; }
 }
 
-function refreshModelUI() {
-  const e = currentEntry();
-  $("#modelName").textContent = e.label || state.model || "—";
-  $("#modelProv").textContent = (state.registry.providers[state.provider] || {}).label || state.provider;
-  // dynamic param visibility from the registry schema (restores the old app's per-model forms)
-  const has = (p) => (e.params || []).includes(p);
-  $("#batchV").parentElement.style.display = has("batch") ? "" : "none";
-  $("#batch").style.display = has("batch") ? "" : "none";
-  $("#guidV").parentElement.style.display = has("guidance") ? "" : "none";
-  $("#guidance").style.display = has("guidance") ? "" : "none";
-  $("#seedV").parentElement.style.display = has("seed") ? "" : "none";
-  $("#dims").style.display = has("dims") ? "" : "none";
-  // image input row only for models that declare one
-  const needsImg = !!e.image_input;
-  $("#imgInputRow").style.display = needsImg ? "" : "none";
-  if (!needsImg) { state.imageData = null; $("#imgInputLabel").textContent = "+ source image (img2img / i2v)"; }
+async function selectModel(id) {
+  state.model = id;
+  const m = state.catalog.find(x => x.id === id) || {};
+  $("#modelMeta").textContent = m.desc || id;
+  $("#dynForm").innerHTML = '<div class="fhint">loading params…</div>';
+  let spec = [];
+  try { spec = asObj(await api().form_spec(id, state.provider)); }
+  catch (e) { $("#dynForm").innerHTML = '<div class="fhint">schema error: ' + (e.message || e) + '</div>'; return; }
+  renderForm(spec, $("#dynForm"), { renderLoras: renderLoraBox });
 }
 
-async function renderLoras() {
-  const loras = await api().lora_list();
-  const box = $("#loraStack");
-  box.querySelectorAll(".lrow:not(.addrow)").forEach(el => el.remove());
-  const add = $("#addLora");
+async function renderLoraBox(box) {
+  const loras = asObj(await api().lora_list());
+  box.innerHTML = "";
   loras.forEach((l, i) => {
     const row = document.createElement("div"); row.className = "lrow";
     const tgl = document.createElement("span"); tgl.className = "tgl" + (l.enabled ? "" : " off");
-    tgl.onclick = async () => { await api().lora_toggle(i); renderLoras(); };
+    tgl.onclick = async () => { await api().lora_toggle(i); renderLoraBox(box); };
     const nm = document.createElement("span"); nm.className = "ln"; nm.textContent = l.url.split("/").pop();
     const sc = document.createElement("span"); sc.className = "sc"; sc.textContent = Number(l.scale).toFixed(2);
-    sc.onclick = async () => { const v = prompt("LoRA scale (0-1.5):", l.scale); if (v !== null) { await api().lora_set_scale(i, parseFloat(v)); renderLoras(); } };
+    sc.onclick = async () => { const v = prompt("LoRA scale (0-1.5):", l.scale); if (v !== null) { await api().lora_set_scale(i, parseFloat(v)); renderLoraBox(box); } };
     const rm = document.createElement("span"); rm.className = "rm"; rm.textContent = "×";
-    rm.onclick = async () => { await api().lora_remove(i); renderLoras(); };
-    row.append(tgl, nm, sc, rm);
-    box.insertBefore(row, add);
+    rm.onclick = async () => { await api().lora_remove(i); renderLoraBox(box); };
+    row.append(tgl, nm, sc, rm); box.appendChild(row);
   });
-  add.onclick = async () => {
-    const url = prompt("LoRA URL (.safetensors):"); if (!url) return;
-    await api().lora_add(url, 0.8); renderLoras();
-  };
+  const add = document.createElement("div"); add.className = "lrow addrow"; add.textContent = "+ Add LoRA";
+  add.onclick = async () => { const url = prompt("LoRA URL (.safetensors):"); if (url) { await api().lora_add(url, 0.8); renderLoraBox(box); } };
+  box.appendChild(add);
 }
 
 async function renderGallery() {
-  const items = await api().gallery(48);
+  const items = asObj(await api().gallery(48));
   const g = $("#gallery"); g.innerHTML = "";
   $("#empty").style.display = items.length ? "none" : "block";
   items.forEach(it => {
@@ -111,48 +121,18 @@ async function renderGallery() {
       ? Object.assign(document.createElement("video"), { src: it.url, muted: true, loop: true, controls: true })
       : Object.assign(new Image(), { src: it.url, loading: "lazy" });
     const cap = document.createElement("figcaption"); cap.textContent = it.name;
-    const acts = document.createElement("div"); acts.className = "acts";
-    const reuse = document.createElement("span"); reuse.textContent = "Use as input";
-    reuse.onclick = async () => {
-      const r = await fetch(it.url); const blob = await r.blob();
-      const fr = new FileReader();
-      fr.onload = () => { state.imageData = fr.result; $("#imgInputLabel").textContent = "✓ " + it.name; toast("Set as source image (pick an img2img / i2v model)"); };
-      fr.readAsDataURL(blob);
-    };
-    acts.appendChild(reuse);
-    fig.append(media, acts, cap);
-    g.appendChild(fig);
+    fig.append(media, cap); g.appendChild(fig);
   });
 }
 
 function wireControls() {
-  $$("#tabs span").forEach(t => t.onclick = () => {
-    if (t.hasAttribute("data-disabled")) { toast(t.getAttribute("data-reason")); return; }
-    state.tab = t.dataset.tab;
-    $$("#tabs span").forEach(x => x.classList.toggle("on", x === t));
-    // keep provider valid for this tab (video is fal-only today)
-    if (!modelsFor(state.provider, state.tab).length) {
-      const p = Object.keys(state.registry.providers).find(p => state.ready[p] && modelsFor(p, state.tab).length);
-      if (p) { state.provider = p; $$("#providers .chip[data-provider]").forEach(x => x.classList.toggle("on", x.dataset.provider === p)); }
-    }
-    rebuildModelSelect();
-  });
-  $$("#dims .dim").forEach(d => d.onclick = () => { state.dims = d.dataset.dim; $$("#dims .dim").forEach(x => x.classList.toggle("on", x === d)); });
-  $("#batch").oninput = e => { state.batch = +e.target.value; $("#batchV").textContent = state.batch; };
-  $("#guidance").oninput = e => { state.guidance = +e.target.value; $("#guidV").textContent = state.guidance.toFixed(1); };
-  $("#enhance").onclick = () => { state.enhance = !state.enhance; $("#enhance").classList.toggle("off", !state.enhance); };
-  $("#seedV").onclick = () => { const v = prompt("Seed (blank = random):", state.seed ?? ""); state.seed = v ? parseInt(v) : null; $("#seedV").innerHTML = state.seed === null ? "random ↻" : String(state.seed); };
-  $("#imgInput").onchange = (e) => {
-    const f = e.target.files[0]; if (!f) return;
-    const fr = new FileReader();
-    fr.onload = () => { state.imageData = fr.result; $("#imgInputLabel").textContent = "✓ " + f.name; };
-    fr.readAsDataURL(f);
-  };
-  const histBtn = $("#histBtn");
-  histBtn.onclick = async () => {
+  $("#modelFilter").oninput = renderModelOptions;
+  $("#modelSelect").onchange = (e) => selectModel(e.target.value);
+  $("#refreshCatalog").onclick = () => loadCatalog(true);
+  $("#histBtn").onclick = async () => {
     let pop = $("#histPop");
     if (pop && pop.style.display === "block") { pop.style.display = "none"; return; }
-    const hist = await api().history_list();
+    const hist = asObj(await api().history_list());
     if (!pop) { pop = document.createElement("div"); pop.id = "histPop"; document.body.appendChild(pop); }
     pop.innerHTML = ""; (hist.length ? hist : ["(no history yet)"]).forEach(h => {
       const d = document.createElement("div"); d.textContent = h;
@@ -166,19 +146,19 @@ function wireControls() {
 }
 
 async function doGenerate() {
-  const prompt = $("#prompt").value.trim();
-  if (!prompt) { toast("Enter a prompt first"); return; }
-  const e = currentEntry();
-  if (e.image_input && !state.imageData) { toast("This model needs a source image — click '+ source image' or 'Use as input' on a gallery item"); return; }
+  const promptText = $("#prompt").value.trim();
+  if (!promptText) { toast("Enter a prompt first"); return; }
+  if (!state.model) { toast("No model selected"); return; }
+  const params = collectParams($("#dynForm"));
+  params.prompt = promptText;
   const btn = $("#genBtn"); btn.disabled = true;
-  setStatus(e.kind === "video" ? "generating video… (can take minutes)" : "generating…");
+  setStatus(state.tab === "video" ? "generating video… (minutes)" : "generating…");
   try {
-    await api().history_add(prompt);
-    const res = await api().generate(prompt, state.model, state.provider, state.batch, state.seed,
-                                     state.dims, state.guidance, state.enhance, false, state.imageData);
+    await api().history_add(promptText);
+    const res = asObj(await api().generate(state.model, params, state.provider));
     if (res.error) { toast(res.error); setStatus("error"); }
-    else { toast(`Saved ${res.files.length} file(s) — ${res.model}`); setStatus("ready"); await renderGallery(); }
-  } catch (err) { toast(String(err)); setStatus("error"); }
+    else { toast(`Saved ${res.files.length} file(s)`); setStatus("ready"); await renderGallery(); }
+  } catch (e) { toast(String(e)); setStatus("error"); }
   finally { btn.disabled = false; }
 }
 
