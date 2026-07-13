@@ -22,6 +22,7 @@ KEY_FIELDS = {
     "fal": ("fal_api_key", "FAL_KEY"),
     "openai": ("openai_api_key", "OPENAI_API_KEY"),
     "nvidia": ("nvidia_api_key", "NVIDIA_API_KEY"),
+    "openrouter": ("openrouter_api_key", "OPENROUTER_API_KEY"),
 }
 
 

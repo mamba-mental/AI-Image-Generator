@@ -14,7 +14,7 @@
 | 15 | staged status + error popup      | P3 | GREEN | jobs emits 'saving…' stage + job_error carries detail(full trace). Real-job proof: queued->saving->done; detail has Traceback. DOM: errpop opens on job_error, errbody has trace, copy->clipboard, close |
 | 5  | labeled safety-tolerance         | P3 | GREEN | SAFETY_LABELS web/app.js; DOM: 6 labeled options rendered |
 | 6  | sync-mode + param tooltips       | P3 | GREEN | PARAM_HELP web/app.js renderParams; DOM: 4 tooltips+icons |
-| 11 | OpenRouter backend               | P4 | PENDING | |
+| 11 | OpenRouter backend               | P4 | GREEN | engine/backends/openrouter_api.py (chat/completions image modality, data-URI->PIL); registered in BACKENDS + config KEY_FIELDS + services + _VALIDATE + balance. REAL-GEN: 1024x1024 png via google/gemini-2.5-flash-image (key from PRIME keys doc, not echoed). Parser+negative funcproof. DOM: selectable, models populate, settings row |
 | 12 | per-family prompting refs        | P4 | GREEN | PROMPT_GUIDE per family + renderPromptGuide + negative gating by family (app.js). DOM: FLUX->guide+neg hidden; Imagen->guide+neg shown |
 | 1  | max-coverage NSFW posture        | P4 | GREEN | NSFW_POLICY 6-provider reference panel (DOM 6 rows, openai hard-no); Content toggle -> collectParams enable_safety_checker/safety_tolerance via real GENERATE both directions; fal backstop wires FLUX_DISABLE_SAFETY (funcproof: default false + UI-wins + no-422 on unsupported) |
 | 3  | img->prompt (/oracle+soft+ui)    | P4 | PENDING | |

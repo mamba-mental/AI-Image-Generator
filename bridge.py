@@ -35,7 +35,7 @@ class Api:
 
     def get_state(self) -> dict:
         return {
-            "services": ["fal", "openai", "nvidia", "replicate", "huggingface", "gemini"],
+            "services": ["fal", "openai", "nvidia", "replicate", "huggingface", "gemini", "openrouter"],
             "active_service": self.config.get("service", "fal"),
             "config": {k: v for k, v in self.config.items()
                        if k not in ("replicate_api_key", "huggingface_token",
@@ -48,6 +48,10 @@ class Api:
                 "fal": self.config.get("recent_models_fal", []),
                 "openai": self.config.get("recent_models_openai", []),
                 "nvidia": self.config.get("recent_models_nvidia", []),
+                # #11 — seed OpenRouter's image-output models (verified via openrouter.ai/api/v1/models)
+                "openrouter": self.config.get("recent_models_openrouter", []) or [
+                    "google/gemini-3-pro-image", "google/gemini-3.1-flash-image",
+                    "google/gemini-2.5-flash-image", "openai/gpt-5-image"],
             },
             "recent_prompts": self.config.get("recent_prompts", []),
             "loras": {
@@ -85,6 +89,7 @@ class Api:
         "huggingface": ("https://huggingface.co/api/whoami-v2", lambda k: {"Authorization": f"Bearer {k}"}),
         "openai": ("https://api.openai.com/v1/models", lambda k: {"Authorization": f"Bearer {k}"}),
         "nvidia": ("https://integrate.api.nvidia.com/v1/models", lambda k: {"Authorization": f"Bearer {k}"}),
+        "openrouter": ("https://openrouter.ai/api/v1/key", lambda k: {"Authorization": f"Bearer {k}"}),
     }
 
     def validate_key(self, service: str, key: str = "") -> dict:
@@ -169,6 +174,18 @@ class Api:
                 return {"label": "usage-based · platform.openai.com/usage", "kind": "info"}
             if service == "nvidia":
                 return {"label": "NIM credits · usage-based", "kind": "info"}
+            if service == "openrouter":
+                key = os.environ.get("OPENROUTER_API_KEY")
+                if not key:
+                    return {"label": "no key", "kind": "none"}
+                req = urllib.request.Request("https://openrouter.ai/api/v1/key",
+                                             headers={"Authorization": f"Bearer {key}"})
+                d = json.loads(urllib.request.urlopen(req, timeout=15).read()).get("data", {})
+                usage, limit = d.get("usage"), d.get("limit")
+                if limit is not None:
+                    left = max(0.0, float(limit) - float(usage or 0))
+                    return {"label": f"${left:.2f} left", "kind": "low" if left < 2 else "ok"}
+                return {"label": f"${usage or 0:.2f} used · no cap", "kind": "info"}
         except Exception as e:
             return {"label": f"balance unavailable ({type(e).__name__})", "kind": "none"}
         return {"label": "", "kind": "none"}

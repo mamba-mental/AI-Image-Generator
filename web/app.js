@@ -24,7 +24,7 @@ function catList() {
 }
 const INPUT_KINDS = { needs_input_image: "image", needs_input_video: "video",
                       needs_input_audio: "audio", needs_input_mesh: "mesh" };
-const SVC_LABELS = { fal: "Fal", openai: "OpenAI", nvidia: "NVIDIA", replicate: "Replicate", huggingface: "HF", gemini: "Gemini" };
+const SVC_LABELS = { fal: "Fal", openai: "OpenAI", nvidia: "NVIDIA", replicate: "Replicate", huggingface: "HF", gemini: "Gemini", openrouter: "OpenRouter" };
 
 // legacy param set for replicate / hf / gemini (ported from the CTk panel)
 const LEGACY_PARAMS = [
@@ -114,9 +114,10 @@ const KEY_HINTS = {
   replicate: "REPLICATE_API_TOKEN · replicate.com/account/api-tokens",
   gemini: "GEMINI_API_KEY · aistudio.google.com/apikey (free)",
   huggingface: "HUGGINGFACE_TOKEN · huggingface.co/settings/tokens",
+  openrouter: "OPENROUTER_API_KEY · openrouter.ai/keys (sk-or-v1-…)",
 };
 function renderKeyRows() {
-  $("keyrows").innerHTML = ["fal", "openai", "nvidia", "replicate", "huggingface", "gemini"].map(s => `
+  $("keyrows").innerHTML = ["fal", "openai", "nvidia", "replicate", "huggingface", "gemini", "openrouter"].map(s => `
     <div class="keyrow" data-svc="${s}">
       <div class="keyrow-head">
         <span class="svc-name">${SVC_LABELS[s]}</span>
