@@ -54,6 +54,12 @@ def _build_args(entry: dict, params: dict) -> dict:
         url = str(path) if str(path).startswith("http") else fal_client.upload_file(Path(path))
         args[_INPUT_ARG_NAME.get(kind, f"{kind}_url")] = url
 
+    # Speech/audio models take the prompt as `text` (their schema declares it), not `prompt`
+    # — the UI always sends `prompt`, so map it or every TTS/audio gen 422s ("text required").
+    declared = {p.get("name") for p in entry.get("params", [])}
+    if "prompt" in args and "text" in declared:
+        args.setdefault("text", args.pop("prompt"))
+
     return args
 
 
