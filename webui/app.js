@@ -55,20 +55,23 @@ function wireTabs() {
   });
 }
 
+let _catToken = 0;  // concurrency guard: only the latest catalog request wins
+
 async function loadCatalog(refresh) {
+  const my = ++_catToken;
+  const prov = state.provider, tab = state.tab;
   setStatus(refresh ? "refreshing catalog…" : "loading models…");
   let cat = [];
-  try { cat = asObj(await api().catalog(state.provider, state.tab, !!refresh)); }
-  catch (e) { toast("catalog error: " + (e.message || e)); }
-  // provider may not serve this tab's kind (e.g. only fal has video) -> fall to fal
-  if (!cat.length && state.tab === "video" && state.provider !== "fal" && state.ready.fal) {
-    state.provider = "fal";
-    $$("#providers .chip").forEach(x => x.classList.toggle("on", x.dataset.provider === "fal"));
-    cat = asObj(await api().catalog("fal", "video"));
-  }
+  try { cat = asObj(await api().catalog(prov, tab, !!refresh)); }
+  catch (e) { if (my === _catToken) toast("catalog error: " + (e.message || e)); }
+  if (my !== _catToken) return;  // a newer switch superseded this one — drop stale response
   state.catalog = cat || [];
   renderModelOptions();
-  setStatus(`ready · ${state.catalog.length} ${state.tab} models`);
+  if (!state.catalog.length && tab === "video" && prov !== "fal") {
+    setStatus(`${prov} has no video models — click fal`);
+  } else {
+    setStatus(`ready · ${state.catalog.length} ${tab} models`);
+  }
 }
 
 function renderModelOptions() {
@@ -81,14 +84,18 @@ function renderModelOptions() {
   else { state.model = null; $("#dynForm").innerHTML = '<div class="fhint">no models match</div>'; }
 }
 
+let _formToken = 0;
+
 async function selectModel(id) {
+  const my = ++_formToken;
   state.model = id;
   const m = state.catalog.find(x => x.id === id) || {};
   $("#modelMeta").textContent = m.desc || id;
   $("#dynForm").innerHTML = '<div class="fhint">loading params…</div>';
   let spec = [];
   try { spec = asObj(await api().form_spec(id, state.provider)); }
-  catch (e) { $("#dynForm").innerHTML = '<div class="fhint">schema error: ' + (e.message || e) + '</div>'; return; }
+  catch (e) { if (my === _formToken) $("#dynForm").innerHTML = '<div class="fhint">schema error: ' + (e.message || e) + '</div>'; return; }
+  if (my !== _formToken) return;  // superseded by a newer model selection
   renderForm(spec, $("#dynForm"), { renderLoras: renderLoraBox });
 }
 
