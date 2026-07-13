@@ -1,10 +1,11 @@
 # AI Studio Void — 15-Item Build Ledger
 # status: PENDING (not started) · RED (in progress / unproven) · GREEN (observed end-to-end)
+# Re-runnable harnesses: verify_pB.py 13/13 · verify_pC.py 9/9 · verify_pD.py 19/19 (executable, re-runs #1/#3/#9/#11/#12/#13 + live fal caption) · probe_model_reachability.py (174 fal + 4 OR seeds all live)
 
 | # | item | phase | status | verify-evidence |
 |---|------|-------|--------|-----------------|
 | 4  | img2img blank tile (save.py ext) | P1 | GREEN | live kontext gen saved .jpg not .bin (verify_p1_bugfix AC-2) |
-| 8  | model-id 404s (purge + guard)    | P1 | GREEN | 9 dead ids purged x3 configs, grep-0; normalize guard AC-4 |
+| 8  | model-id 404s (purge + guard)    | P1 | GREEN | 9 dead ids purged x3 configs + normalize guard; EXHAUSTIVE reachability sweep (probe_model_reachability.py): ALL 174 fal models LIVE, 0 dead, + 4/4 openrouter seeds live -> report .dd/model-reachability-report.md (no dead id selectable) |
 | 10 | NAS drive off C: + WSL/PWSH      | P2 | GREEN* | AC (location created + repoint + migrate w/ count) MET: NAS folder /volume1/DevProjects/AI-Studio-Void (off C:, 13T vol); output_directory repointed both configs -> Z:\AI-Studio-Void; 200->200 migrated (count verified); write-test OK. *distinct drive-LETTER (I:) offered pending PRIME confirm-before-mount (SMB off on NAS -> needs WinFsp-launcher SSHFS entry) |
 | 14 | ring-buffer error log + panel    | P2 | GREEN | engine/logbuf.py deque(500); jobs.emit logs all events + format_exc; bridge get_logs/clear_logs. Real-job proof: error captured w/ traceback, search 'boom-xyz'=1 'zzz'=0. DOM: LOGS tab, 3 rows, error+detail, search->1, copy+clear |
 | 13 | multi-key pool + auto-swap       | P2 | GREEN | engine/keypool.py pool (primary+_2..9+comma), resolve_keys builds pools, jobs._run rotates on 401/403/429. Real-job: 429 on k1 -> "switching to key 2/4" -> job_done on k3. UI: key_pools in get_state -> "N keys (auto-swap)" in settings |
