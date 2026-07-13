@@ -79,10 +79,12 @@ class JobRegistry:
             if saved:
                 meta = {"service": service, "model": model_id,
                         "prompt": params.get("prompt", ""), "seed": params.get("seed")}
-                history.record(output_dir, {**meta, "files": saved,
-                                            "params": {k: v for k, v in params.items()
-                                                       if k not in ("prompt", "_inputs", "image",
-                                                                     "enabled_loras")}})
+                clean_params = {k: v for k, v in params.items()
+                                if k not in ("prompt", "_inputs", "image",
+                                             "enabled_loras", "category")}
+                history.record(output_dir, {**meta, "files": saved, "params": clean_params})
+                for f in saved:  # #9: per-image sidecar mirrors history so LIBRARY view has meta too
+                    save.write_sidecar(f, {**meta, "params": clean_params})
                 self.emit({"type": "job_done", "job_id": job_id, "files": saved,
                            "errors": errors, "meta": meta})
             else:

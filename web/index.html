@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <title>AI Studio Void</title>
 <link rel="stylesheet" href="tokens.css">
-<link rel="stylesheet" href="app.css?v=5">
+<link rel="stylesheet" href="app.css?v=6">
 </head>
 <body>
 <header>
@@ -91,6 +91,11 @@
       <button data-view="library">LIBRARY</button>
       <button data-view="history">HISTORY</button>
     </div>
+    <div class="picker gridpick" id="gridpick" title="Grid size">
+      <button data-grid="s">S</button>
+      <button data-grid="m" class="on">M</button>
+      <button data-grid="l">L</button>
+    </div>
   </div>
   <div class="gwrap">
     <div class="browse" id="browse" hidden></div>
@@ -112,6 +117,19 @@
   <span id="sessioninfo">v2.0</span>
 </footer>
 
-<script src="app.js?v=5"></script>
+<div class="lightbox" id="lightbox" hidden>
+  <div class="lb-inner">
+    <button class="lb-close" id="lbclose" title="close">✕</button>
+    <div class="lb-media" id="lbmedia"></div>
+    <aside class="lb-side" id="lbside"></aside>
+    <div class="lb-acts">
+      <button id="lbedit">Open in editor</button>
+      <button id="lbfolder">Open folder</button>
+      <button id="lbsave">Save As</button>
+    </div>
+  </div>
+</div>
+
+<script src="app.js?v=6"></script>
 </body>
 </html>

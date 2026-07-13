@@ -267,8 +267,51 @@ class Api:
         os.startfile(path)
         return {"ok": True}
 
+    def _resolve(self, path: str) -> str:
+        """A gallery tile carries a full path; a library tile carries a basename. Resolve either
+        against the output dir so file actions work from both views."""
+        if path and os.path.isabs(path) and os.path.exists(path):
+            return path
+        return os.path.join(self.config["output_directory"], os.path.basename(path or ""))
+
+    def open_in_editor(self, path: str) -> dict:
+        """#7 — open a generated image in its registered EDITOR (Windows 'edit' verb),
+        falling back to the default viewer if no editor verb is registered."""
+        p = self._resolve(path)
+        if not os.path.exists(p):
+            return {"ok": False, "error": "file not found"}
+        try:
+            os.startfile(p, "edit")
+        except OSError:
+            try:
+                os.startfile(p)
+            except OSError as e:
+                return {"ok": False, "error": str(e)}
+        return {"ok": True}
+
+    def read_meta(self, filename: str) -> dict:
+        """#9 — metadata for one output file. Prefer the <file>.json sidecar; fall back to the
+        matching basename in history.jsonl (covers images generated before sidecars existed)."""
+        out_dir = self.config["output_directory"]
+        name = os.path.basename(filename or "")
+        side = os.path.join(out_dir, name + ".json")
+        if os.path.exists(side):
+            try:
+                with open(side, encoding="utf-8") as f:
+                    return {"source": "sidecar", **json.load(f)}
+            except Exception:
+                pass
+        for row in history.read(out_dir, 1000):
+            if any(os.path.basename(fp) == name for fp in (row.get("files") or [])):
+                return {"source": "history", "service": row.get("service"),
+                        "model": row.get("model"), "prompt": row.get("prompt"),
+                        "seed": row.get("seed"), "params": row.get("params", {}),
+                        "ts": row.get("ts")}
+        return {"source": "none", "file": name}
+
     def save_as(self, src_path: str) -> dict:
         import webview
+        src_path = self._resolve(src_path)
         win = webview.windows[0]
         dest = win.create_file_dialog(webview.SAVE_DIALOG,
                                       save_filename=os.path.basename(src_path))

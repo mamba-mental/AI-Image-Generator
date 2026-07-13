@@ -5,9 +5,11 @@ video/audio outputs from fal. A result is one of:
   - "…Error…" string (collected, not saved)
 Returns (saved_paths, error_messages).
 """
+import json
 import mimetypes
 import os
 import time
+from datetime import datetime
 from pathlib import Path
 
 import requests
@@ -54,6 +56,32 @@ def _download(url: str, dest: str) -> str:
     with open(final, "wb") as f:
         f.write(response.content)
     return final
+
+
+def write_sidecar(media_path: str, meta: dict) -> str:
+    """Write <media>.<ext>.json beside a saved file with generation metadata (#9 overlay source).
+    Enriches with timestamp, byte size, and image dimensions. Sidecar suffix keeps it out of the
+    gallery/library file scans (they filter on media extensions, not .json)."""
+    p = Path(media_path)
+    enriched = dict(meta)
+    enriched.setdefault("ts", datetime.now().isoformat(timespec="seconds"))
+    try:
+        enriched["bytes"] = p.stat().st_size
+    except OSError:
+        pass
+    if p.suffix.lower() in (".png", ".jpg", ".jpeg", ".webp"):
+        try:
+            with Image.open(p) as im:
+                enriched["width"], enriched["height"] = im.size
+        except Exception:
+            pass
+    side = str(p) + ".json"
+    try:
+        with open(side, "w", encoding="utf-8") as f:
+            json.dump(enriched, f, indent=2, default=str)
+    except Exception as e:
+        print(f"sidecar write failed: {e}")
+    return side
 
 
 def persist_results(results: list, output_paths: list) -> tuple:

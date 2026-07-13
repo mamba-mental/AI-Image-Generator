@@ -41,7 +41,7 @@ const state = {
   service: "fal", category: "text-to-image", model: null,
   inputFiles: {}, job: null, gallery: [], selected: null,
   genCount: 0, loras: {}, mediaBase: "", outDirName: "generated_images",
-  view: "session",
+  view: "session", grid: "m", lbFile: null,
 };
 
 /* ---------- bridge helpers ---------- */
@@ -67,6 +67,7 @@ async function boot() {
   if (state.service === "fal" && lastFal) state.category = lastFal.category;
   if (cfg.ui_theme) setTheme(cfg.ui_theme, false);
   if (cfg.ui_layout) setLayout(cfg.ui_layout, false);
+  if (cfg.ui_grid) setGrid(cfg.ui_grid, false);
   if (cfg.parameters && cfg.parameters.negative_prompt) $("negprompt").value = cfg.parameters.negative_prompt;
   $("conn").classList.remove("off");
   $("connlabel").textContent = Object.entries(state.keys)
@@ -89,6 +90,19 @@ function setTheme(name, persist = true) {
 }
 $("layoutpick").addEventListener("click", e => { const b = e.target.closest("button"); if (b) setLayout(b.dataset.layout); });
 $("themepick").addEventListener("click", e => { const b = e.target.closest("button"); if (b) setTheme(b.dataset.theme); });
+
+/* ---------- #2 grid size (S/M/L, persisted) ---------- */
+function applyGrid() {
+  ["gallery", "library", "libmason"].forEach(id => { const el = $(id); if (el) el.dataset.grid = state.grid; });
+  document.querySelectorAll(".wmason, .mstrip").forEach(el => { el.dataset.grid = state.grid; });
+}
+function setGrid(name, persist = true) {
+  state.grid = name;
+  document.querySelectorAll("#gridpick button").forEach(b => b.classList.toggle("on", b.dataset.grid === name));
+  applyGrid();
+  if (persist) api().set_config({ ui_grid: name });
+}
+$("gridpick").addEventListener("click", e => { const b = e.target.closest("button"); if (b) setGrid(b.dataset.grid); });
 
 /* ---------- settings modal (API keys) ---------- */
 const KEY_HINTS = {
@@ -336,15 +350,56 @@ function renderGallery() {
     </div>`).join("");
   $("outinfo").textContent = `OUTPUT · ${state.outDirName}/ · ${state.gallery.length} this session`;
   $("sessioninfo").textContent = `v2.0 · ${state.genCount} generated`;
+  applyGrid();
   $("gallery").querySelectorAll(".tile").forEach(t => t.addEventListener("click", e => {
     if (e.target.closest(".acts")) return;
-    state.selected = +t.dataset.i; renderGallery();
+    openLightbox(state.gallery[+t.dataset.i].file);   // #7 click-to-enlarge
   }));
   $("gallery").querySelectorAll("[data-save]").forEach(b => b.addEventListener("click", () =>
     api().save_as(state.gallery[+b.dataset.save].file)));
   $("gallery").querySelectorAll("[data-open]").forEach(b => b.addEventListener("click", () =>
     api().open_output_folder()));
 }
+
+/* ---------- #7 lightbox + #9 metadata overlay ---------- */
+async function openLightbox(file) {
+  state.lbFile = file;
+  $("lbmedia").innerHTML = mediaTag(file);          // reuse the media renderer (img/video/audio)
+  $("lbside").innerHTML = `<div class="lbm-title">Metadata <em>loading…</em></div>`;
+  $("lightbox").hidden = false;
+  try {
+    const m = await api().read_meta(file);
+    $("lbside").innerHTML = renderMeta(m, file);
+  } catch (e) {
+    $("lbside").innerHTML = `<div class="lbm-title">Metadata <em>unavailable</em></div>`;
+  }
+}
+function renderMeta(m, file) {
+  const name = file.split(/[\\/]/).pop();
+  const rows = [];
+  const add = (k, v) => { if (v !== undefined && v !== null && v !== "") rows.push(
+    `<div class="lbm-row"><span>${k}</span><b>${escapeHtml(String(v))}</b></div>`); };
+  add("file", name);
+  add("model", m.model);          // full id in the metadata panel (gallery shows the short name)
+  add("service", m.service);
+  add("seed", m.seed);
+  if (m.width && m.height) add("size", `${m.width}×${m.height}`);
+  if (m.bytes) add("bytes", (m.bytes / 1024).toFixed(0) + " KB");
+  add("time", (m.ts || "").replace("T", " "));
+  const params = m.params || {};
+  const pstr = Object.entries(params).map(([k, v]) => `${k}=${v}`).join(" · ");
+  let html = `<div class="lbm-title">Metadata <em>${m.source || ""}</em></div>${rows.join("")}`;
+  if (m.prompt) html += `<div class="lbm-block"><span>prompt</span><div>${escapeHtml(m.prompt)}</div></div>`;
+  if (pstr) html += `<div class="lbm-block"><span>params</span><div>${escapeHtml(pstr)}</div></div>`;
+  return html;
+}
+function closeLightbox() { $("lightbox").hidden = true; state.lbFile = null; $("lbmedia").innerHTML = ""; }
+$("lbclose").addEventListener("click", closeLightbox);
+$("lightbox").addEventListener("click", e => { if (e.target.id === "lightbox") closeLightbox(); });
+$("lbedit").addEventListener("click", () => { if (state.lbFile) api().open_in_editor(state.lbFile); });
+$("lbfolder").addEventListener("click", () => api().open_output_folder());
+$("lbsave").addEventListener("click", () => { if (state.lbFile) api().save_as(state.lbFile); });
+document.addEventListener("keydown", e => { if (e.key === "Escape" && !$("lightbox").hidden) closeLightbox(); });
 
 /* ---------- browse landing (models strip only — pick a model to start) ---------- */
 async function renderBrowse() {
@@ -388,8 +443,13 @@ async function renderLibrary() {
       ${mediaTag(r.file)}
       <div class="wmeta"><b>${r.file.split(".").pop()}</b><span data-open="${i}">open folder</span></div>
     </div>`).join("");
+  applyGrid();
   mason.querySelectorAll("[data-open]").forEach(s => s.addEventListener("click", (e) => {
     e.stopPropagation(); api().open_output_folder();
+  }));
+  mason.querySelectorAll(".wtile").forEach(t => t.addEventListener("click", e => {
+    if (e.target.closest("[data-open]")) return;
+    openLightbox(files[+t.dataset.wi].file);   // #7 lightbox from library too
   }));
 }
 
