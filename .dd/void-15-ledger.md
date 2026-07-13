@@ -12,8 +12,8 @@
 | 7  | lightbox + open-editor + folder  | P3 | PENDING | |
 | 9  | metadata overlay                 | P3 | PENDING | |
 | 15 | staged status + error popup      | P3 | PENDING | |
-| 5  | labeled safety-tolerance         | P3 | PENDING | |
-| 6  | sync-mode + param tooltips       | P3 | PENDING | |
+| 5  | labeled safety-tolerance         | P3 | GREEN | SAFETY_LABELS web/app.js; DOM: 6 labeled options rendered |
+| 6  | sync-mode + param tooltips       | P3 | GREEN | PARAM_HELP web/app.js renderParams; DOM: 4 tooltips+icons |
 | 11 | OpenRouter backend               | P4 | PENDING | |
 | 12 | per-family prompting refs        | P4 | PENDING | |
 | 1  | max-coverage NSFW posture        | P4 | PENDING | |

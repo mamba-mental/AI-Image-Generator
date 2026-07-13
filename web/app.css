@@ -250,3 +250,6 @@ footer .sp { flex: 1; }
 .wmeta span:hover { color: var(--accent-hi); }
 
 .library[hidden] { display: none; }
+
+.phelp { color: var(--accent-hi); cursor: help; font-size: 11px; margin-left: 3px; opacity: .8; }
+.phelp:hover { opacity: 1; }

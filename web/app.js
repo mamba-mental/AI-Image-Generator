@@ -201,10 +201,38 @@ function render() {
   if (state.view === "session") renderGallery();  // refresh stage (browse landing or session gallery)
 }
 
+// #6 param help (verbatim fal OpenAPI descriptions -> plain-English) + #5 safety-tolerance labels
+const PARAM_HELP = {
+  sync_mode: "Returns the image inline as a data URI instead of a hosted URL — displays instantly but is NOT saved to history. Leave off for normal saved generations.",
+  acceleration: "How aggressively to speed up generation. none = best quality/slowest · regular = balanced · high = fastest/slightly lower quality.",
+  guidance_scale: "How strictly the image follows your prompt (CFG). Low 1–3 = looser/more creative; high 7–12 = literal. FLUX defaults ~3.5.",
+  num_inference_steps: "Denoising passes — more = more detail but slower. Schnell needs ~4; dev defaults to 28.",
+  image_size: "Output dimensions. square_hd=1024², square=512², portrait/landscape 4:3 & 16:9 — or set custom width+height.",
+  output_format: "File type. jpeg = smaller · png = lossless + transparency · webp = small + transparency (some models).",
+  enable_prompt_expansion: "Runs an LLM to expand your prompt with extra detail while keeping its meaning. Off = your prompt verbatim.",
+  num_images: "How many images to generate in one run.",
+  seed: "Fixes the random seed for reproducible output. Blank = random each run.",
+  enable_safety_checker: "ON blocks explicit/NSFW output. Turn OFF for artistic/editorial nudity on fal models that allow it.",
+  safety_tolerance: "How permissive the content filter is (1 strictest … 6 most permissive). Higher allows more artistic/implied nudity.",
+  negative_prompt: "What to avoid (SDXL/Seedream/Imagen). FLUX/gpt-image ignore this — put exclusions in the prompt instead.",
+  width: "Custom output width in pixels (overrides the size preset when both width+height are set).",
+  height: "Custom output height in pixels (overrides the size preset when both width+height are set).",
+};
+const SAFETY_LABELS = {
+  "1": "1 — Strictest (blocks most; even mild artistic-nude framing rejected)",
+  "2": "2 — Strict (FLUX Pro default; blocks nudity + most suggestive)",
+  "3": "3 — Moderate (some suggestive allowed)",
+  "4": "4 — Relaxed (implied/artistic nudity often allowed)",
+  "5": "5 — Permissive (artistic nudity allowed)",
+  "6": "6 — Most permissive (minimal filtering)",
+};
+
 function paramControl(p) {
   const v = p.default !== undefined ? p.default : "";
-  if (p.type === "enum")
-    return `<select data-p="${p.name}">${p.values.map(x => `<option ${x === p.default ? "selected" : ""}>${x}</option>`).join("")}</select>`;
+  if (p.type === "enum") {
+    const lbl = p.name === "safety_tolerance" ? SAFETY_LABELS : null;
+    return `<select data-p="${p.name}">${p.values.map(x => `<option value="${x}" ${x === p.default ? "selected" : ""}>${lbl && lbl[String(x)] ? lbl[String(x)] : x}</option>`).join("")}</select>`;
+  }
   if (p.type === "bool")
     return `<input type="checkbox" data-p="${p.name}" ${p.default ? "checked" : ""}>`;
   if (p.type === "int" || p.type === "float") {
@@ -218,8 +246,11 @@ function paramControl(p) {
 }
 function renderParams(model) {
   const params = model && model.params ? model.params : LEGACY_PARAMS;
-  $("params").innerHTML = params.map(p =>
-    `<div class="prow"><span>${p.name.replace(/_/g, " ")}</span>${paramControl(p)}</div>`).join("");
+  $("params").innerHTML = params.map(p => {
+    const help = PARAM_HELP[p.name] || "";
+    const info = help ? ` <span class="phelp" title="${help.replace(/"/g, "&quot;")}">&#9432;</span>` : "";
+    return `<div class="prow"><span title="${help.replace(/"/g, "&quot;")}">${p.name.replace(/_/g, " ")}${info}</span>${paramControl(p)}</div>`;
+  }).join("");
   $("params").querySelectorAll("input[type=range]").forEach(r =>
     r.addEventListener("input", () => {
       const out = $("params").querySelector(`[data-v="${r.dataset.p}"]`);
