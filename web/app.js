@@ -106,6 +106,14 @@ function setGrid(name, persist = true) {
 }
 $("gridpick").addEventListener("click", e => { const b = e.target.closest("button"); if (b) setGrid(b.dataset.grid); });
 
+// #3 — hand the current prompt off to the existing Prompt Refinery (clipboard + open)
+$("refinerybtn").addEventListener("click", async () => {
+  const p = $("prompt").value.trim();
+  if (p) { try { await navigator.clipboard.writeText(p); } catch (e) { /* clipboard may be blocked */ } }
+  api().open_prompt_refinery(p);
+  $("statusmsg").textContent = p ? "prompt copied — paste into Prompt Refinery" : "opening Prompt Refinery…";
+});
+
 /* ---------- settings modal (API keys) ---------- */
 const KEY_HINTS = {
   fal: "FAL_KEY · fal.ai/dashboard/keys",

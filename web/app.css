@@ -333,3 +333,5 @@ footer .sp { flex: 1; }
 .promptguide { margin-top: 7px; font-size: 10.5px; line-height: 1.45; color: var(--txt3); }
 .pg-tip { display: block; }
 .pg-src { display: block; margin-top: 3px; font-family: var(--mono); font-size: 9px; color: var(--accent-hi); opacity: .8; }
+.refinery-btn { margin-top: 8px; width: 100%; background: none; border: 1px solid var(--border); color: var(--txt3); font-family: var(--mono); font-size: 9.5px; padding: 6px 10px; border-radius: 7px; cursor: pointer; }
+.refinery-btn:hover { border-color: var(--accent); color: var(--accent-hi); }

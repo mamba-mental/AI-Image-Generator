@@ -294,6 +294,13 @@ class Api:
 
     # ---- files / keys ----
 
+    def open_prompt_refinery(self, prompt: str = "") -> dict:
+        """#3 — integrate the EXISTING prompt-refinery.html: hand the detected/analyzed prompt off
+        to it (opens in the default browser; JS copies the prompt to the clipboard for paste)."""
+        import webbrowser
+        webbrowser.open("http://localhost:31960/prompt-refinery.html")
+        return {"ok": True}
+
     def analyze_image(self, filename: str) -> dict:
         """#3 — img->prompt. First DETECT the original prompt (sidecar/history via read_meta);
         if unknown, ANALYZE the image with an existing fal vision model to produce a regenerable
