@@ -170,6 +170,19 @@ class Api:
 
     # ---- generation ----
 
+    @staticmethod
+    def _normalize_model_id(service: str, model_id: str) -> str:
+        """Strip malformed prefixes so bad ids never enter recent_models_* (#8 404 source).
+        hf/replicate ids sometimes arrive as 'huggingface.co/x/y' or a full URL — reduce to owner/name."""
+        mid = (model_id or "").strip()
+        if service in ("huggingface", "replicate"):
+            for pre in ("https://huggingface.co/", "http://huggingface.co/", "huggingface.co/",
+                        "https://replicate.com/", "replicate.com/"):
+                if mid.startswith(pre):
+                    mid = mid[len(pre):]
+                    break
+        return mid
+
     def generate(self, req: dict) -> dict:
         service = req.get("service", "")
         model_id = req.get("model", "")
@@ -199,6 +212,7 @@ class Api:
         model_key = {"replicate": "recent_models_replicate", "huggingface": "recent_models_hf",
                      "gemini": "recent_models_gemini", "fal": "recent_models_fal",
                      "openai": "recent_models_openai", "nvidia": "recent_models_nvidia"}.get(service)
+        model_id = self._normalize_model_id(service, model_id)  # keep malformed ids out of recents (#8)
         if model_key and model_id:
             recents = self.config.setdefault(model_key, [])
             if model_id in recents:

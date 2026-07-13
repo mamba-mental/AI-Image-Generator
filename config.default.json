@@ -22,9 +22,6 @@
     "black-forest-labs/flux-schnell",
     "stability-ai/sdxl:c221b2b8ef527988fb59bf24a8b97c4561f1c671f73bd389f866bfb27c061316",
     "black-forest-labs/flux-dev-lora",
-    "black-forest-labs/flux-1.1-pro-ultra",
-    "huggingface.co/CultriX/flux-nsfw-highress",
-    "huggingface.co/lustlyai/Flux_Lustly.ai_Uncensored_nsfw_v1",
     "black-forest-labs/flux-schnell-lora",
     "black-forest-labs/flux-depth-dev",
     "black-forest-labs/flux-dev",
@@ -40,10 +37,6 @@
   ],
   "recent_models_hf": [
     "black-forest-labs/FLUX.1-dev",
-    "black-forest-labs/flux-1.1-pro-ultra",
-    "huggingface.co/black-forest-labs/FLUX.1-dev",
-    "https://huggingface.co/CultriX/flux-nsfw-highress",
-    "huggingface.co/CultriX/flux-nsfw-highress",
     "CultriX/flux-nsfw-highress"
   ],
   "recent_loras_hf": [
@@ -80,13 +73,12 @@
     "gpt-image-2",
     "gpt-image-1",
     "gpt-image-1-mini",
-    "dall-e-3"
+    "gpt-image-1.5"
   ],
   "recent_models_nvidia": [
     "black-forest-labs/flux.1-dev",
     "black-forest-labs/flux.1-schnell",
     "black-forest-labs/flux.1-kontext-dev",
-    "stabilityai/stable-diffusion-3.5-large",
     "stabilityai/sdxl-turbo",
     "briaai/bria-2.3"
   ],

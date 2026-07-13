@@ -30,12 +30,26 @@ def make_output_paths(output_dir: str, count: int, ext: str = ".png") -> list:
     return [os.path.join(output_dir, f"generated_{stamp}_{i + 1}{ext}") for i in range(count)]
 
 
+_KNOWN_EXT = {".png", ".jpg", ".jpeg", ".webp", ".mp4", ".webm", ".mov",
+              ".mp3", ".wav", ".m4a", ".flac", ".glb", ".obj", ".stl"}
+
+
+def _pick_ext(url: str, ct: str, dest: str) -> str:
+    """Extension from the URL path FIRST (fal output URLs carry the true ext), content-type as
+    fallback. Fixes kontext etc. served as application/octet-stream saving as .bin (blank tile)."""
+    from urllib.parse import urlparse
+    url_ext = Path(urlparse(url).path).suffix.lower()
+    if url_ext in _KNOWN_EXT:
+        return url_ext
+    return _CT_EXT.get(ct) or mimetypes.guess_extension(ct) or Path(dest).suffix or ".bin"
+
+
 def _download(url: str, dest: str) -> str:
-    """Download url; fix the extension from the response content-type. Returns final path."""
+    """Download url; extension from the URL path (content-type fallback). Returns final path."""
     response = requests.get(url, timeout=300)
     response.raise_for_status()
     ct = (response.headers.get("content-type") or "").split(";")[0].strip()
-    ext = _CT_EXT.get(ct) or mimetypes.guess_extension(ct) or Path(dest).suffix or ".bin"
+    ext = _pick_ext(url, ct, dest)
     final = str(Path(dest).with_suffix(ext))
     with open(final, "wb") as f:
         f.write(response.content)
