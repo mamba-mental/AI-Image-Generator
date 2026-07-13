@@ -113,6 +113,16 @@ class Api:
     def get_history(self, limit: int = 300) -> list:
         return history.read(self.config["output_directory"], limit)
 
+    def get_logs(self, query: str = "", level: str = "") -> list:
+        """#14 — searchable engine-event ring buffer for the Logs panel."""
+        from engine import logbuf
+        return logbuf.read(query, level, 300)
+
+    def clear_logs(self) -> dict:
+        from engine import logbuf
+        logbuf.clear()
+        return {"ok": True}
+
     def recent_files(self, limit: int = 24) -> list:
         """Newest media in the output dir (for the browse landing). Basename only —
         the JS resolves it against the media server, same as the session gallery."""

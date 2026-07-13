@@ -501,16 +501,61 @@ async function renderHistory() {
 function escapeHtml(s) {
   return String(s).replace(/[&<>"]/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]));
 }
+
+/* ---------- #14 Logs panel (Portainer-style, searchable, copyable) ---------- */
+async function renderLogs() {
+  const wrap = $("logs");
+  if (!wrap.dataset.init) {
+    wrap.innerHTML = `
+      <div class="logs-bar">
+        <input id="logsearch" placeholder="search logs…">
+        <select id="loglevel"><option value="">all levels</option><option value="info">info</option><option value="error">error</option></select>
+        <button id="logrefresh" title="refresh">↻</button>
+        <button id="logcopy">Copy all</button>
+        <button id="logclear">Clear</button>
+      </div>
+      <div class="logrows" id="logrows"></div>`;
+    wrap.dataset.init = "1";
+    $("logsearch").addEventListener("input", loadLogs);
+    $("loglevel").addEventListener("change", loadLogs);
+    $("logrefresh").addEventListener("click", loadLogs);
+    $("logcopy").addEventListener("click", async () => {
+      const rows = await api().get_logs($("logsearch").value, $("loglevel").value);
+      const text = rows.map(r => `[${r.ts}] ${r.level.toUpperCase()} ${r.type} — ${r.message}${r.detail ? "\n" + r.detail : ""}`).join("\n");
+      navigator.clipboard.writeText(text);
+      $("logcopy").textContent = "copied"; setTimeout(() => { $("logcopy").textContent = "Copy all"; }, 1200);
+    });
+    $("logclear").addEventListener("click", async () => { await api().clear_logs(); loadLogs(); });
+  }
+  loadLogs();
+}
+async function loadLogs() {
+  let rows = [];
+  const q = $("logsearch") ? $("logsearch").value : "", lv = $("loglevel") ? $("loglevel").value : "";
+  try { rows = await api().get_logs(q, lv); } catch (e) { rows = []; }
+  const el = $("logrows");
+  if (!rows.length) { el.innerHTML = `<div class="emptystate">no log entries${q || lv ? " match" : " yet"}</div>`; return; }
+  el.innerHTML = rows.map(r => `
+    <div class="logrow lv-${r.level}">
+      <span class="lt">${(r.ts || "").replace("T", " ").slice(11)}</span>
+      <span class="lv">${r.level}</span>
+      <span class="lty">${escapeHtml(r.type)}</span>
+      <span class="lm">${escapeHtml(r.message)}</span>
+      ${r.detail ? `<pre class="ld">${escapeHtml(r.detail)}</pre>` : ""}
+    </div>`).join("");
+}
 function setView(v) {
   state.view = v;
   document.querySelectorAll("#viewtoggle button").forEach(b => b.classList.toggle("on", b.dataset.view === v));
   $("library").hidden = v !== "library";
   $("history").hidden = v !== "history";
+  $("logs").hidden = v !== "logs";
   $("empty").hidden = true;
   if (v === "session") { renderGallery(); }        // session = models landing or this-session gallery
   else { $("browse").hidden = true; $("gallery").hidden = true; }
   if (v === "library") renderLibrary();
   else if (v === "history") renderHistory();
+  else if (v === "logs") renderLogs();
 }
 $("viewtoggle").addEventListener("click", e => { const b = e.target.closest("button"); if (b) setView(b.dataset.view); });
 
@@ -597,9 +642,23 @@ window.onEngineEvent = (evt) => {
     setBusy(false); renderGallery(); refreshBalance();  // fal balance drops after a gen
   } else if (evt.type === "job_error") {
     $("statusmsg").textContent = evt.error;
+    if (evt.error !== "Cancelled.") showError(evt.error, evt.detail || "");  // #15 copyable popup
     setBusy(false);
   }
+  if (state.view === "logs") loadLogs();  // live-refresh the Logs panel on any event
 };
+
+/* ---------- #15 copyable error popup ---------- */
+function showError(msg, detail) {
+  $("errbody").textContent = detail ? (msg + "\n\n" + detail) : msg;
+  $("errpop").hidden = false;
+}
+$("errclose").addEventListener("click", () => { $("errpop").hidden = true; });
+$("errpop").addEventListener("click", e => { if (e.target.id === "errpop") $("errpop").hidden = true; });
+$("errcopy").addEventListener("click", () => {
+  navigator.clipboard.writeText($("errbody").textContent);
+  $("errcopy").textContent = "copied"; setTimeout(() => { $("errcopy").textContent = "Copy full error"; }, 1200);
+});
 
 /* ---------- service/category/model switching ---------- */
 $("svc").addEventListener("change", () => {

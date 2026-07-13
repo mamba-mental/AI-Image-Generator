@@ -6,7 +6,7 @@ import threading
 import traceback
 import uuid
 
-from . import history, save
+from . import history, logbuf, save
 from .backends import BACKENDS
 
 
@@ -20,6 +20,13 @@ class JobRegistry:
         self._window = window
 
     def emit(self, payload: dict):
+        # #14 — every engine event lands in the searchable ring buffer
+        try:
+            lvl = "error" if payload.get("type") == "job_error" else "info"
+            msg = payload.get("message") or payload.get("error") or payload.get("type", "")
+            logbuf.append(lvl, payload.get("type", ""), msg, payload.get("detail", ""))
+        except Exception:
+            pass
         if self._window is not None:
             try:
                 self._window.evaluate_js(f"window.onEngineEvent({json.dumps(payload)})")
@@ -74,6 +81,7 @@ class JobRegistry:
                 self.emit({"type": "job_error", "job_id": job_id, "error": "Cancelled."})
                 return
 
+            progress("saving…")  # #15 — explicit save stage: queued -> running -> saving -> done
             paths = save.make_output_paths(output_dir, len(results))
             saved, errors = save.persist_results(results, paths)
             if saved:
@@ -91,8 +99,8 @@ class JobRegistry:
                 self.emit({"type": "job_error", "job_id": job_id,
                            "error": (errors[0] if errors else "No results returned.")})
         except Exception as e:
-            traceback.print_exc()
-            self.emit({"type": "job_error", "job_id": job_id, "error": str(e)})
+            tb = traceback.format_exc()  # #15 — full trace travels to the copyable error popup
+            self.emit({"type": "job_error", "job_id": job_id, "error": str(e), "detail": tb})
         finally:
             self._finish()
 

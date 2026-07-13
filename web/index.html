@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <title>AI Studio Void</title>
 <link rel="stylesheet" href="tokens.css">
-<link rel="stylesheet" href="app.css?v=6">
+<link rel="stylesheet" href="app.css?v=7">
 </head>
 <body>
 <header>
@@ -90,6 +90,7 @@
       <button data-view="session" class="on">SESSION</button>
       <button data-view="library">LIBRARY</button>
       <button data-view="history">HISTORY</button>
+      <button data-view="logs">LOGS</button>
     </div>
     <div class="picker gridpick" id="gridpick" title="Grid size">
       <button data-grid="s">S</button>
@@ -102,6 +103,7 @@
     <div class="gallery" id="gallery"></div>
     <div class="library" id="library" hidden></div>
     <div class="history" id="history" hidden></div>
+    <div class="logs" id="logs" hidden></div>
     <div class="emptystate" id="empty" hidden>nothing generated yet — write a prompt and hit GENERATE</div>
   </div>
 </section>
@@ -130,6 +132,14 @@
   </div>
 </div>
 
-<script src="app.js?v=6"></script>
+<div class="errpop" id="errpop" hidden>
+  <div class="errpop-inner">
+    <div class="errpop-head"><span>⚠ Generation error</span><button id="errclose" title="close">✕</button></div>
+    <pre class="errpop-body" id="errbody"></pre>
+    <div class="errpop-acts"><button id="errcopy">Copy full error</button></div>
+  </div>
+</div>
+
+<script src="app.js?v=7"></script>
 </body>
 </html>
