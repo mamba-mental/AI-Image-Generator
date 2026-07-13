@@ -197,7 +197,7 @@ footer .sp { flex: 1; }
 [data-layout="airy"] .gen { background: none; color: var(--accent-hi); border: 1.5px solid var(--accent); border-radius: 99px; padding: 15px; letter-spacing: 3px; font-weight: 600; box-shadow: 0 0 30px var(--accent-glow); }
 [data-layout="airy"] .gen.cancel { color: var(--err); border-color: var(--err); }
 [data-layout="airy"] .gen-wrap { padding: 22px 28px; }
-[data-layout="airy"] .stagehdr { display: none; }
+[data-layout="airy"] .stagehdr { display: flex; background: var(--void); border: none; padding: 18px 28px 0; }
 [data-layout="airy"] .gwrap { padding: 28px; }
 [data-layout="airy"] .gallery { display: block; columns: 3; column-gap: 16px; }
 [data-layout="airy"] .tile { margin-bottom: 16px; break-inside: avoid; border-radius: 14px; }

@@ -40,6 +40,10 @@ def resource_path(rel: str) -> Path:
 
 
 def config_path() -> Path:
+    # Dev override: run the source app against the real (frozen-exe) config/data.
+    override = os.environ.get("VOID_CONFIG")
+    if override:
+        return Path(override)
     if is_frozen():
         return Path(os.environ["APPDATA"]) / APP_NAME / "config.json"
     return repo_root() / "config.json"

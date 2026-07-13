@@ -345,7 +345,7 @@ async function renderBrowse() {
 
   // recent work = the actual output folder (rich), newest first
   let files = [];
-  try { files = await api().recent_files(30); } catch (e) { files = []; }
+  try { files = await api().recent_files(120); } catch (e) { files = []; }
   const mason = $("wmason");
   if (!mason) return;
   if (!files.length) { mason.innerHTML = `<div class="emptystate">nothing generated yet — write a prompt and hit GENERATE</div>`; return; }
@@ -458,9 +458,17 @@ $("gen").addEventListener("click", async () => {
   setBusy(true);
 });
 
+// Derive the required input from the CATEGORY, not the per-model needs_input_* flags
+// (those flags in fal_models.json are unreliable — e.g. an image-to-image model tagged
+// needs_input_audio). The category "<src>-to-<dst>" names the input the model consumes.
+const SRC_KIND = { image: "image", video: "video", audio: "audio", speech: "audio", "3d": "mesh" };
 function neededKinds(model) {
-  if (!model) return [];
-  return Object.entries(INPUT_KINDS).filter(([flag]) => model[flag]).map(([, kind]) => kind);
+  const cat = (model && model.category) || state.category || "";
+  const src = cat.split("-to-")[0];
+  const kind = SRC_KIND[src];
+  if (kind) return [kind];
+  // fall back to any explicit flags for edge models that declare them
+  return model ? Object.entries(INPUT_KINDS).filter(([f]) => model[f]).map(([, k]) => k) : [];
 }
 function renderInputPickers(model) {
   const kinds = neededKinds(model);
