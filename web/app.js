@@ -315,7 +315,7 @@ function renderGallery() {
     api().open_output_folder()));
 }
 
-/* ---------- browse landing (models strip + recent work) ---------- */
+/* ---------- browse landing (models strip only — pick a model to start) ---------- */
 async function renderBrowse() {
   const wrap = $("browse");
   const models = modelsFor(state.service, state.category);
@@ -331,8 +331,7 @@ async function renderBrowse() {
   wrap.innerHTML = `
     <div class="s2lbl">Models <em>${models.length} in ${CAT_LABELS[state.category] || state.category}${state.service === "fal" ? " · fal" : ""}</em></div>
     <div class="mstrip" id="mstrip">${cards || '<div class="emptystate">no models here</div>'}</div>
-    <div class="s2lbl">Recent work <em>continue from any</em></div>
-    <div class="wmason" id="wmason"><div class="emptystate">loading…</div></div>`;
+    <div class="emptystate" style="padding:48px 20px">write a prompt and hit GENERATE — your images live in the <b>LIBRARY</b> tab, past prompts in <b>HISTORY</b></div>`;
 
   wrap.querySelectorAll(".mcard").forEach(c => c.addEventListener("click", () => {
     const m = models.find(x => x.id === c.dataset.mid);
@@ -342,13 +341,17 @@ async function renderBrowse() {
     render();
     $("prompt").focus();
   }));
+}
 
-  // recent work = the actual output folder (rich), newest first
+/* ---------- library view (all output files — its own tab) ---------- */
+async function renderLibrary() {
+  const wrap = $("library");
+  wrap.innerHTML = `<div class="s2lbl">Library <em>loading…</em></div><div class="wmason" id="libmason"></div>`;
   let files = [];
-  try { files = await api().recent_files(120); } catch (e) { files = []; }
-  const mason = $("wmason");
-  if (!mason) return;
-  if (!files.length) { mason.innerHTML = `<div class="emptystate">nothing generated yet — write a prompt and hit GENERATE</div>`; return; }
+  try { files = await api().recent_files(500); } catch (e) { files = []; }
+  wrap.querySelector(".s2lbl em").textContent = `${files.length} files · ${state.outDirName}/`;
+  const mason = $("libmason");
+  if (!files.length) { mason.innerHTML = `<div class="emptystate">no images yet — generate something</div>`; return; }
   mason.innerHTML = files.map((r, i) => `
     <div class="wtile" data-wi="${i}">
       ${mediaTag(r.file)}
@@ -410,10 +413,13 @@ function escapeHtml(s) {
 function setView(v) {
   state.view = v;
   document.querySelectorAll("#viewtoggle button").forEach(b => b.classList.toggle("on", b.dataset.view === v));
-  $("gallery").hidden = v !== "session";
+  $("library").hidden = v !== "library";
   $("history").hidden = v !== "history";
-  $("empty").style.display = (v === "session" && !state.gallery.length) ? "" : "none";
-  if (v === "history") renderHistory();
+  $("empty").hidden = true;
+  if (v === "session") { renderGallery(); }        // session = models landing or this-session gallery
+  else { $("browse").hidden = true; $("gallery").hidden = true; }
+  if (v === "library") renderLibrary();
+  else if (v === "history") renderHistory();
 }
 $("viewtoggle").addEventListener("click", e => { const b = e.target.closest("button"); if (b) setView(b.dataset.view); });
 

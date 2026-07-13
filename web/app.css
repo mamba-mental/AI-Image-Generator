@@ -248,3 +248,5 @@ footer .sp { flex: 1; }
 .wmeta b { color: var(--accent-hi); font-weight: 400; }
 .wmeta span { cursor: pointer; }
 .wmeta span:hover { color: var(--accent-hi); }
+
+.library[hidden] { display: none; }

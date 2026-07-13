@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <title>AI Studio Void</title>
 <link rel="stylesheet" href="tokens.css">
-<link rel="stylesheet" href="app.css?v=3">
+<link rel="stylesheet" href="app.css?v=4">
 </head>
 <body>
 <header>
@@ -88,12 +88,14 @@
     <span id="outinfo">OUTPUT · generated_images/</span>
     <div class="viewtoggle" id="viewtoggle">
       <button data-view="session" class="on">SESSION</button>
+      <button data-view="library">LIBRARY</button>
       <button data-view="history">HISTORY</button>
     </div>
   </div>
   <div class="gwrap">
     <div class="browse" id="browse" hidden></div>
     <div class="gallery" id="gallery"></div>
+    <div class="library" id="library" hidden></div>
     <div class="history" id="history" hidden></div>
     <div class="emptystate" id="empty" hidden>nothing generated yet — write a prompt and hit GENERATE</div>
   </div>
@@ -110,6 +112,6 @@
   <span id="sessioninfo">v2.0</span>
 </footer>
 
-<script src="app.js?v=3"></script>
+<script src="app.js?v=4"></script>
 </body>
 </html>
