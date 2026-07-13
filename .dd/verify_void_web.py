@@ -33,12 +33,12 @@ def ac2():
     html = read_index()
     for tab in ("Image", "Video", "Virality"):
         assert re.search(rf'data-tab="{tab.lower()}"', html), f"missing tab {tab}"
-    for dis in ("video", "virality"):
-        m = re.search(rf'data-tab="{dis}"[^>]*>', html)
-        assert m and "data-disabled" in m.group(0), f"{dis} tab not marked disabled"
-        assert 'data-reason="' in m.group(0), f"{dis} tab missing data-reason"
+    m = re.search(r'data-tab="virality"[^>]*>', html)
+    assert m and "data-disabled" in m.group(0) and 'data-reason="' in m.group(0), "virality not disabled w/ reason"
+    m = re.search(r'data-tab="video"[^>]*>', html)
+    assert m and "data-disabled" not in m.group(0), "video tab should be ENABLED in v2"
     chips = set(re.findall(r'data-provider="([a-z]+)"', html))
-    assert chips == {"fal", "replicate", "hf", "gemini"}, f"provider chips = {chips}"
+    assert chips == {"fal", "together", "openai", "replicate", "gemini", "hf"}, f"provider chips = {chips}"
     for f in WEBUI.rglob("*"):
         if f.is_file() and f.suffix in (".html", ".js", ".css", ".json"):
             body = f.read_text(encoding="utf-8", errors="ignore")
@@ -89,9 +89,12 @@ def ac6():
         assert items, "gallery empty"
         for it in items:
             assert it["url"].startswith("http://127.0.0.1:"), it["url"]
-        req = urllib.request.urlopen(items[0]["url"], timeout=10)
-        assert req.status == 200 and req.headers.get_content_type().startswith("image/"), \
-            f"{req.status} {req.headers.get_content_type()}"
+        img = next((it for it in items if it["kind"] == "image"), None)
+        assert img, "no image in gallery"
+        with urllib.request.urlopen(img["url"], timeout=10) as req:
+            body = req.read()  # drain body so the server handler completes (else shutdown() blocks)
+            assert req.status == 200 and req.headers.get_content_type().startswith("image/") and body, \
+                f"{req.status} {req.headers.get_content_type()}"
     finally:
         api.shutdown()
 
@@ -121,6 +124,31 @@ def ac8_live():
     finally:
         api.shutdown()
 
+
+# ---------- AC-11 Together dry-run spec ----------
+def ac11():
+    import bridge
+    api = bridge.Api(start_server=False)
+    spec = api.generate(prompt="a fox", model="google/imagen-4.0-ultra", provider="together",
+                        batch=2, dry_run=True)
+    assert "api.together.xyz" in spec["url"], spec["url"]
+    assert spec["headers"]["Authorization"].startswith("Bearer "), "bearer auth"
+    assert spec["payload"]["model"] == "google/imagen-4.0-ultra" and spec["payload"]["n"] == 2
+
+# ---------- AC-12 registry integrity ----------
+def ac12():
+    import json
+    reg = json.loads((WEBUI / "models.json").read_text(encoding="utf-8"))
+    provs = set(reg["providers"])
+    assert provs == {"fal","together","openai","replicate","gemini","hf"}, provs
+    assert any(m["kind"] == "video" for m in reg["models"]), "no video models"
+    for m in reg["models"]:
+        assert m["provider"] in provs, f"{m['id']} bad provider {m['provider']}"
+        assert m["kind"] in ("image","video"), m["kind"]
+        if m["kind"] == "video":
+            assert m["provider"] == "fal", f"video {m['id']} must route fal in v2"
+        assert isinstance(m.get("params", []), list)
+
 def main():
     live = "--live" in sys.argv
     check("AC-1 smoke boot", ac1)
@@ -130,6 +158,8 @@ def main():
     check("AC-5 LoRA roundtrip", ac5)
     check("AC-6 gallery + media server", ac6)
     check("AC-7 prompt history", ac7)
+    check("AC-11 Together dry-run spec", ac11)
+    check("AC-12 registry integrity", ac12)
     if live:
         check("AC-8 LIVE fal story gate", ac8_live)
     width = max(len(n) for n, *_ in RESULTS)

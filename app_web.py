@@ -18,8 +18,10 @@ from bridge import Api
 def run_smoke():
     api = Api(start_server=True, media_port=0)
     try:
-        assert api.providers() == ["fal", "replicate", "hf", "gemini"]
-        assert isinstance(api.models(), dict) and api.models()["fal"], "catalog empty"
+        provs = {p["name"] for p in api.providers()}
+        assert provs == {"fal", "together", "openai", "replicate", "gemini", "hf"}, provs
+        reg = api.models()
+        assert reg["models"] and any(m["kind"] == "video" for m in reg["models"]), "catalog missing video"
         assert (ROOT / "webui" / "index.html").exists(), "webui/index.html missing"
         _ = api.gallery(limit=3)  # must not raise
         print("SMOKE OK")

@@ -11,7 +11,7 @@
   <div class="mark"><span class="v">V</span><span><b>VOID</b>&nbsp;STUDIO</span></div>
   <div class="tabs" id="tabs">
     <span class="on" data-tab="image">Image</span>
-    <span data-tab="video" data-disabled data-reason="Video generation ships in v2">Video</span>
+    <span data-tab="video">Video</span>
     <span data-tab="virality" data-disabled data-reason="Virality Predictor was Higgsfield-only; Higgsfield is retired">Virality</span>
   </div>
   <div class="prompt">
@@ -30,11 +30,17 @@
     </div>
     <div class="ladder" id="providers" data-api="providers">
       <span class="chip on" data-provider="fal">fal</span>
+      <span class="chip" data-provider="together">together</span>
+      <span class="chip" data-provider="openai">openai</span>
       <span class="chip" data-provider="replicate">replicate</span>
-      <span class="chip" data-provider="hf">hf</span>
       <span class="chip" data-provider="gemini">gemini</span>
+      <span class="chip" data-provider="hf">hf</span>
     </div>
     <select id="modelSelect" class="mSelect" data-api="models"></select>
+    <div id="imgInputRow" style="display:none;margin-top:10px">
+      <label class="chip" for="imgInput" style="display:block;text-align:center;cursor:pointer" id="imgInputLabel">+ source image (img2img / i2v)</label>
+      <input type="file" id="imgInput" accept="image/*" style="display:none">
+    </div>
   </div>
 
   <h3>LoRA Stack</h3>

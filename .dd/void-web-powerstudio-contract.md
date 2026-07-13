@@ -30,3 +30,13 @@ Approved design: `C:\AI CoWork\dashboards\void-ui-mock-power-user-studio.html` (
 - Touching pre-existing uncommitted changes on branch ui-enhancements-replicate (not ours)
 
 Status: GREEN — all 8 ACs PASS (incl. AC-8 live fal generation 2026-07-12). Build shipped.
+
+## v2 AMENDMENT (2026-07-13, PRIME: "we lost functionality + the credit-access ladder options")
+Scope: restore multi-provider generation per dashboards/image-gen-credit-access.html ladder + enable Video.
+- AC-9  Provider chips now EXACTLY {fal, together, openai, replicate, gemini, hf}; chips without an env key render greyed (ready flag from bridge), never fake-active. -> ::ac2 (updated) [RED]
+- AC-10 Video tab ENABLED and wired to fal video models (kling v3 / seedance 2.0 fast / veo 3.1 fast, ids live-verified); Virality stays disabled w/ reason. -> ::ac2 (updated) [RED]
+- AC-11 Together dry-run spec: api.together.xyz/v1/images/generations + Bearer auth + model passthrough. -> ::ac11 [RED]
+- AC-12 Registry integrity: webui/models.json parses; every model.provider exists; every video model routes fal; param schemas well-formed. -> ::ac12 [RED]
+- AC-13 Dynamic params: per-model param schema drives the UI (restores old app's dynamic-form value-add); image-input models declare their input param. -> covered by ac12 schema checks + ac3
+- Non-goal v2: HF stays keyless-honest (greyed until HUGGINGFACE_TOKEN set); Virality stays retired.
+Status v2: GREEN (offline 10/10) — live-verified fal-image, Together (UA-on-download fix), OpenAI, fal-video. Gemini wired but free-tier 429 quota. HF greyed (no token).

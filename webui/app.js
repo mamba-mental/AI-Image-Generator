@@ -1,73 +1,87 @@
-/* AI Studio Void — web UI client. Calls bridge.Api via window.pywebview.api.* */
+/* AI Studio Void — web UI client v2. Registry-driven (webui/models.json via bridge). */
 const $ = (s) => document.querySelector(s);
 const $$ = (s) => Array.from(document.querySelectorAll(s));
 
 const state = {
+  tab: "image",            // image | video (virality disabled)
   provider: "fal",
   model: "fal-ai/flux-2/turbo",
-  dims: "1:1",
-  batch: 4,
-  guidance: 3.5,
-  seed: null,
-  enhance: false,
-  catalog: {},
+  dims: "1:1", batch: 4, guidance: 3.5, seed: null, enhance: false,
+  imageData: null,         // base64 data URI for img2img / i2v
+  registry: { providers: {}, models: [] },
+  ready: {},               // provider -> bool (env key present)
 };
-
-const PROV_LABEL = { fal: "fal.ai", replicate: "replicate", hf: "hugging face", gemini: "gemini" };
-const MODEL_NICE = { "fal-ai/flux-2/turbo": "FLUX.2 [Turbo]", "fal-ai/flux-2/flash": "FLUX.2 [Flash]",
-  "fal-ai/flux-2": "FLUX.2 [dev]", "fal-ai/flux-2-pro": "FLUX.2 [pro]", "fal-ai/flux-2/lora": "FLUX.2 [LoRA]" };
 
 function api() { return window.pywebview && window.pywebview.api; }
 function toast(msg) {
   let t = $("#toast"); if (!t) { t = document.createElement("div"); t.id = "toast"; t.className = "toast"; document.body.appendChild(t); }
-  t.textContent = msg; t.classList.add("show"); setTimeout(() => t.classList.remove("show"), 2600);
+  t.textContent = msg; t.classList.add("show"); setTimeout(() => t.classList.remove("show"), 3200);
 }
 function setStatus(s) { $("#status").textContent = s; }
 
+function currentEntry() { return state.registry.models.find(m => m.id === state.model) || {}; }
+function modelsFor(provider, kind) { return state.registry.models.filter(m => m.provider === provider && m.kind === kind); }
+
 async function boot() {
-  // wait for pywebview bridge
   let tries = 0;
   while (!api() && tries++ < 50) await new Promise(r => setTimeout(r, 100));
   if (!api()) { setStatus("bridge offline"); return; }
-  await buildProviders();
-  await buildModels();
+  state.registry = await api().models();
+  (await api().providers()).forEach(p => state.ready[p.name] = p.ready);
+  wireProviders();
+  rebuildModelSelect();
   await renderLoras();
   await renderGallery();
   wireControls();
   setStatus("ready");
 }
 
-async function buildProviders() {
-  const provs = await api().providers();
-  const box = $("#providers"); box.innerHTML = "";
-  provs.forEach(p => {
-    const c = document.createElement("span");
-    c.className = "chip" + (p === state.provider ? " on" : "");
-    c.dataset.provider = p; c.textContent = p;
-    c.onclick = async () => { state.provider = p; $$("#providers .chip").forEach(x => x.classList.toggle("on", x.dataset.provider === p)); await buildModels(); };
-    box.appendChild(c);
+function wireProviders() {
+  $$("#providers .chip[data-provider]").forEach(c => {
+    const p = c.dataset.provider;
+    if (!state.ready[p]) { c.style.opacity = ".38"; c.title = "no API key in .env — greyed until added"; }
+    c.onclick = () => {
+      if (!state.ready[p]) { toast(`${p}: no API key set — add ${state.registry.providers[p].key_env} to .env`); return; }
+      if (!modelsFor(p, state.tab).length) { toast(`${p} has no ${state.tab} models`); return; }
+      state.provider = p;
+      $$("#providers .chip[data-provider]").forEach(x => x.classList.toggle("on", x.dataset.provider === p));
+      rebuildModelSelect();
+    };
   });
 }
 
-async function buildModels() {
-  state.catalog = await api().models();
-  const list = state.catalog[state.provider] || [];
+function rebuildModelSelect() {
+  const list = modelsFor(state.provider, state.tab);
   const sel = $("#modelSelect"); sel.innerHTML = "";
-  list.forEach(m => { const o = document.createElement("option"); o.value = m; o.textContent = m; sel.appendChild(o); });
-  state.model = list[0] || "";
+  list.forEach(m => { const o = document.createElement("option"); o.value = m.id; o.textContent = m.label; sel.appendChild(o); });
+  state.model = list.length ? list[0].id : "";
   sel.value = state.model;
-  updateModelLabel();
-  sel.onchange = () => { state.model = sel.value; updateModelLabel(); };
+  sel.onchange = () => { state.model = sel.value; refreshModelUI(); };
+  refreshModelUI();
 }
-function updateModelLabel() {
-  $("#modelName").textContent = MODEL_NICE[state.model] || state.model;
-  $("#modelProv").textContent = PROV_LABEL[state.provider] || state.provider;
+
+function refreshModelUI() {
+  const e = currentEntry();
+  $("#modelName").textContent = e.label || state.model || "—";
+  $("#modelProv").textContent = (state.registry.providers[state.provider] || {}).label || state.provider;
+  // dynamic param visibility from the registry schema (restores the old app's per-model forms)
+  const has = (p) => (e.params || []).includes(p);
+  $("#batchV").parentElement.style.display = has("batch") ? "" : "none";
+  $("#batch").style.display = has("batch") ? "" : "none";
+  $("#guidV").parentElement.style.display = has("guidance") ? "" : "none";
+  $("#guidance").style.display = has("guidance") ? "" : "none";
+  $("#seedV").parentElement.style.display = has("seed") ? "" : "none";
+  $("#dims").style.display = has("dims") ? "" : "none";
+  // image input row only for models that declare one
+  const needsImg = !!e.image_input;
+  $("#imgInputRow").style.display = needsImg ? "" : "none";
+  if (!needsImg) { state.imageData = null; $("#imgInputLabel").textContent = "+ source image (img2img / i2v)"; }
 }
 
 async function renderLoras() {
   const loras = await api().lora_list();
   const box = $("#loraStack");
-  box.querySelectorAll(".lrow:not(.addrow)").forEach(e => e.remove());
+  box.querySelectorAll(".lrow:not(.addrow)").forEach(el => el.remove());
   const add = $("#addLora");
   loras.forEach((l, i) => {
     const row = document.createElement("div"); row.className = "lrow";
@@ -94,30 +108,46 @@ async function renderGallery() {
   items.forEach(it => {
     const fig = document.createElement("figure"); fig.className = "m";
     const media = it.kind === "video"
-      ? Object.assign(document.createElement("video"), { src: it.url, muted: true, loop: true, onmouseover: e => e.target.play(), onmouseout: e => e.target.pause() })
+      ? Object.assign(document.createElement("video"), { src: it.url, muted: true, loop: true, controls: true })
       : Object.assign(new Image(), { src: it.url, loading: "lazy" });
     const cap = document.createElement("figcaption"); cap.textContent = it.name;
     const acts = document.createElement("div"); acts.className = "acts";
-    ["Reuse", "⬇"].forEach(lbl => { const s = document.createElement("span"); s.textContent = lbl; acts.appendChild(s); });
+    const reuse = document.createElement("span"); reuse.textContent = "Use as input";
+    reuse.onclick = async () => {
+      const r = await fetch(it.url); const blob = await r.blob();
+      const fr = new FileReader();
+      fr.onload = () => { state.imageData = fr.result; $("#imgInputLabel").textContent = "✓ " + it.name; toast("Set as source image (pick an img2img / i2v model)"); };
+      fr.readAsDataURL(blob);
+    };
+    acts.appendChild(reuse);
     fig.append(media, acts, cap);
     g.appendChild(fig);
   });
 }
 
 function wireControls() {
-  // tabs (disabled ones just explain themselves)
   $$("#tabs span").forEach(t => t.onclick = () => {
     if (t.hasAttribute("data-disabled")) { toast(t.getAttribute("data-reason")); return; }
+    state.tab = t.dataset.tab;
     $$("#tabs span").forEach(x => x.classList.toggle("on", x === t));
+    // keep provider valid for this tab (video is fal-only today)
+    if (!modelsFor(state.provider, state.tab).length) {
+      const p = Object.keys(state.registry.providers).find(p => state.ready[p] && modelsFor(p, state.tab).length);
+      if (p) { state.provider = p; $$("#providers .chip[data-provider]").forEach(x => x.classList.toggle("on", x.dataset.provider === p)); }
+    }
+    rebuildModelSelect();
   });
-  // dims
   $$("#dims .dim").forEach(d => d.onclick = () => { state.dims = d.dataset.dim; $$("#dims .dim").forEach(x => x.classList.toggle("on", x === d)); });
-  // sliders
   $("#batch").oninput = e => { state.batch = +e.target.value; $("#batchV").textContent = state.batch; };
   $("#guidance").oninput = e => { state.guidance = +e.target.value; $("#guidV").textContent = state.guidance.toFixed(1); };
   $("#enhance").onclick = () => { state.enhance = !state.enhance; $("#enhance").classList.toggle("off", !state.enhance); };
   $("#seedV").onclick = () => { const v = prompt("Seed (blank = random):", state.seed ?? ""); state.seed = v ? parseInt(v) : null; $("#seedV").innerHTML = state.seed === null ? "random ↻" : String(state.seed); };
-  // history popup
+  $("#imgInput").onchange = (e) => {
+    const f = e.target.files[0]; if (!f) return;
+    const fr = new FileReader();
+    fr.onload = () => { state.imageData = fr.result; $("#imgInputLabel").textContent = "✓ " + f.name; };
+    fr.readAsDataURL(f);
+  };
   const histBtn = $("#histBtn");
   histBtn.onclick = async () => {
     let pop = $("#histPop");
@@ -131,7 +161,6 @@ function wireControls() {
     });
     pop.style.display = "block";
   };
-  // generate
   $("#genBtn").onclick = doGenerate;
   $("#prompt").addEventListener("keydown", e => { if (e.key === "Enter") doGenerate(); });
 }
@@ -139,13 +168,17 @@ function wireControls() {
 async function doGenerate() {
   const prompt = $("#prompt").value.trim();
   if (!prompt) { toast("Enter a prompt first"); return; }
-  const btn = $("#genBtn"); btn.disabled = true; setStatus("generating…");
+  const e = currentEntry();
+  if (e.image_input && !state.imageData) { toast("This model needs a source image — click '+ source image' or 'Use as input' on a gallery item"); return; }
+  const btn = $("#genBtn"); btn.disabled = true;
+  setStatus(e.kind === "video" ? "generating video… (can take minutes)" : "generating…");
   try {
     await api().history_add(prompt);
-    const res = await api().generate(prompt, state.model, state.provider, state.batch, state.seed, state.dims, state.guidance, state.enhance, false);
+    const res = await api().generate(prompt, state.model, state.provider, state.batch, state.seed,
+                                     state.dims, state.guidance, state.enhance, false, state.imageData);
     if (res.error) { toast(res.error); setStatus("error"); }
-    else { toast(`Generated ${res.files.length} image(s)`); setStatus("ready"); await renderGallery(); }
-  } catch (e) { toast(String(e)); setStatus("error"); }
+    else { toast(`Saved ${res.files.length} file(s) — ${res.model}`); setStatus("ready"); await renderGallery(); }
+  } catch (err) { toast(String(err)); setStatus("error"); }
   finally { btn.disabled = false; }
 }
 
