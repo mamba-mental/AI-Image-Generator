@@ -492,6 +492,30 @@ $("lightbox").addEventListener("click", e => { if (e.target.id === "lightbox") c
 $("lbedit").addEventListener("click", () => { if (state.lbFile) api().open_in_editor(state.lbFile); });
 $("lbfolder").addEventListener("click", () => api().open_output_folder());
 $("lbsave").addEventListener("click", () => { if (state.lbFile) api().save_as(state.lbFile); });
+// #3 — img->prompt: detect the original prompt or analyze the image, then seed the prompt box
+$("lbanalyze").addEventListener("click", async () => {
+  if (!state.lbFile) return;
+  const btn = $("lbanalyze"), orig = btn.textContent;
+  btn.textContent = "analyzing…"; btn.disabled = true;
+  try {
+    const r = await api().analyze_image(state.lbFile);
+    if (r.prompt) {
+      $("prompt").value = r.prompt;
+      closeLightbox();
+      setView("session");
+      $("prompt").focus();
+      $("statusmsg").textContent = r.source === "vision"
+        ? "prompt from image analysis — edit & regenerate"
+        : "prompt detected from metadata — edit & regenerate";
+    } else {
+      $("lbside").innerHTML = `<div class="lbm-title">Analyze <em>failed</em></div><div class="lbm-block"><div>${escapeHtml(r.error || "no prompt")}</div></div>`;
+    }
+  } catch (e) {
+    $("statusmsg").textContent = "analyze failed: " + e;
+  } finally {
+    btn.textContent = orig; btn.disabled = false;
+  }
+});
 document.addEventListener("keydown", e => { if (e.key === "Escape" && !$("lightbox").hidden) closeLightbox(); });
 
 /* ---------- browse landing (models strip only — pick a model to start) ---------- */

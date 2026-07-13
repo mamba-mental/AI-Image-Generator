@@ -294,6 +294,28 @@ class Api:
 
     # ---- files / keys ----
 
+    def analyze_image(self, filename: str) -> dict:
+        """#3 — img->prompt. First DETECT the original prompt (sidecar/history via read_meta);
+        if unknown, ANALYZE the image with an existing fal vision model to produce a regenerable
+        prompt. Reuses read_meta (#9) + the fal backend — no new generation path."""
+        meta = self.read_meta(filename)
+        if meta.get("prompt"):
+            return {"prompt": meta["prompt"], "source": meta.get("source", "detected"),
+                    "model": meta.get("model")}
+        path = self._resolve(filename)
+        if not os.path.exists(path):
+            return {"error": "file not found"}
+        try:
+            from engine.backends import fal_api
+            res = fal_api.generate("fal-ai/moondream3-preview/caption",
+                                   {"_inputs": {"image": path}, "category": "vision"})
+            if res and isinstance(res[0], dict) and res[0].get("text"):
+                return {"prompt": res[0]["text"].strip(), "source": "vision",
+                        "model": "fal-ai/moondream3-preview/caption"}
+            return {"error": res[0] if res and isinstance(res[0], str) else "no caption returned"}
+        except Exception as e:
+            return {"error": f"{type(e).__name__}: {e}"}
+
     def open_output_folder(self) -> dict:
         path = self.config["output_directory"]
         os.makedirs(path, exist_ok=True)
