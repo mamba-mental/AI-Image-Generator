@@ -19,11 +19,33 @@ def _load_fal_models() -> list:
     return []
 
 
+def _app_version() -> str:
+    """A visible build stamp so PRIME always knows WHICH build he's running
+    (source vs frozen exe) and at what revision — kills the stale-exe confusion."""
+    import subprocess
+    import datetime
+    kind = "FROZEN" if engine_config.is_frozen() else "SOURCE"
+    sha = "nogit"
+    try:
+        sha = subprocess.check_output(
+            ["git", "rev-parse", "--short", "HEAD"],
+            cwd=str(engine_config.repo_root()), timeout=5,
+            stderr=subprocess.DEVNULL,
+        ).decode().strip() or "nogit"
+    except Exception:
+        pass
+    return f"{kind} · {sha} · {datetime.datetime.now().strftime('%m-%d %H:%M')}"
+
+
 class Api:
     def __init__(self):
         self.config = engine_config.load()
+        self.version = _app_version()
         self.keys_status = engine_config.resolve_keys(self.config)
         self.media_base = mediaserver.start(self.config["output_directory"])
+        _libdir = self.config.get("library_directory") or ""
+        if _libdir and os.path.isdir(_libdir):
+            mediaserver.add_root(_libdir)  # LIBRARY view browses this captioned archive too
         self.lora_managers = {
             "huggingface": LoRAManager("huggingface"),
             "replicate": LoRAManager("replicate"),
@@ -35,7 +57,8 @@ class Api:
 
     def get_state(self) -> dict:
         return {
-            "services": ["fal", "openai", "nvidia", "replicate", "huggingface", "gemini", "openrouter"],
+            "services": ["fal", "openai", "nvidia", "replicate", "huggingface", "gemini",
+                         "openrouter", "together", "cliproxy"],
             "active_service": self.config.get("service", "fal"),
             "config": {k: v for k, v in self.config.items()
                        if k not in ("replicate_api_key", "huggingface_token",
@@ -52,6 +75,12 @@ class Api:
                 "openrouter": self.config.get("recent_models_openrouter", []) or [
                     "google/gemini-3-pro-image", "google/gemini-3.1-flash-image",
                     "google/gemini-2.5-flash-image", "openai/gpt-5-image"],
+                # E3 — Together.ai serverless image models (verified live on /v1/images/generations)
+                "together": self.config.get("recent_models_together", []) or [
+                    "black-forest-labs/FLUX.1.1-pro", "black-forest-labs/FLUX.1-schnell"],
+                # E1 — cliproxy image models routable via /v1/images/generations (verified live)
+                "cliproxy": self.config.get("recent_models_cliproxy", []) or [
+                    "gpt-image-2", "gpt-image-1.5", "grok-imagine-image"],
             },
             "recent_prompts": self.config.get("recent_prompts", []),
             "loras": {
@@ -62,6 +91,11 @@ class Api:
             "key_pools": self._key_pools(),
             "media_base": self.media_base,
             "output_dir_name": Path(self.config["output_directory"]).name,
+            "output_dir": self.config["output_directory"],
+            "library_dir": self.config.get("library_directory") or "",
+            "library_dir_name": Path(self.config["library_directory"]).name if self.config.get("library_directory") else "",
+            "version": self.version,
+            "drive_fallback": self.config.get("_drive_fallback"),
             "busy": REGISTRY.is_busy(),
         }
 
@@ -143,6 +177,20 @@ class Api:
             return []
         files = [f for f in d.iterdir() if f.is_file() and f.suffix.lower() in exts]
         files.sort(key=lambda f: f.stat().st_mtime, reverse=True)
+        return [{"file": f.name} for f in files[:int(limit)]]
+
+    def list_library(self, limit: int = 3000) -> list:
+        """LIBRARY view source. If a library_directory is configured, browse it (recursively) —
+        that's where a captioned archive lives; else fall back to the output dir. Basename only —
+        the JS resolves it against the (multi-root) media server, which now also serves that root."""
+        exts = {".png", ".jpg", ".jpeg", ".webp", ".mp4", ".webm", ".mov"}
+        libdir = self.config.get("library_directory") or ""
+        base = libdir if (libdir and os.path.isdir(libdir)) else self.config["output_directory"]
+        d = Path(base)
+        if not d.exists():
+            return []
+        files = [f for f in d.rglob("*") if f.is_file() and f.suffix.lower() in exts]
+        files.sort(key=lambda f: f.name.lower())
         return [{"file": f.name} for f in files[:int(limit)]]
 
     def get_balance(self, service: str) -> dict:
@@ -355,14 +403,18 @@ class Api:
         """#9 — metadata for one output file. Prefer the <file>.json sidecar; fall back to the
         matching basename in history.jsonl (covers images generated before sidecars existed)."""
         out_dir = self.config["output_directory"]
+        libdir = self.config.get("library_directory") or ""
         name = os.path.basename(filename or "")
-        side = os.path.join(out_dir, name + ".json")
-        if os.path.exists(side):
-            try:
-                with open(side, encoding="utf-8") as f:
-                    return {"source": "sidecar", **json.load(f)}
-            except Exception:
-                pass
+        for _base in (out_dir, libdir):
+            if not _base:
+                continue
+            side = os.path.join(_base, name + ".json")
+            if os.path.exists(side):
+                try:
+                    with open(side, encoding="utf-8") as f:
+                        return {"source": "sidecar", **json.load(f)}
+                except Exception:
+                    pass
         for row in history.read(out_dir, 1000):
             if any(os.path.basename(fp) == name for fp in (row.get("files") or [])):
                 return {"source": "history", "service": row.get("service"),

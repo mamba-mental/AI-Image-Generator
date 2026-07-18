@@ -5,11 +5,16 @@ Key resolution order preserved: config value wins unless empty/placeholder, else
 """
 import json
 import os
+import subprocess
 import sys
 import threading
 from pathlib import Path
 
 _LOCK = threading.Lock()
+
+# Best-effort mount script for the NAS image drive (I:). If the configured output
+# drive is missing we try this once before falling back to a local dir.
+_MOUNT_SCRIPT = r"C:/Scripts/Mount-AIImagesDrive.ps1"
 
 APP_NAME = "AI Studio Void"
 PLACEHOLDER_MARKERS = ("YOUR_REPLICATE_API_TOKEN", "YOUR_HUGGINGFACE_TOKEN",
@@ -23,6 +28,8 @@ KEY_FIELDS = {
     "openai": ("openai_api_key", "OPENAI_API_KEY"),
     "nvidia": ("nvidia_api_key", "NVIDIA_API_KEY"),
     "openrouter": ("openrouter_api_key", "OPENROUTER_API_KEY"),
+    "together": ("together_api_key", "TOGETHER_API_KEY"),
+    "cliproxy": ("cliproxy_api_key", "CLIPROXY_API_KEY"),
 }
 
 
@@ -66,6 +73,53 @@ def _default_config() -> dict:
     return cfg
 
 
+def _try_mount_drive() -> None:
+    """Best-effort: run the known mount script for the NAS image drive (I:)."""
+    if os.path.exists(_MOUNT_SCRIPT):
+        try:
+            subprocess.run(
+                ["powershell", "-NoProfile", "-ExecutionPolicy", "Bypass", "-File", _MOUNT_SCRIPT],
+                timeout=25, capture_output=True,
+            )
+        except Exception:
+            pass
+
+
+def _ensure_output_dir(cfg: dict) -> None:
+    """Guarantee the output dir exists WITHOUT discarding the rest of config.
+
+    If the configured drive/dir is missing (e.g. the I: NAS mount is down) we try to
+    mount it once, then fall back to a local dir and flag it so the UI can warn — we
+    NEVER let a missing drive silently blow the whole config back to defaults.
+    """
+    cfg.pop("_drive_fallback", None)
+    out = cfg.get("output_directory") or str(default_output_dir())
+    try:
+        os.makedirs(out, exist_ok=True)
+        cfg["output_directory"] = out
+        return
+    except Exception:
+        pass
+    # Drive/dir unreachable — if it's a bare drive letter, try to mount it once.
+    drive = os.path.splitdrive(out)[0]  # e.g. 'I:'
+    if drive:
+        _try_mount_drive()
+        try:
+            os.makedirs(out, exist_ok=True)
+            cfg["output_directory"] = out
+            return
+        except Exception:
+            pass
+    # Still unreachable — fall back locally, keep everything else, flag for the UI banner.
+    fallback = str(default_output_dir())
+    try:
+        os.makedirs(fallback, exist_ok=True)
+    except Exception:
+        pass
+    cfg["output_directory"] = fallback
+    cfg["_drive_fallback"] = {"wanted": out, "using": fallback}
+
+
 def load() -> dict:
     """Load config, merging any missing keys from the default template (ported merge logic)."""
     path = config_path()
@@ -87,7 +141,8 @@ def load() -> dict:
             cfg.get("parameters", {}).pop("lora_scale", None)  # obsolete key, ported cleanup
             if not cfg.get("output_directory"):
                 cfg["output_directory"] = str(default_output_dir())
-            os.makedirs(cfg["output_directory"], exist_ok=True)
+            cfg.setdefault("library_directory", "")  # extra folder the LIBRARY view browses (blank = just output_dir)
+            _ensure_output_dir(cfg)
             return cfg
         os.makedirs(default["output_directory"], exist_ok=True)
         save(default)

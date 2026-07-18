@@ -57,6 +57,8 @@ async function boot() {
   state.loras = s.loras || {};
   state.mediaBase = s.media_base || "";
   state.outDirName = s.output_dir_name || "generated_images";
+  state.outDir = s.output_dir || "";
+  state.defaultSize = (s.config || {}).default_image_size || "";
   state.service = s.active_service || "fal";
   const cfg = s.config || {};
   state.lastUsed = {
@@ -74,6 +76,16 @@ async function boot() {
   $("conn").classList.remove("off");
   $("connlabel").textContent = Object.entries(state.keys)
     .map(([k, ok]) => `${k}:${ok ? "✓" : "✗"}`).join(" ");
+  // version badge — always know WHICH build is running (kills stale-exe confusion)
+  const vb = $("verbadge"); if (vb && s.version) vb.textContent = s.version;
+  // drive-fallback banner — never silently write to a dead drive
+  const bnr = $("drivebanner");
+  if (bnr) {
+    if (s.drive_fallback) {
+      bnr.textContent = `⚠ Image drive ${s.drive_fallback.wanted} is not mounted — saving to ${s.drive_fallback.using} for now. Mount the drive and restart to use it.`;
+      bnr.style.display = "block";
+    } else { bnr.style.display = "none"; }
+  }
   renderService();
   render();
   refreshBalance();
@@ -166,7 +178,28 @@ function renderKeyRows() {
     });
   });
 }
-$("settingsbtn").addEventListener("click", () => { renderKeyRows(); $("settings").hidden = false; });
+function renderPrefs() {
+  const od = $("pref-outdir"); if (od) od.value = state.outDir || "";
+  const note = $("pref-outdir-note"); if (note) note.textContent = state.outDirName ? `current: ${state.outDir}` : "";
+  const sz = $("pref-size"); if (sz) sz.value = state.defaultSize || "";
+}
+$("pref-outdir-save") && $("pref-outdir-save").addEventListener("click", async () => {
+  const v = $("pref-outdir").value.trim();
+  const note = $("pref-outdir-note");
+  if (!v) { if (note) note.textContent = "enter a folder path first"; return; }
+  if (note) note.textContent = "saving…";
+  await api().set_config({ output_directory: v });
+  const s = await api().get_state();   // re-read (media server repointed + fallback check)
+  state.outDir = s.output_dir || v; state.outDirName = s.output_dir_name || "";
+  if (note) note.textContent = s.drive_fallback
+    ? `⚠ ${s.drive_fallback.wanted} unavailable — using ${s.drive_fallback.using}`
+    : `saved · now saving to ${s.output_dir}`;
+});
+$("pref-size") && $("pref-size").addEventListener("change", async e => {
+  state.defaultSize = e.target.value;
+  await api().set_config({ default_image_size: e.target.value });
+});
+$("settingsbtn").addEventListener("click", () => { renderKeyRows(); renderPrefs(); $("settings").hidden = false; });
 $("settingsclose").addEventListener("click", () => { $("settings").hidden = true; });
 $("settings").addEventListener("click", e => { if (e.target.id === "settings") $("settings").hidden = true; });
 
@@ -325,6 +358,16 @@ function renderParams(model) {
     const info = help ? ` <span class="phelp" title="${help.replace(/"/g, "&quot;")}">&#9432;</span>` : "";
     return `<div class="prow"><span title="${help.replace(/"/g, "&quot;")}">${p.name.replace(/_/g, " ")}${info}</span>${paramControl(p)}</div>`;
   }).join("");
+  // Settings → "Default image size" pref: pre-fill width/height/size when the model exposes them
+  if (state.defaultSize && /^\d+x\d+$/.test(state.defaultSize)) {
+    const [w, h] = state.defaultSize.split("x");
+    const setP = (name, val) => {
+      const el = $("params").querySelector(`[data-p="${name}"]`);
+      if (el && val) { el.value = val; const vs = $("params").querySelector(`[data-v="${name}"]`); if (vs) vs.textContent = val; }
+    };
+    setP("width", w); setP("height", h);
+    setP("size", state.defaultSize); setP("image_size", state.defaultSize);
+  }
   $("params").querySelectorAll("input[type=range]").forEach(r =>
     r.addEventListener("input", () => {
       const out = $("params").querySelector(`[data-v="${r.dataset.p}"]`);
@@ -559,8 +602,8 @@ async function renderLibrary() {
   const wrap = $("library");
   wrap.innerHTML = `<div class="s2lbl">Library <em>loading…</em></div><div class="wmason" id="libmason"></div>`;
   let files = [];
-  try { files = await api().recent_files(500); } catch (e) { files = []; }
-  wrap.querySelector(".s2lbl em").textContent = `${files.length} files · ${state.outDirName}/`;
+  try { files = await api().list_library(3000); } catch (e) { files = []; }
+  wrap.querySelector(".s2lbl em").textContent = `${files.length} files · ${state.libraryDirName || state.outDirName}/`;
   const mason = $("libmason");
   if (!files.length) { mason.innerHTML = `<div class="emptystate">no images yet — generate something</div>`; return; }
   mason.innerHTML = files.map((r, i) => `

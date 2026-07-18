@@ -9,6 +9,7 @@
 <body>
 <header>
   <div class="brand">AI <b>STUDIO</b> VOID</div>
+  <span class="verbadge" id="verbadge" title="which build you are running (source vs frozen exe + git rev)"></span>
   <div class="hdr-r">
     <span id="hdrinfo"></span>
     <div class="picker" id="layoutpick" title="Layout">
@@ -25,6 +26,7 @@
     <button id="settingsbtn" title="API keys & settings">⚙</button>
   </div>
 </header>
+<div class="drivebanner" id="drivebanner" style="display:none"></div>
 
 <div class="modal-overlay" id="settings" hidden>
   <div class="modal">
@@ -34,6 +36,23 @@
     </div>
     <p class="modal-sub">Keys resolve from your environment by default. Add or override one here, then Validate to live-check it against the provider. Stored in <code>%APPDATA%\AI Studio Void\config.json</code> — never committed.</p>
     <div id="keyrows"></div>
+    <h2 class="prefs-h">Preferences</h2>
+    <div class="prefs">
+      <div class="pref-row">
+        <label for="pref-outdir">Save / output folder</label>
+        <div class="pref-in"><input id="pref-outdir" type="text" placeholder="I:\  or a local folder" spellcheck="false"><button id="pref-outdir-save">Set</button></div>
+        <div class="pref-note" id="pref-outdir-note"></div>
+      </div>
+      <div class="pref-row">
+        <label for="pref-size">Default image size</label>
+        <div class="pref-in"><select id="pref-size">
+          <option value="">(model default)</option>
+          <option>512x512</option><option>768x768</option><option>1024x1024</option>
+          <option>1280x1280</option><option>1024x1792</option><option>1792x1024</option>
+        </select></div>
+        <div class="pref-note">Pre-fills width/height when the selected model exposes them.</div>
+      </div>
+    </div>
   </div>
 </div>
 

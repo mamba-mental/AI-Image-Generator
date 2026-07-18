@@ -4,8 +4,8 @@ WHY: WebView2 refuses to load file:// sub-resources (img/video/audio) from a
 file:// page — generated images render as broken-link icons. Serving them over
 http://127.0.0.1 fixes images, video, and audio in one mechanism (no per-file
 base64 bloat). Bound to 127.0.0.1 only; serves basename-of-request from the
-current output dir, so there is no path traversal and no exposure beyond the
-gallery folder.
+current output dir (plus any registered library roots), so there is no path
+traversal and no exposure beyond those folders.
 
 # ponytail: full-body 200 responses, no HTTP Range. Images/audio/short clips play
 # fine; seeking inside a long video won't. Add a 206 range handler if that bites.
@@ -16,7 +16,7 @@ import urllib.parse
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
 
-_STATE = {"dir": None}  # current output directory (mutable; set/updated by the bridge)
+_STATE = {"dir": None, "extra": []}  # primary output dir + extra library roots (mutable; set by the bridge)
 
 
 class _Handler(BaseHTTPRequestHandler):
@@ -24,13 +24,13 @@ class _Handler(BaseHTTPRequestHandler):
         pass
 
     def _serve(self, body: bool):
-        base = _STATE["dir"]
-        if not base:
+        roots = [_STATE["dir"], *_STATE.get("extra", [])]  # output dir first, then library archives
+        if roots[0] is None:
             self.send_error(503, "media dir not set")
             return
         name = Path(urllib.parse.unquote(self.path.lstrip("/"))).name  # basename only
-        target = Path(base) / name
-        if not name or not target.is_file():
+        target = next((Path(b) / name for b in roots if b and (Path(b) / name).is_file()), None)
+        if not name or target is None:
             self.send_error(404)
             return
         data = target.read_bytes()
@@ -66,3 +66,11 @@ def start(output_dir: str) -> str:
 
 def set_dir(output_dir: str) -> None:
     _STATE["dir"] = output_dir
+
+
+def add_root(path: str) -> None:
+    """Register an extra folder the server also serves basenames from (e.g. a captioned library
+    archive). First matching root wins; archive names (UUIDs/timestamps) won't collide with output."""
+    _STATE.setdefault("extra", [])
+    if path and path not in _STATE["extra"]:
+        _STATE["extra"].append(path)
