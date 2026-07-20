@@ -30,6 +30,9 @@ KEY_FIELDS = {
     "openrouter": ("openrouter_api_key", "OPENROUTER_API_KEY"),
     "together": ("together_api_key", "TOGETHER_API_KEY"),
     "cliproxy": ("cliproxy_api_key", "CLIPROXY_API_KEY"),
+    "ideogram": ("ideogram_web_refresh_token", "IDEOGRAM_WEB_REFRESH_TOKEN"),  # subscription (web session)
+    "ideogram-api": ("ideogram_api_key", "IDEOGRAM_API_KEY"),                   # paid public API (not in dropdown)
+    "agnes": ("agnes_api_key", "AGNES_API_KEY"),                                # AGNES-AI (Sapiens) OpenAI-compat hub
 }
 
 
