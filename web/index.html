@@ -78,9 +78,14 @@
       <div class="lbl">Negative Prompt</div>
       <input type="text" id="negprompt" placeholder="what to avoid…">
     </div>
-    <div class="sec" id="nsfwwrap" style="display:none">
-      <div class="lbl">Content <span class="phelp" id="nsfwinfo" title="Per-provider content policy">&#9432; policy</span></div>
-      <label class="nsfw-toggle"><input type="checkbox" id="nsfw"> Allow mature / artistic-nude content</label>
+    <div class="sec" id="nsfwwrap">
+      <div class="lbl">Content Mode <span class="phelp" id="nsfwinfo" title="How each mode relaxes safety filters + per-provider policy">&#9432; policy</span></div>
+      <div class="cmode-seg" id="cmodeseg">
+        <button type="button" data-mode="safe">Safe</button>
+        <button type="button" data-mode="editorial">Editorial</button>
+        <button type="button" data-mode="fashion">Fashion</button>
+        <button type="button" data-mode="nsfw">NSFW</button>
+      </div>
       <div class="nsfw-note" id="nsfwnote"></div>
     </div>
     <div class="sec" id="inputimgwrap" style="display:none">
@@ -175,6 +180,7 @@
   </div>
 </div>
 
-<script src="app.js?v=10"></script>
+<script src="content_mode.js?v=1"></script>
+<script src="app.js?v=11"></script>
 </body>
 </html>

@@ -80,7 +80,8 @@ def _gen_video(model_id: str, params: dict, key: str, progress, cancel_event) ->
     # 1) create the async task — POST /v1/videos (NOT /v1/video/generations; that path 403s via litellm)
     body = {"model": model_id, "prompt": params.get("prompt", "")}
     for src, dst in (("width", "width"), ("height", "height"), ("num_frames", "num_frames"),
-                     ("frame_rate", "frame_rate"), ("seed", "seed"), ("negative_prompt", "negative_prompt")):
+                     ("frame_rate", "frame_rate"), ("seed", "seed"), ("negative_prompt", "negative_prompt"),
+                     ("aspect_ratio", "aspect_ratio"), ("duration", "duration")):
         if params.get(src) is not None:
             body[dst] = params[src]
     img = params.get("image") or params.get("image_url")  # image-to-video: a PUBLIC image URL

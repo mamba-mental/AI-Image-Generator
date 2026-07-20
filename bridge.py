@@ -19,6 +19,75 @@ def _load_fal_models() -> list:
     return []
 
 
+def _load_service_params() -> dict:
+    """Per-service UI param schemas for the non-fal backends (retires generic LEGACY_PARAMS)."""
+    path = engine_config.resource_path("engine/service_params.json")
+    if path.exists():
+        return json.loads(path.read_text(encoding="utf-8")).get("services", {})
+    return {}
+
+
+def _openapi_props_to_params(schema: dict, comps: dict) -> list:
+    """OpenAPI Input schema properties -> UI params[] (name/type/values/default/min/max/description)."""
+    props = schema.get("properties", {})
+    required = set(schema.get("required", []))
+    out = []
+    for name, p in props.items():
+        if name == "prompt" or name.endswith("_url") or name in ("image", "mask", "images"):
+            continue
+        typ, enum = p.get("type"), p.get("enum")
+        if not typ and p.get("allOf"):  # replicate enum pattern: allOf: [{$ref -> EnumDef}]
+            tgt = comps.get((p["allOf"][0].get("$ref") or "").split("/")[-1], {})
+            enum = enum or tgt.get("enum"); typ = typ or tgt.get("type")
+        entry = {"name": name}
+        if enum:
+            entry.update(type="enum", values=enum)
+        elif typ == "boolean":
+            entry["type"] = "bool"
+        elif typ == "integer":
+            entry["type"] = "int"
+        elif typ == "number":
+            entry["type"] = "float"
+        elif typ == "string":
+            entry["type"] = "string"
+        else:
+            continue
+        if "default" in p:
+            entry["default"] = p["default"]
+        if "minimum" in p:
+            entry["min"] = p["minimum"]
+        if "maximum" in p:
+            entry["max"] = p["maximum"]
+        if name not in required and "default" not in p:
+            entry["optional"] = True
+        desc = (p.get("description") or "")[:220]
+        if desc:
+            entry["description"] = desc
+        out.append(entry)
+    out.sort(key=lambda e: (0 if "default" in e else 1, e["name"]))
+    return out[:16]
+
+
+def _replicate_input_params(model_id: str) -> list:
+    """Fetch a Replicate model's live OpenAPI Input schema -> UI params[]. [] on any failure."""
+    import urllib.request
+    tok = os.environ.get("REPLICATE_API_TOKEN")
+    if not tok or "/" not in (model_id or ""):
+        return []
+    owner, rest = model_id.split("/", 1)
+    name = rest.split(":")[0].split("/")[0]  # strip any :version or extra path
+    try:
+        req = urllib.request.Request(f"https://api.replicate.com/v1/models/{owner}/{name}",
+                                     headers={"Authorization": f"Token {tok}"})
+        d = json.loads(urllib.request.urlopen(req, timeout=30).read())
+    except Exception:
+        return []
+    comps = (((d.get("latest_version") or {}).get("openapi_schema") or {})
+             .get("components", {}).get("schemas", {}))
+    schema = comps.get("Input") or {}
+    return _openapi_props_to_params(schema, comps) if schema.get("properties") else []
+
+
 def _app_version() -> str:
     """A visible build stamp so PRIME always knows WHICH build he's running
     (source vs frozen exe) and at what revision — kills the stale-exe confusion."""
@@ -43,9 +112,9 @@ class Api:
         self.version = _app_version()
         self.keys_status = engine_config.resolve_keys(self.config)
         self.media_base = mediaserver.start(self.config["output_directory"])
-        _libdir = self.config.get("library_directory") or ""
-        if _libdir and os.path.isdir(_libdir):
-            mediaserver.add_root(_libdir)  # LIBRARY view browses this captioned archive too
+        for _libdir in self._library_dirs():  # LIBRARY view browses every configured archive
+            if os.path.isdir(_libdir):
+                mediaserver.add_root(_libdir)
         self.lora_managers = {
             "huggingface": LoRAManager("huggingface"),
             "replicate": LoRAManager("replicate"),
@@ -58,12 +127,13 @@ class Api:
     def get_state(self) -> dict:
         return {
             "services": ["fal", "openai", "nvidia", "replicate", "huggingface", "gemini",
-                         "openrouter", "together", "cliproxy"],
+                         "openrouter", "together", "cliproxy", "ideogram", "agnes"],
             "active_service": self.config.get("service", "fal"),
             "config": {k: v for k, v in self.config.items()
                        if k not in ("replicate_api_key", "huggingface_token",
                                     "gemini_api_key", "fal_api_key")},
             "fal_models": _load_fal_models(),
+            "service_params": _load_service_params(),
             "recent_models": {
                 "replicate": self.config.get("recent_models_replicate", []),
                 "huggingface": self.config.get("recent_models_hf", []),
@@ -81,6 +151,12 @@ class Api:
                 # E1 — cliproxy image models routable via /v1/images/generations (verified live)
                 "cliproxy": self.config.get("recent_models_cliproxy", []) or [
                     "gpt-image-2", "gpt-image-1.5", "grok-imagine-image"],
+                # Ideogram = Plus subscription via web session; model auto-selected server-side
+                "ideogram": self.config.get("recent_models_ideogram", []) or ["auto"],
+                # AGNES-AI (Sapiens) — image via /v1/images/generations; video via async /v1/videos
+                # (create → poll GET /agnesapi?video_id). All verified live 2026-07-20.
+                "agnes": self.config.get("recent_models_agnes", []) or [
+                    "agnes-image-2.1-flash", "agnes-image-2.0-flash", "agnes-video-v2.0"],
             },
             "recent_prompts": self.config.get("recent_prompts", []),
             "loras": {
@@ -103,6 +179,48 @@ class Api:
         """#13 — how many keys are pooled per service (for the settings UI)."""
         from engine import keypool
         return {s: keypool.size(s) for s in engine_config.KEY_FIELDS}
+
+    def _library_dirs(self) -> list:
+        """Every folder the LIBRARY view browses. Supports a plural `library_directories`
+        list; falls back to the legacy single `library_directory`. De-duped, order preserved."""
+        dirs = self.config.get("library_directories")
+        if not isinstance(dirs, list):
+            single = self.config.get("library_directory") or ""
+            dirs = [single] if single else []
+        seen, out = set(), []
+        for d in dirs:
+            if d and d not in seen:
+                seen.add(d)
+                out.append(d)
+        return out
+
+    _LIB_EXTS = {".png", ".jpg", ".jpeg", ".webp", ".mp4", ".webm", ".mov"}
+
+    def _library_index_path(self) -> str:
+        return os.path.join(str(engine_config.repo_root()), ".cache", "library_index.json")
+
+    def _scan_library(self, bases: list) -> list:
+        """Walk the archive folders once and return de-duped basenames (the slow NAS crawl)."""
+        seen, names = set(), []
+        for base in bases:
+            d = Path(base)
+            if not d.exists():
+                continue
+            for f in d.rglob("*"):
+                if f.is_file() and f.suffix.lower() in self._LIB_EXTS and f.name not in seen:
+                    seen.add(f.name)
+                    names.append(f.name)
+        names.sort(key=str.lower)
+        return names
+
+    def model_schema(self, service: str, model_id: str) -> dict:
+        """Live per-model param schema for services that expose one (Replicate). {params:[]} otherwise."""
+        try:
+            if service == "replicate":
+                return {"params": _replicate_input_params(model_id)}
+        except Exception:
+            pass
+        return {"params": []}
 
     def set_config(self, patch: dict) -> dict:
         for k, v in dict(patch).items():
@@ -179,19 +297,36 @@ class Api:
         files.sort(key=lambda f: f.stat().st_mtime, reverse=True)
         return [{"file": f.name} for f in files[:int(limit)]]
 
-    def list_library(self, limit: int = 3000) -> list:
-        """LIBRARY view source. If a library_directory is configured, browse it (recursively) —
-        that's where a captioned archive lives; else fall back to the output dir. Basename only —
-        the JS resolves it against the (multi-root) media server, which now also serves that root."""
-        exts = {".png", ".jpg", ".jpeg", ".webp", ".mp4", ".webm", ".mov"}
-        libdir = self.config.get("library_directory") or ""
-        base = libdir if (libdir and os.path.isdir(libdir)) else self.config["output_directory"]
-        d = Path(base)
-        if not d.exists():
-            return []
-        files = [f for f in d.rglob("*") if f.is_file() and f.suffix.lower() in exts]
-        files.sort(key=lambda f: f.name.lower())
-        return [{"file": f.name} for f in files[:int(limit)]]
+    def list_library(self, limit: int = 8000, refresh: bool = False) -> list:
+        """LIBRARY view source. Returns de-duped basenames across every configured archive.
+
+        The archives live on the NAS; a live recursive crawl of ~5k files on every app open is
+        why the grid used to redraw slowly. So the file list is cached to a LOCAL json index
+        (`.cache/library_index.json`) and served from there instantly. The crawl only runs when
+        the index is missing, the archive set changed, or `refresh=True` (the ↻ button)."""
+        bases = [d for d in self._library_dirs() if os.path.isdir(d)] or [self.config["output_directory"]]
+        idx = self._library_index_path()
+        if not refresh:
+            try:
+                if os.path.exists(idx):
+                    with open(idx, encoding="utf-8") as f:
+                        data = json.load(f)
+                    if data.get("dirs") == bases and isinstance(data.get("files"), list):
+                        return [{"file": n} for n in data["files"][:int(limit)]]
+            except Exception:
+                pass  # bad/absent index → fall through to a fresh scan
+        names = self._scan_library(bases)
+        try:
+            os.makedirs(os.path.dirname(idx), exist_ok=True)
+            with open(idx, "w", encoding="utf-8") as f:
+                json.dump({"dirs": bases, "files": names, "count": len(names)}, f)
+        except Exception:
+            pass
+        return [{"file": n} for n in names[:int(limit)]]
+
+    def refresh_library(self, limit: int = 8000) -> list:
+        """Force a fresh NAS crawl + rebuild the cached index (for the Library ↻ refresh button)."""
+        return self.list_library(limit=limit, refresh=True)
 
     def get_balance(self, service: str) -> dict:
         """Credit/quota status for the footer. Only fal exposes a real balance
@@ -403,9 +538,8 @@ class Api:
         """#9 — metadata for one output file. Prefer the <file>.json sidecar; fall back to the
         matching basename in history.jsonl (covers images generated before sidecars existed)."""
         out_dir = self.config["output_directory"]
-        libdir = self.config.get("library_directory") or ""
         name = os.path.basename(filename or "")
-        for _base in (out_dir, libdir):
+        for _base in (out_dir, *self._library_dirs()):
             if not _base:
                 continue
             side = os.path.join(_base, name + ".json")

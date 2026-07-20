@@ -40,6 +40,10 @@ def generate(model_id: str, params: dict, progress=None, cancel_event=None) -> l
     for opt in ("quality", "background", "output_format"):
         if params.get(opt):
             body[opt] = params[opt]
+    if params.get("output_compression") is not None:
+        body["output_compression"] = int(params["output_compression"])
+    if params.get("moderation") is not None:
+        body["moderation"] = params["moderation"]
 
     if progress:
         progress(f"OpenAI {model_id}…")

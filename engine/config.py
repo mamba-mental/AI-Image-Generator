@@ -184,8 +184,7 @@ def resolve_keys(cfg: dict) -> dict:
         pool_cfg = cfg.get(config_field + "s") or cfg.get(config_field)
         n = keypool.build(service, env_name, pool_cfg if pool_cfg else final)
         status[service] = bool(final) or n > 0
-    # library behavior flags (ported from setup_services :567)
-    os.environ["FLUX_DISABLE_SAFETY"] = "true"
-    os.environ["FLUX_GO_FAST"] = "true"
+    # Safety is driven per-request by the UI Content Mode (applyContentMode), not a static env flag.
+    # (FLUX_DISABLE_SAFETY / FLUX_GO_FAST removed 2026-07-20 — the latter was dead code.)
     print("API Key Setup: " + ", ".join(f"{s}={'OK' if ok else 'missing'}" for s, ok in status.items()))
     return status

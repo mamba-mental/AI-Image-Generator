@@ -34,3 +34,8 @@ Thumbs.db
 # Build artifacts (venv + work dirs live under build/)
 build/venv/
 build/work*/
+
+# Local Library caches (thumbnails + file index) — regenerated on demand
+.cache/
+scripts/.fal_schema_cache/
+engine/fal_models.json.bak-*

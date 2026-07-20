@@ -47,7 +47,8 @@ def generate(model_id, params, progress=None, cancel_event=None) -> list:
         return ["together Error: prompt required."]
 
     body = {"model": model_id, "prompt": prompt, "n": int(params.get("num_outputs", 1) or 1)}
-    for k in ("width", "height", "steps", "seed", "negative_prompt"):
+    for k in ("width", "height", "steps", "seed", "negative_prompt",
+              "guidance_scale", "output_format", "disable_safety_checker"):
         v = params.get(k)
         if v not in (None, ""):
             body[k] = v

@@ -1,0 +1,96 @@
+{
+  "version": 1,
+  "note": "Per-service UI param schemas for the non-fal backends (retires the generic LEGACY_PARAMS). Same shape as fal_models.json params[]. modelsFor() picks by_id_contains match else default. Backends must READ these (Job 3). # fill items were dropped pending a live probe; see .dd/per-service-params-contract.md.",
+  "services": {
+    "openai": {
+      "default": [
+        { "name": "size", "type": "enum", "values": ["auto", "1024x1024", "1536x1024", "1024x1536"], "default": "auto", "description": "Output dimensions (gpt-image). 1536x1024 = landscape, 1024x1536 = portrait." },
+        { "name": "quality", "type": "enum", "values": ["auto", "low", "medium", "high"], "default": "auto", "description": "Render quality/effort. Higher = better detail, more cost." },
+        { "name": "background", "type": "enum", "values": ["auto", "transparent", "opaque"], "default": "auto", "description": "Transparent needs png/webp output." },
+        { "name": "output_format", "type": "enum", "values": ["png", "jpeg", "webp"], "default": "png", "description": "File type. png = lossless+transparency; jpeg/webp = smaller." },
+        { "name": "output_compression", "type": "int", "min": 0, "max": 100, "optional": true, "description": "Compression % for jpeg/webp output (gpt-image)." },
+        { "name": "moderation", "type": "enum", "values": ["auto", "low"], "default": "auto", "description": "gpt-image moderation strictness. low = less restrictive." },
+        { "name": "num_outputs", "type": "int", "min": 1, "max": 10, "default": 1, "description": "Images per run (dall-e-3 forces 1)." }
+      ]
+    },
+    "cliproxy": {
+      "default": [
+        { "name": "size", "type": "enum", "values": ["auto", "1024x1024", "1536x1024", "1024x1536"], "default": "auto", "description": "Output dimensions (routed to gpt-image)." },
+        { "name": "quality", "type": "enum", "values": ["auto", "low", "medium", "high"], "default": "auto", "description": "Render quality (gpt-image via cliproxy)." },
+        { "name": "background", "type": "enum", "values": ["auto", "transparent", "opaque"], "default": "auto" },
+        { "name": "output_format", "type": "enum", "values": ["png", "jpeg", "webp"], "default": "png" },
+        { "name": "num_outputs", "type": "int", "min": 1, "max": 10, "default": 1 }
+      ]
+    },
+    "gemini": {
+      "default": [
+        { "name": "aspect_ratio", "type": "enum", "values": ["1:1", "2:3", "3:2", "3:4", "4:3", "9:16", "16:9", "21:9"], "default": "1:1", "description": "Sent as generationConfig.imageConfig.aspectRatio (real field, not a prompt hint)." },
+        { "name": "image_size", "type": "enum", "values": ["1K", "2K", "4K"], "default": "1K", "description": "imageConfig.imageSize. 2K/4K only on Gemini-3-Pro-image." }
+      ]
+    },
+    "nvidia": {
+      "default": [
+        { "name": "width", "type": "int", "min": 320, "max": 1536, "default": 1024, "step": 64 },
+        { "name": "height", "type": "int", "min": 320, "max": 1536, "default": 1024, "step": 64 },
+        { "name": "steps", "type": "int", "min": 1, "max": 50, "default": 25, "description": "Denoising steps. FLUX-schnell wants ~4; SD3.5/dev up to ~50." },
+        { "name": "cfg_scale", "type": "float", "min": 0, "max": 20, "default": 4.5, "description": "Prompt adherence (CFG)." },
+        { "name": "negative_prompt", "type": "string", "optional": true, "description": "What to exclude (SD3.5 family)." },
+        { "name": "seed", "type": "int", "optional": true, "description": "Fix for reproducible output; blank = random." }
+      ]
+    },
+    "together": {
+      "default": [
+        { "name": "width", "type": "int", "min": 256, "max": 1792, "default": 1024, "step": 64 },
+        { "name": "height", "type": "int", "min": 256, "max": 1792, "default": 1024, "step": 64 },
+        { "name": "steps", "type": "int", "min": 1, "max": 50, "default": 20, "description": "FLUX-schnell ~4; pro/dev up to ~50." },
+        { "name": "guidance_scale", "type": "float", "min": 0, "max": 20, "default": 3.5, "description": "Prompt adherence." },
+        { "name": "num_outputs", "type": "int", "min": 1, "max": 4, "default": 1 },
+        { "name": "output_format", "type": "enum", "values": ["jpeg", "png"], "default": "jpeg" },
+        { "name": "disable_safety_checker", "type": "bool", "default": false, "description": "Set by Content Mode where supported." },
+        { "name": "negative_prompt", "type": "string", "optional": true },
+        { "name": "seed", "type": "int", "optional": true }
+      ]
+    },
+    "huggingface": {
+      "default": [
+        { "name": "negative_prompt", "type": "string", "optional": true, "description": "What to exclude (SDXL/SD family)." },
+        { "name": "width", "type": "int", "min": 256, "max": 1536, "default": 1024, "step": 64 },
+        { "name": "height", "type": "int", "min": 256, "max": 1536, "default": 1024, "step": 64 },
+        { "name": "guidance_scale", "type": "float", "min": 0, "max": 20, "default": 7.5, "description": "CFG — prompt adherence." },
+        { "name": "num_inference_steps", "type": "int", "min": 1, "max": 100, "default": 28 },
+        { "name": "scheduler", "type": "string", "optional": true, "description": "Override the sampler (model-dependent, e.g. DPMSolverMultistep)." },
+        { "name": "seed", "type": "int", "optional": true }
+      ]
+    },
+    "ideogram": {
+      "default": [
+        { "name": "aspect_ratio", "type": "enum", "values": ["1x1", "16x9", "9x16", "4x3", "3x4", "3x2", "2x3", "16x10", "10x16"], "default": "1x1", "description": "Output aspect (mutually exclusive with resolution)." },
+        { "name": "rendering_speed", "type": "enum", "values": ["TURBO", "DEFAULT", "QUALITY"], "default": "DEFAULT" },
+        { "name": "magic_prompt", "type": "enum", "values": ["AUTO", "ON", "OFF"], "default": "AUTO", "description": "LLM prompt-expansion. OFF = your prompt verbatim." },
+        { "name": "style_type", "type": "enum", "values": ["AUTO", "GENERAL", "REALISTIC", "DESIGN"], "default": "AUTO" },
+        { "name": "num_images", "type": "int", "min": 1, "max": 8, "default": 1 },
+        { "name": "resolution", "type": "enum", "values": ["", "1024x1024", "1344x768", "768x1344", "1152x896", "896x1152", "1216x832", "832x1216"], "default": "", "optional": true, "description": "Exact WxH preset (overrides aspect_ratio). Blank = use aspect_ratio." },
+        { "name": "negative_prompt", "type": "string", "optional": true },
+        { "name": "seed", "type": "int", "optional": true }
+      ]
+    },
+    "agnes": {
+      "default": [
+        { "name": "size", "type": "enum", "values": ["auto", "1024x1024", "1536x1024", "1024x1536"], "default": "auto", "description": "Image dimensions (OpenAI-compatible)." },
+        { "name": "num_outputs", "type": "int", "min": 1, "max": 4, "default": 1 }
+      ],
+      "by_id_contains": {
+        "video": [
+          { "name": "aspect_ratio", "type": "enum", "values": ["16:9", "9:16", "1:1", "4:3", "3:4"], "default": "16:9", "description": "Video aspect (normalizes to 480p/720p/1080p tiers)." },
+          { "name": "duration", "type": "int", "min": 1, "max": 10, "optional": true, "description": "Target seconds (verified accepted; num_frames/frame_rate also control length)." },
+          { "name": "width", "type": "int", "min": 512, "max": 1920, "default": 1152, "step": 32 },
+          { "name": "height", "type": "int", "min": 512, "max": 1920, "default": 768, "step": 32 },
+          { "name": "num_frames", "type": "int", "min": 9, "max": 441, "default": 49, "description": "Must be 8n+1, <=441." },
+          { "name": "frame_rate", "type": "int", "min": 1, "max": 60, "default": 24 },
+          { "name": "negative_prompt", "type": "string", "optional": true },
+          { "name": "seed", "type": "int", "optional": true }
+        ]
+      }
+    }
+  }
+}

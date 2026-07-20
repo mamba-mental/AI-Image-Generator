@@ -30,6 +30,8 @@ def generate(model_id: str, params: dict, progress=None, cancel_event=None) -> l
     }
     if params.get("seed") is not None:
         body["seed"] = int(params["seed"])
+    if params.get("negative_prompt"):
+        body["negative_prompt"] = params["negative_prompt"]
 
     if progress:
         progress(f"NVIDIA {model_id} (may cold-start)…")

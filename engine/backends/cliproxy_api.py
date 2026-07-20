@@ -53,6 +53,9 @@ def generate(model_id, params, progress=None, cancel_event=None) -> list:
         size = f"{params['width']}x{params['height']}"
     if size:
         body["size"] = size
+    for opt in ("quality", "background", "output_format"):
+        if params.get(opt):
+            body[opt] = params[opt]
     if progress:
         progress(f"Submitting to cliproxy: {model_id}")
     req = urllib.request.Request(

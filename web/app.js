@@ -24,7 +24,7 @@ function catList() {
 }
 const INPUT_KINDS = { needs_input_image: "image", needs_input_video: "video",
                       needs_input_audio: "audio", needs_input_mesh: "mesh" };
-const SVC_LABELS = { fal: "Fal", openai: "OpenAI", nvidia: "NVIDIA", replicate: "Replicate", huggingface: "HF", gemini: "Gemini", openrouter: "OpenRouter" };
+const SVC_LABELS = { fal: "Fal", openai: "OpenAI", nvidia: "NVIDIA", replicate: "Replicate", huggingface: "HF", gemini: "Gemini", openrouter: "OpenRouter", together: "Together", cliproxy: "CLIProxy", ideogram: "Ideogram", "ideogram-web": "Ideogram (Sub)" };
 
 // legacy param set for replicate / hf / gemini (ported from the CTk panel)
 const LEGACY_PARAMS = [
@@ -37,11 +37,11 @@ const LEGACY_PARAMS = [
 ];
 
 const state = {
-  services: [], keys: {}, falModels: [], recentModels: {}, lastUsed: {},
+  services: [], keys: {}, falModels: [], serviceParams: {}, recentModels: {}, lastUsed: {}, modelSchemas: {},
   service: "fal", category: "text-to-image", model: null,
   inputFiles: {}, job: null, gallery: [], selected: null,
   genCount: 0, loras: {}, mediaBase: "", outDirName: "generated_images",
-  view: "session", grid: "m", lbFile: null, nsfw: true,
+  view: "session", grid: "m", lbFile: null, contentMode: "safe",
 };
 
 /* ---------- bridge helpers ---------- */
@@ -53,6 +53,7 @@ async function boot() {
   state.keys = s.keys_status;
   state.keyPools = s.key_pools || {};
   state.falModels = s.fal_models;
+  state.serviceParams = s.service_params || {};
   state.recentModels = s.recent_models;
   state.loras = s.loras || {};
   state.mediaBase = s.media_base || "";
@@ -71,7 +72,9 @@ async function boot() {
   if (cfg.ui_theme) setTheme(cfg.ui_theme, false);
   if (cfg.ui_layout) setLayout(cfg.ui_layout, false);
   if (cfg.ui_grid) setGrid(cfg.ui_grid, false);
-  state.nsfw = cfg.ui_nsfw !== false;   // #1 permissive-by-default (max coverage); persisted
+  // content mode: new key wins; migrate the legacy binary (ui_nsfw true -> editorial, false -> safe)
+  state.contentMode = cfg.ui_content_mode ||
+    (cfg.ui_nsfw === false ? "safe" : cfg.ui_nsfw === true ? "editorial" : "safe");
   if (cfg.parameters && cfg.parameters.negative_prompt) $("negprompt").value = cfg.parameters.negative_prompt;
   $("conn").classList.remove("off");
   $("connlabel").textContent = Object.entries(state.keys)
@@ -204,9 +207,39 @@ $("settingsclose").addEventListener("click", () => { $("settings").hidden = true
 $("settings").addEventListener("click", e => { if (e.target.id === "settings") $("settings").hidden = true; });
 
 /* ---------- model catalog ---------- */
+// per-service param schema (retires LEGACY_PARAMS): a dynamically-fetched per-model schema wins,
+// else the service's service_params.json entry (by_id_contains match, else default), else LEGACY_PARAMS.
+// fetch a live per-model Input schema for services that expose one (replicate); cache + re-render once
+async function maybeFetchSchema(service, id) {
+  if (service !== "replicate" || !id || (id in state.modelSchemas)) return;  // key present = fetched or in-flight
+  state.modelSchemas[id] = null;  // mark in-flight (null is ignored by pickServiceParams -> uses service default)
+  try {
+    const r = await api().model_schema(service, id);
+    if (r && r.params && r.params.length) { state.modelSchemas[id] = r.params; render(); }
+  } catch (e) { /* fall back to the service default params */ }
+}
+function pickServiceParams(service, id, category) {
+  if (state.modelSchemas[id]) return state.modelSchemas[id];
+  const sp = state.serviceParams[service];
+  if (!sp) return LEGACY_PARAMS;
+  if (sp.by_id_contains) {
+    const low = (id || "").toLowerCase();
+    for (const sub in sp.by_id_contains) if (low.includes(sub)) return sp.by_id_contains[sub];
+  }
+  return sp.default || LEGACY_PARAMS;
+}
 function modelsFor(service, category) {
-  if (service === "fal") return state.falModels.filter(m => m.category === category);
-  return (state.recentModels[service] || []).map(id => ({ id, label: id, category: "text-to-image", params: LEGACY_PARAMS }));
+  let models = service === "fal"
+    ? state.falModels.filter(m => m.category === category)
+    : (state.recentModels[service] || []).map(id => ({ id, label: id, category: "text-to-image", params: pickServiceParams(service, id, category) }));
+  const prof = CONTENT_MODES[state.contentMode] || CONTENT_MODES.safe;
+  if (prof.filter) {  // Editorial/Fashion/NSFW: hide non-relaxable fal models (non-fal stay visible — unclassified until Job 3)
+    models = models.filter(m => service === "fal" ? isRelaxable(m, service) : true);
+  }
+  if (prof.fashionFirst) {
+    models = models.slice().sort((a, b) => (isFashionModel(b) ? 1 : 0) - (isFashionModel(a) ? 1 : 0));
+  }
+  return models;
 }
 function currentModel() {
   const models = modelsFor(state.service, state.category);
@@ -245,6 +278,7 @@ function render() {
   const models = modelsFor(state.service, state.category);
   const cur = currentModel();
   state.model = cur ? cur.id : null;
+  if (cur) maybeFetchSchema(state.service, cur.id);  // live per-model schema for replicate (re-renders when it lands)
   $("model").innerHTML = models.map(m =>
     `<option value="${m.id}" ${cur && m.id === cur.id ? "selected" : ""}>${m.label}${m.price ? " — " + m.price : ""}</option>`).join("");
   $("pricenote").textContent = cur && cur.price ? cur.price : "";
@@ -295,7 +329,7 @@ const NSFW_POLICY = [
   { p: "fal", allow: "yes", policy: "Permissive — artistic/implied nudity on many models via safety params.",
     config: "enable_safety_checker=false (28 models) + safety_tolerance up to 6 (15 models). The toggle sets these on models that declare them." },
   { p: "huggingface", allow: "partial", policy: "Model-dependent; many SDXL/community checkpoints are uncensored.",
-    config: "Steer with negative_prompt; no global flag. FLUX_DISABLE_SAFETY honored where the model reads it." },
+    config: "Steer with negative_prompt; safety governed per-request by the Content Mode where the model exposes a toggle." },
   { p: "replicate", allow: "yes", policy: "Most image models expose disable_safety_checker.",
     config: "disable_safety_checker=true sent by the replicate backend (permissive)." },
   { p: "gemini", allow: "no", policy: "Hard filter — nudity blocked, no override.", config: "n/a (provider-enforced)." },
@@ -306,6 +340,9 @@ function modelSafetyParams(model) {
   const names = new Set(((model && model.params) || []).map(p => p.name));
   return { checker: names.has("enable_safety_checker"), tolerance: names.has("safety_tolerance") };
 }
+
+/* Content Mode logic (CONTENT_MODES / applyContentMode / isRelaxable / …) lives in
+   web/content_mode.js — loaded before this file, exposed as window globals. */
 
 // #12 — per-family canonical prompting guidance + negative-prompt gating (from a provider audit).
 function modelFamily(id) {
@@ -354,7 +391,7 @@ function paramControl(p) {
 function renderParams(model) {
   const params = model && model.params ? model.params : LEGACY_PARAMS;
   $("params").innerHTML = params.map(p => {
-    const help = PARAM_HELP[p.name] || "";
+    const help = p.description || PARAM_HELP[p.name] || "";  // schema-driven help; hand-authored fallback
     const info = help ? ` <span class="phelp" title="${help.replace(/"/g, "&quot;")}">&#9432;</span>` : "";
     return `<div class="prow"><span title="${help.replace(/"/g, "&quot;")}">${p.name.replace(/_/g, " ")}${info}</span>${paramControl(p)}</div>`;
   }).join("");
@@ -394,40 +431,50 @@ function collectParams(model) {
 
 /* ---------- #1 NSFW / content-policy toggle + reference ---------- */
 function syncSafetyControls() {
-  // The Content toggle governs the safety params; mirror it into the param controls
-  // (which #5 still renders as labeled) so collectParams reads the right values.
-  const chk = $("params").querySelector('[data-p="enable_safety_checker"]');
-  if (chk) chk.checked = !state.nsfw;                 // permissive -> checker OFF
-  const tol = $("params").querySelector('[data-p="safety_tolerance"]');
-  if (tol && state.nsfw) tol.value = "6";             // permissive -> max tolerance
+  // mirror the active mode's safety values into the visible param controls so the form reflects it
+  const applied = applyContentMode({}, currentModel(), state.contentMode, state.service);
+  const set = (name, val) => {
+    const el = $("params").querySelector(`[data-p="${name}"]`);
+    if (!el) return;
+    if (el.type === "checkbox") el.checked = !!val; else el.value = String(val);
+    const vs = $("params").querySelector(`[data-v="${name}"]`); if (vs) vs.textContent = String(val);
+  };
+  ["enable_safety_checker", "enable_output_safety_checker", "safety_tolerance", "raw"].forEach(k => {
+    if (k in applied) set(k, applied[k]);
+  });
 }
 function nsfwNote() {
-  $("nsfwnote").textContent = state.nsfw
-    ? "permissive — safety filter off where the model supports it"
-    : "safety filter ON (provider default)";
+  $("nsfwnote").textContent = CONTENT_MODE_HELP[state.contentMode] || "";
 }
-function renderNsfw(model) {
-  const sp = modelSafetyParams(model);
-  const show = state.service === "fal" && (sp.checker || sp.tolerance);
-  $("nsfwwrap").style.display = show ? "" : "none";
-  if (!show) return;
-  $("nsfw").checked = state.nsfw;
+function renderContentMode() {
+  $("nsfwwrap").style.display = "";                    // shown for every service
+  const seg = $("cmodeseg");
+  if (seg) seg.querySelectorAll("button").forEach(b =>
+    b.classList.toggle("active", b.dataset.mode === state.contentMode));
   syncSafetyControls();
   nsfwNote();
 }
-$("nsfw").addEventListener("change", () => {
-  state.nsfw = $("nsfw").checked;
-  syncSafetyControls();
-  nsfwNote();
-  api().set_config({ ui_nsfw: state.nsfw });
+function renderNsfw(model) { renderContentMode(); }    // back-compat: render() still calls renderNsfw(cur)
+$("cmodeseg").addEventListener("click", e => {
+  const btn = e.target.closest("button[data-mode]");
+  if (!btn || !CONTENT_MODES[btn.dataset.mode]) return;
+  state.contentMode = btn.dataset.mode;
+  api().set_config({ ui_content_mode: state.contentMode });
+  render();   // re-filter the model list + re-render params + mode note
 });
 $("nsfwinfo").addEventListener("click", () => {
-  $("nsfwrows").innerHTML = NSFW_POLICY.map(r => `
+  const modeRows = Object.keys(CONTENT_MODES).map(k =>
+    `<div class="nsfw-row allow-${k === "safe" ? "no" : "yes"}">
+       <div class="nsfw-head"><b>${CONTENT_MODES[k].label}</b></div>
+       <div class="nsfw-pol">${escapeHtml(CONTENT_MODE_HELP[k])}</div>
+     </div>`).join("");
+  const svcRows = NSFW_POLICY.map(r => `
     <div class="nsfw-row allow-${r.allow}">
       <div class="nsfw-head"><b>${SVC_LABELS[r.p] || r.p}</b><span class="nsfw-badge">${r.allow === "yes" ? "permitted" : r.allow === "partial" ? "model-dependent" : "hard filter"}</span></div>
       <div class="nsfw-pol">${r.policy}</div>
       <div class="nsfw-cfg"><span>config</span> ${escapeHtml(r.config)}</div>
     </div>`).join("");
+  $("nsfwrows").innerHTML = `<div class="nsfw-sub">Content modes — how each relaxes safety</div>${modeRows}<div class="nsfw-sub">Per-provider policy</div>${svcRows}`;
   $("nsfwpanel").hidden = false;
 });
 $("nsfwpanelclose").addEventListener("click", () => { $("nsfwpanel").hidden = true; });
@@ -465,7 +512,17 @@ function fileUrl(p) {
   return state.mediaBase ? state.mediaBase + encodeURIComponent(name)
                          : "file:///" + p.replace(/\\/g, "/");
 }
-function mediaTag(f) {
+// Small cached thumbnail (generated once, stored on local disk) for grid tiles — avoids
+// re-pulling full-size images from the NAS on every app open. Non-images fall back to full URL.
+const THUMB_EXT = ["png", "jpg", "jpeg", "webp", "gif", "bmp"];
+function thumbUrl(p, size = 400) {
+  const name = p.split(/[\\/]/).pop();
+  const ext = name.split(".").pop().toLowerCase();
+  if (state.mediaBase && THUMB_EXT.includes(ext))
+    return state.mediaBase + "thumb/" + encodeURIComponent(name) + "?s=" + size;
+  return fileUrl(p);
+}
+function mediaTag(f, opts = {}) {
   const name = f.split(/[\\/]/).pop();
   const ext = f.split(".").pop().toLowerCase();
   if (["mp4", "webm", "mov"].includes(ext)) return `<video src="${fileUrl(f)}" controls muted></video>`;
@@ -474,7 +531,7 @@ function mediaTag(f) {
     return `<div class="filecard">🧊<br>${name}<br><small>3D model — open in a viewer</small></div>`;
   if (["txt", "json"].includes(ext))
     return `<div class="filecard txt" data-txt="${fileUrl(f)}">📄<br>${name}<br><small>text output — click Save As to keep</small></div>`;
-  return `<img src="${fileUrl(f)}" alt="">`;
+  return `<img src="${opts.thumb ? thumbUrl(f) : fileUrl(f)}" alt="" loading="lazy">`;
 }
 function renderGallery() {
   // Empty session -> the browse landing (models strip + recent work) instead of a bare message.
@@ -485,7 +542,7 @@ function renderGallery() {
   if (emptySession) { renderBrowse(); return; }
   $("gallery").innerHTML = state.gallery.map((g, i) => `
     <div class="tile ${i === state.selected ? "sel" : ""}" data-i="${i}">
-      ${mediaTag(g.file)}
+      ${mediaTag(g.file, { thumb: true })}
       <div class="acts">
         <button data-save="${i}">Save As</button>
         <button data-open="${i}">Folder</button>
@@ -600,15 +657,21 @@ async function renderBrowse() {
 /* ---------- library view (all output files — its own tab) ---------- */
 async function renderLibrary() {
   const wrap = $("library");
-  wrap.innerHTML = `<div class="s2lbl">Library <em>loading…</em></div><div class="wmason" id="libmason"></div>`;
+  wrap.innerHTML = `<div class="s2lbl">Library <em>loading…</em><button id="librefresh" class="lib-refresh" title="Rescan the archive folders for new images">↻ refresh</button></div><div class="wmason" id="libmason"></div>`;
   let files = [];
-  try { files = await api().list_library(3000); } catch (e) { files = []; }
+  try { files = await api().list_library(8000); } catch (e) { files = []; }
   wrap.querySelector(".s2lbl em").textContent = `${files.length} files · ${state.libraryDirName || state.outDirName}/`;
+  const rb = $("librefresh");
+  if (rb) rb.addEventListener("click", async () => {
+    rb.disabled = true; rb.textContent = "↻ rescanning…";
+    try { await api().refresh_library(8000); } catch (e) {}
+    renderLibrary();
+  });
   const mason = $("libmason");
   if (!files.length) { mason.innerHTML = `<div class="emptystate">no images yet — generate something</div>`; return; }
   mason.innerHTML = files.map((r, i) => `
     <div class="wtile" data-wi="${i}">
-      ${mediaTag(r.file)}
+      ${mediaTag(r.file, { thumb: true })}
       <div class="wmeta"><b>${r.file.split(".").pop()}</b><span data-open="${i}">open folder</span></div>
     </div>`).join("");
   applyGrid();
@@ -633,7 +696,7 @@ async function renderHistory() {
   }
   wrap.innerHTML = rows.map((r, i) => {
     const files = (r.files || []);
-    const thumbs = files.map(f => `<div class="h-thumb">${mediaTag(f)}</div>`).join("");
+    const thumbs = files.map(f => `<div class="h-thumb">${mediaTag(f, { thumb: true })}</div>`).join("");
     const when = (r.ts || "").replace("T", " ").slice(0, 16);
     return `<div class="h-row" data-i="${i}">
       <div class="h-thumbs">${thumbs || '<div class="h-thumb none">—</div>'}</div>
@@ -760,7 +823,7 @@ $("gen").addEventListener("click", async () => {
   kinds.forEach(k => { inputFiles[k] = state.inputFiles[k]; });
   const req = {
     service: state.service, model: cur.id, category: state.category,
-    prompt, params: collectParams(cur), input_files: inputFiles,
+    prompt, params: applyContentMode(collectParams(cur), cur, state.contentMode, state.service), input_files: inputFiles,
   };
   const r = await api().generate(req);
   if (r.error) { $("statusmsg").textContent = r.error; return; }

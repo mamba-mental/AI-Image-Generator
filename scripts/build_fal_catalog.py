@@ -1,11 +1,19 @@
-"""Regenerate engine/fal_models.json from fal's live platform API.
+"""Regenerate engine/fal_models.json from fal's LIVE explore catalog.
 
-Top N models per media category (PRIME's directive 2026-07-03: top ~13 per category),
-param hints auto-extracted from each model's OpenAPI schema so the UI forms scale
-with zero hand-authoring.
+Pulls the FULL catalog per category from fal.ai's explore JSON API (the same data behind
+fal.ai/explore), then fetches each model's OpenAPI input schema so the UI param forms scale
+with zero hand-authoring. Each model carries {id,label,category,output,description,params[]
+(name/type/enum/default/min/max/required/description),thumb,price,supports_relaxed_safety}.
 
-Usage:  python scripts/build_fal_catalog.py [--per-category 13]
-Needs:  FAL_KEY in env. ~5 min for ~300 schema fetches (8 threads).
+Usage:
+  python scripts/build_fal_catalog.py                    # full pull, all media categories
+  python scripts/build_fal_catalog.py --categories text-to-image,text-to-video
+  python scripts/build_fal_catalog.py --max-per-category 20   # quick test run
+  python scripts/build_fal_catalog.py --no-cache              # ignore the schema cache
+
+Needs FAL_KEY only for the openapi fetch fallback (the explore list is keyless).
+Schema fetches are cached under scripts/.fal_schema_cache/ so re-runs resume instantly.
+Cloudflare 403s bare curl/urllib -> every request sends a browser User-Agent.
 """
 import argparse
 import json
@@ -19,11 +27,13 @@ from pathlib import Path
 
 sys.stdout.reconfigure(encoding="utf-8", errors="replace")
 
-MODELS_API = "https://api.fal.ai/v1/models"
+EXPLORE_API = "https://fal.ai/api/models"      # keyless explore JSON (browser UA required)
 SCHEMA_API = "https://fal.ai/api/openapi/queue/openapi.json"
+UA = ("Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 "
+      "(KHTML, like Gecko) Chrome/126.0 Safari/537.36")
+CACHE_DIR = Path(__file__).resolve().parent / ".fal_schema_cache"
 
-# Media categories only (PRIME's site list minus Training / LLMs / JSON / Workflow / Unknown —
-# those aren't media generation and need a different UI).
+# The app's media categories (site list minus Training / LLM / JSON / Workflow — not media gen).
 CATEGORIES = [
     "text-to-image", "image-to-image",
     "text-to-video", "image-to-video", "video-to-video", "audio-to-video",
@@ -33,117 +43,185 @@ CATEGORIES = [
     "vision",
     "text-to-3d", "image-to-3d", "3d-to-3d",
 ]
-
-# outputs by category family (drives save-path handling + gallery tile type)
-OUTPUT_BY_CAT = {
-    "image": "image", "video": "video", "audio": "audio", "speech": "audio",
-    "text": "text", "3d": "3d", "vision": "text", "json": "text",
-}
-
+OUTPUT_BY_CAT = {"image": "image", "video": "video", "audio": "audio", "speech": "audio",
+                 "text": "text", "3d": "3d", "vision": "text", "json": "text"}
 INPUT_MEDIA_KEYS = {
     "image_url": "needs_input_image", "video_url": "needs_input_video",
     "audio_url": "needs_input_audio", "model_mesh_url": "needs_input_mesh",
     "input_image_url": "needs_input_image", "reference_image_url": "needs_input_image",
 }
+# params whose PRESENCE means the model can be relaxed for editorial/NSFW work (plan doc section 3)
+SAFETY_PARAM_NAMES = {"enable_safety_checker", "safety_tolerance", "enable_output_safety_checker"}
 
 
-def _get(url: str, auth: bool = True) -> dict:
-    headers = {"Authorization": f"Key {os.environ['FAL_KEY']}"} if auth else {}
+def _get(url: str, auth: bool = False, timeout: int = 45) -> dict:
+    headers = {"User-Agent": UA}
+    if auth and os.environ.get("FAL_KEY"):
+        headers["Authorization"] = f"Key {os.environ['FAL_KEY']}"
     req = urllib.request.Request(url, headers=headers)
-    return json.loads(urllib.request.urlopen(req, timeout=45).read())
+    return json.loads(urllib.request.urlopen(req, timeout=timeout).read())
 
 
-def list_category(cat: str, limit: int) -> list:
-    try:
-        d = _get(f"{MODELS_API}?category={urllib.parse.quote(cat)}&limit={limit}")
-        return [m for m in d.get("models", [])
-                if m.get("metadata", {}).get("status") == "active"
-                and m.get("metadata", {}).get("kind") == "inference"]
-    except Exception as e:
-        print(f"  category {cat}: LIST FAILED {e}")
-        return []
+def list_category_full(cat: str, cap: int) -> list:
+    """Page the explore API for every non-deprecated/removed model in a category."""
+    items, page = [], 1
+    while True:
+        try:
+            d = _get(f"{EXPLORE_API}?categories={urllib.parse.quote(cat)}&page={page}")
+        except Exception as e:
+            print(f"  {cat} page {page}: LIST FAILED {e}")
+            break
+        for it in d.get("items", []):
+            if it.get("deprecated") or it.get("removed"):
+                continue
+            items.append(it)
+            if cap and len(items) >= cap:
+                return items
+        pages = d.get("pages", 1)
+        if page >= pages:
+            break
+        page += 1
+    return items
 
 
 def output_kind(cat: str) -> str:
-    tail = cat.split("-")[-1]
-    return OUTPUT_BY_CAT.get(tail, OUTPUT_BY_CAT.get(cat, "image"))
+    return OUTPUT_BY_CAT.get(cat.split("-")[-1], OUTPUT_BY_CAT.get(cat, "image"))
 
 
-def extract_params(endpoint_id: str) -> tuple:
-    """OpenAPI input schema -> (param hints, media-input flags). Empty on failure."""
+def _fetch_schema(endpoint_id: str, use_cache: bool) -> dict:
+    CACHE_DIR.mkdir(exist_ok=True)
+    cache = CACHE_DIR / (endpoint_id.replace("/", "__") + ".json")
+    if use_cache and cache.exists():
+        try:
+            return json.loads(cache.read_text(encoding="utf-8"))
+        except Exception:
+            pass
+    d = _get(f"{SCHEMA_API}?endpoint_id={urllib.parse.quote(endpoint_id, safe='')}", auth=True)
     try:
-        d = _get(f"{SCHEMA_API}?endpoint_id={urllib.parse.quote(endpoint_id, safe='')}", auth=False)
-        schemas = d.get("components", {}).get("schemas", {})
-        input_schema = None
-        for name, s in schemas.items():
-            if name.lower().endswith("input") and isinstance(s, dict) and s.get("properties"):
-                input_schema = s
-                break
-        if not input_schema:
-            return [], {}
-        params, flags = [], {}
-        required = set(input_schema.get("required", []))
-        for pname, p in input_schema["properties"].items():
-            if pname == "prompt":
-                continue
-            if pname in INPUT_MEDIA_KEYS:
-                flags[INPUT_MEDIA_KEYS[pname]] = True
-                continue
-            if pname.endswith("_url") or pname == "loras":
-                continue  # secondary media/complex inputs — not form-rendered v1
-            # fal's `image_size` is a $ref (preset enum OR custom {width,height}) so it
-            # has no plain `type` and was being dropped — the reason dimensions vanished.
-            # Emit it as a preset picker + optional custom width/height.
-            if pname == "image_size":
-                params.append({"name": "image_size", "type": "enum",
-                               "values": ["square_hd", "square", "portrait_4_3",
-                                          "portrait_16_9", "landscape_4_3", "landscape_16_9"],
-                               "default": p.get("default", "landscape_4_3")})
-                params.append({"name": "width", "type": "int", "min": 256, "max": 2048, "optional": True})
-                params.append({"name": "height", "type": "int", "min": 256, "max": 2048, "optional": True})
-                continue
-            entry = {"name": pname}
-            ptype = p.get("type")
-            if "enum" in p:
-                entry.update(type="enum", values=p["enum"])
-            elif ptype == "boolean":
-                entry["type"] = "bool"
-            elif ptype == "integer":
-                entry["type"] = "int"
-            elif ptype == "number":
-                entry["type"] = "float"
-            elif ptype == "string":
-                entry["type"] = "string"
-            else:
-                continue  # objects/arrays — pass-through only
-            if "default" in p:
-                entry["default"] = p["default"]
-            if "minimum" in p:
-                entry["min"] = p["minimum"]
-            if "maximum" in p:
-                entry["max"] = p["maximum"]
-            if pname not in required and "default" not in p:
-                entry["optional"] = True
-            params.append(entry)
-        # keep forms usable but don't hide real knobs: defaults first, cap at 14
-        params.sort(key=lambda e: (0 if "default" in e else 1, e["name"]))
-        return params[:14], flags
+        cache.write_text(json.dumps(d), encoding="utf-8")
     except Exception:
-        return [], {}
+        pass
+    return d
 
 
-def build_entry(row: dict) -> dict:
-    meta = row["metadata"]
-    endpoint_id = row["endpoint_id"]
-    cat = meta.get("category", "")
-    params, flags = extract_params(endpoint_id)
+def _resolve(p: dict, schemas: dict, depth: int = 0) -> dict:
+    """Follow $ref / anyOf / allOf to the concrete {type,enum,minimum,maximum} the UI needs.
+    Keeps the outer property's default/description/title (fal puts those on the wrapper)."""
+    if depth > 4 or not isinstance(p, dict):
+        return p if isinstance(p, dict) else {}
+    if "$ref" in p:
+        target = schemas.get(p["$ref"].split("/")[-1], {})
+        return _resolve(target, schemas, depth + 1)
+    for key in ("anyOf", "allOf", "oneOf"):
+        if key in p:
+            merged = {k: v for k, v in p.items() if k not in ("anyOf", "allOf", "oneOf")}
+            for sub in p[key]:
+                r = _resolve(sub, schemas, depth + 1)
+                if r.get("type") == "null":
+                    continue
+                for k, v in r.items():
+                    merged.setdefault(k, v)  # first concrete member wins; outer keys already set
+            return merged
+    return p
+
+
+def _input_kind(name: str) -> str:
+    """Map an input-media property name to a needs_input_* flag by keyword (broader than the exact map)."""
+    if name in INPUT_MEDIA_KEYS:
+        return INPUT_MEDIA_KEYS[name]
+    if not (name.endswith("_url") or name.endswith("_urls")):
+        return ""
+    for kw, flag in (("image", "needs_input_image"), ("video", "needs_input_video"),
+                     ("audio", "needs_input_audio"), ("mesh", "needs_input_mesh")):
+        if kw in name:
+            return flag
+    return "needs_input_image"  # a bare *_url on an image/vision model → treat as an image input
+
+
+def extract_params(endpoint_id: str, use_cache: bool) -> tuple:
+    """OpenAPI input schema -> (params[], media-input flags, supports_relaxed_safety)."""
+    try:
+        d = _fetch_schema(endpoint_id, use_cache)
+    except Exception:
+        return [], {}, False
+    schemas = d.get("components", {}).get("schemas", {})
+    input_schema = next((s for n, s in schemas.items()
+                         if n.lower().endswith("input") and isinstance(s, dict) and s.get("properties")), None)
+    if not input_schema:
+        return [], {}, False
+    props = input_schema["properties"]
+    supports_relaxed = any(k in props for k in SAFETY_PARAM_NAMES)  # from the FULL schema, pre-cap
+    params, flags = [], {}
+    required = set(input_schema.get("required", []))
+    for pname, raw in props.items():
+        if pname == "prompt":
+            continue
+        kind = _input_kind(pname)
+        if kind:
+            flags[kind] = True
+            continue
+        if pname == "loras":
+            continue
+        p = _resolve(raw, schemas)                       # follow $ref/anyOf to the concrete type
+        desc = (raw.get("description") or p.get("description") or "")[:220]
+        if pname == "image_size":  # $ref preset OR custom {w,h} — emit as picker + optional w/h
+            params.append({"name": "image_size", "type": "enum",
+                           "values": ["square_hd", "square", "portrait_4_3", "portrait_16_9",
+                                      "landscape_4_3", "landscape_16_9"],
+                           "default": p.get("default", "landscape_4_3"), "description": desc})
+            params.append({"name": "width", "type": "int", "min": 256, "max": 2048, "optional": True})
+            params.append({"name": "height", "type": "int", "min": 256, "max": 2048, "optional": True})
+            continue
+        # effective view: resolved type/enum from p, authoritative default/bounds from the outer wrapper
+        eff = dict(p)
+        for k in ("default", "minimum", "maximum", "title"):
+            if k in raw:
+                eff[k] = raw[k]
+        entry = {"name": pname}
+        ptype = eff.get("type")
+        if "enum" in eff:
+            entry.update(type="enum", values=eff["enum"])
+        elif ptype == "boolean":
+            entry["type"] = "bool"
+        elif ptype == "integer":
+            entry["type"] = "int"
+        elif ptype == "number":
+            entry["type"] = "float"
+        elif ptype == "string":
+            entry["type"] = "string"
+        else:
+            continue
+        if "default" in eff:
+            entry["default"] = eff["default"]
+        if "minimum" in eff:
+            entry["min"] = eff["minimum"]
+        if "maximum" in eff:
+            entry["max"] = eff["maximum"]
+        if pname not in required and "default" not in eff:
+            entry["optional"] = True
+        if desc:
+            entry["description"] = desc
+        params.append(entry)
+    # safety params always kept; then defaults-first, cap at 18 so forms stay usable
+    params.sort(key=lambda e: (0 if e["name"] in SAFETY_PARAM_NAMES else 1,
+                               0 if "default" in e else 1, e["name"]))
+    return params[:18], flags, supports_relaxed
+
+
+def build_entry(item: dict, use_cache: bool) -> dict:
+    endpoint_id = item.get("id") or item.get("modelId")
+    cat = item.get("category", "")
+    params, flags, safe = extract_params(endpoint_id, use_cache)
     entry = {
         "id": endpoint_id,
-        "label": meta.get("display_name") or endpoint_id,
+        "label": item.get("title") or endpoint_id,
         "category": cat,
         "output": output_kind(cat),
-        "description": (meta.get("description") or "")[:180],
+        "description": (item.get("shortDescription") or "")[:220],
         "params": params,
+        "thumb": item.get("thumbnailUrl") or "",
+        "price": item.get("pricingInfoOverride") or item.get("billingMessage") or "",
+        "supports_relaxed_safety": safe,
     }
     entry.update(flags)
     return entry
@@ -151,38 +229,53 @@ def build_entry(row: dict) -> dict:
 
 def main():
     ap = argparse.ArgumentParser()
-    ap.add_argument("--per-category", type=int, default=13)
+    ap.add_argument("--categories", default="", help="comma-list; default = all media categories")
+    ap.add_argument("--max-per-category", type=int, default=0, help="0 = all (full pull)")
+    ap.add_argument("--no-cache", action="store_true", help="ignore the on-disk schema cache")
+    ap.add_argument("--threads", type=int, default=8)
     args = ap.parse_args()
-    if not os.environ.get("FAL_KEY"):
-        sys.exit("FAL_KEY not in environment")
+    use_cache = not args.no_cache
 
-    rows = []
-    for cat in CATEGORIES:
-        got = list_category(cat, args.per_category)
+    cats = [c.strip() for c in args.categories.split(",") if c.strip()] or CATEGORIES
+    items = []
+    for cat in cats:
+        got = list_category_full(cat, args.max_per_category)
         print(f"{cat}: {len(got)} models")
-        rows.extend(got)
-
-    print(f"fetching {len(rows)} schemas (8 threads)...")
+        items.extend(got)
+    # de-dup by endpoint id (a model can appear under multiple categories)
+    seen, uniq = set(), []
+    for it in items:
+        eid = it.get("id") or it.get("modelId")
+        if eid and eid not in seen:
+            seen.add(eid)
+            uniq.append(it)
+    print(f"fetching {len(uniq)} schemas ({args.threads} threads, cache={'on' if use_cache else 'off'})...")
     t0 = time.time()
-    with ThreadPoolExecutor(8) as pool:
-        entries = list(pool.map(build_entry, rows))
-    print(f"schemas done in {time.time() - t0:.0f}s; "
-          f"{sum(1 for e in entries if e['params'])} with param hints")
+    with ThreadPoolExecutor(args.threads) as pool:
+        entries = list(pool.map(lambda it: build_entry(it, use_cache), uniq))
+    print(f"schemas done in {time.time()-t0:.0f}s; "
+          f"{sum(1 for e in entries if e['params'])} with params; "
+          f"{sum(1 for e in entries if e['supports_relaxed_safety'])} relaxable")
 
+    dest = Path(__file__).resolve().parent.parent / "engine" / "fal_models.json"
+    if dest.exists():  # back up before overwrite (Job 1 global rule)
+        bak = dest.with_suffix(f".json.bak-{time.strftime('%Y%m%d-%H%M%S')}")
+        bak.write_text(dest.read_text(encoding="utf-8"), encoding="utf-8")
+        print(f"backed up old catalog -> {bak.name}")
     out = {
-        "version": 2,
+        "version": 3,
         "generated_at": time.strftime("%Y-%m-%d %H:%M"),
-        "generator": "scripts/build_fal_catalog.py (top-N per category via api.fal.ai/v1/models)",
-        "note": "params are FORM HINTS; engine passes dicts through verbatim. Regenerate with the script.",
+        "generator": "scripts/build_fal_catalog.py (full explore-API pull + openapi schemas)",
+        "note": "params are FORM HINTS with descriptions; engine passes dicts through verbatim. "
+                "supports_relaxed_safety = model exposes enable_safety_checker/safety_tolerance. Regenerate via the script.",
         "models": entries,
     }
-    dest = Path(__file__).resolve().parent.parent / "engine" / "fal_models.json"
     dest.write_text(json.dumps(out, indent=1), encoding="utf-8")
-    cats = {}
+    bycat = {}
     for e in entries:
-        cats[e["category"]] = cats.get(e["category"], 0) + 1
-    print(f"wrote {dest} — {len(entries)} models across {len(cats)} categories")
-    for c, n in sorted(cats.items()):
+        bycat[e["category"]] = bycat.get(e["category"], 0) + 1
+    print(f"wrote {dest} — {len(entries)} models across {len(bycat)} categories")
+    for c, n in sorted(bycat.items()):
         print(f"  {c}: {n}")
 
 

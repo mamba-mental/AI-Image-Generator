@@ -24,15 +24,20 @@ def _call_once(model_id: str, params: dict):
         return "Gemini Error: No prompt provided."
 
     full_prompt = f"Generate an image: {prompt_text}"
-    width, height = params.get("width", 1024), params.get("height", 1024)
-    if width and height and width != height:
-        orientation = "Landscape" if width > height else "Portrait"
-        full_prompt += f". {orientation} aspect ratio approximately {width}:{height}."
+
+    generation_config = {"responseModalities": ["TEXT", "IMAGE"]}
+    image_config = {}
+    if params.get("aspect_ratio"):
+        image_config["aspectRatio"] = params["aspect_ratio"]
+    if params.get("image_size"):
+        image_config["imageSize"] = params["image_size"]
+    if image_config:
+        generation_config["imageConfig"] = image_config
 
     url = f"https://generativelanguage.googleapis.com/v1beta/models/{model_id}:generateContent?key={gemini_key}"
     request_body = {
         "contents": [{"parts": [{"text": full_prompt}]}],
-        "generationConfig": {"responseModalities": ["TEXT", "IMAGE"]},
+        "generationConfig": generation_config,
     }
     req = urllib.request.Request(url, data=json.dumps(request_body).encode("utf-8"), method="POST")
     req.add_header("Content-Type", "application/json")

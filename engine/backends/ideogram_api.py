@@ -62,11 +62,18 @@ def generate(model_id, params, progress=None, cancel_event=None) -> list:
 
     files = {
         "prompt": (None, prompt),
-        "aspect_ratio": (None, _aspect_ratio(params)),
         "rendering_speed": (None, _speed(model_id)),
         "style_type": (None, (params.get("style_type") or "AUTO").upper()),
         "num_images": (None, str(int(params.get("num_outputs", 1) or 1))),
     }
+    resolution = (params.get("resolution") or "").strip()
+    if resolution:
+        files["resolution"] = (None, resolution)  # resolution overrides aspect_ratio — mutually exclusive per Ideogram v3 docs
+    else:
+        files["aspect_ratio"] = (None, _aspect_ratio(params))
+    magic_prompt = (params.get("magic_prompt") or "").strip().upper()
+    if magic_prompt in ("AUTO", "ON", "OFF"):
+        files["magic_prompt"] = (None, magic_prompt)
     if params.get("negative_prompt"):
         files["negative_prompt"] = (None, params["negative_prompt"])
     seed = params.get("seed")
