@@ -41,7 +41,7 @@ const state = {
   service: "fal", category: "text-to-image", model: null,
   inputFiles: {}, job: null, gallery: [], selected: null,
   genCount: 0, loras: {}, mediaBase: "", outDirName: "generated_images",
-  view: "session", grid: "m", lbFile: null, contentMode: "safe",
+  view: "session", grid: "m", lbFile: null, contentMode: "safe", verifiedOnly: false,
 };
 
 /* ---------- bridge helpers ---------- */
@@ -75,6 +75,7 @@ async function boot() {
   // content mode: new key wins; migrate the legacy binary (ui_nsfw true -> editorial, false -> safe)
   state.contentMode = cfg.ui_content_mode ||
     (cfg.ui_nsfw === false ? "safe" : cfg.ui_nsfw === true ? "editorial" : "safe");
+  state.verifiedOnly = !!cfg.ui_verified_only;
   if (cfg.parameters && cfg.parameters.negative_prompt) $("negprompt").value = cfg.parameters.negative_prompt;
   $("conn").classList.remove("off");
   $("connlabel").textContent = Object.entries(state.keys)
@@ -233,8 +234,9 @@ function modelsFor(service, category) {
     ? state.falModels.filter(m => m.category === category)
     : (state.recentModels[service] || []).map(id => ({ id, label: id, category: "text-to-image", params: pickServiceParams(service, id, category) }));
   const prof = CONTENT_MODES[state.contentMode] || CONTENT_MODES.safe;
-  if (prof.filter) {  // Editorial/Fashion/NSFW: hide non-relaxable fal models (non-fal stay visible — unclassified until Job 3)
-    models = models.filter(m => service === "fal" ? isRelaxable(m, service) : true);
+  if (prof.filter) {  // Editorial/Fashion/NSFW: filter fal by graded content_capability; non-fal stay visible unless "verified only"
+    const pred = state.verifiedOnly ? isVerified : isRelaxable;
+    models = models.filter(m => service === "fal" ? pred(m, service) : !state.verifiedOnly);
   }
   if (prof.fashionFirst) {
     models = models.slice().sort((a, b) => (isFashionModel(b) ? 1 : 0) - (isFashionModel(a) ? 1 : 0));
@@ -326,8 +328,8 @@ const SAFETY_LABELS = {
 // #1 — in-app content-policy reference (provider -> policy -> required config).
 // Grounded in a provider-capability audit; hard-filter providers cannot be overridden.
 const NSFW_POLICY = [
-  { p: "fal", allow: "yes", policy: "Permissive — artistic/implied nudity on many models via safety params.",
-    config: "enable_safety_checker=false (28 models) + safety_tolerance up to 6 (15 models). The toggle sets these on models that declare them." },
+  { p: "fal", allow: "yes", policy: "Model-graded: open-weights bases (flux/SDXL/SD3.5/HiDream/…) are permissive; Google/OpenAI-backed (nano-banana, gemini, gpt-image) are excluded — they moderate upstream regardless.",
+    config: "content_capability grades each model verified/permissive/upstream_moderated/filtered. Editorial/NSFW show permissive+verified; “Verified only” narrows to models empirically confirmed to produce NSFW." },
   { p: "huggingface", allow: "partial", policy: "Model-dependent; many SDXL/community checkpoints are uncensored.",
     config: "Steer with negative_prompt; safety governed per-request by the Content Mode where the model exposes a toggle." },
   { p: "replicate", allow: "yes", policy: "Most image models expose disable_safety_checker.",
@@ -451,6 +453,19 @@ function renderContentMode() {
   const seg = $("cmodeseg");
   if (seg) seg.querySelectorAll("button").forEach(b =>
     b.classList.toggle("active", b.dataset.mode === state.contentMode));
+  const prof = CONTENT_MODES[state.contentMode] || CONTENT_MODES.safe;
+  const vw = $("verifiedwrap");
+  if (vw) vw.style.display = prof.filter ? "" : "none";   // "verified only" only in Editorial/Fashion/NSFW
+  const vo = $("verifiedonly"); if (vo) vo.checked = state.verifiedOnly;
+  const cc = $("cmodecount");
+  if (cc) {
+    if (prof.filter && state.service === "fal") {
+      const all = state.falModels.filter(m => m.category === state.category);
+      const shown = all.filter(m => isRelaxable(m, "fal")).length;
+      const verified = all.filter(m => isVerified(m, "fal")).length;
+      cc.textContent = `${verified} verified · ${shown} shown`;
+    } else cc.textContent = "";
+  }
   syncSafetyControls();
   nsfwNote();
 }
@@ -461,6 +476,11 @@ $("cmodeseg").addEventListener("click", e => {
   state.contentMode = btn.dataset.mode;
   api().set_config({ ui_content_mode: state.contentMode });
   render();   // re-filter the model list + re-render params + mode note
+});
+$("verifiedonly").addEventListener("change", () => {
+  state.verifiedOnly = $("verifiedonly").checked;
+  api().set_config({ ui_verified_only: state.verifiedOnly });
+  render();
 });
 $("nsfwinfo").addEventListener("click", () => {
   const modeRows = Object.keys(CONTENT_MODES).map(k =>

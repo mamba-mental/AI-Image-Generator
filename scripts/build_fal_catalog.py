@@ -53,6 +53,42 @@ INPUT_MEDIA_KEYS = {
 # params whose PRESENCE means the model can be relaxed for editorial/NSFW work (plan doc section 3)
 SAFETY_PARAM_NAMES = {"enable_safety_checker", "safety_tolerance", "enable_output_safety_checker"}
 
+# --- content-capability grading: does the model actually ALLOW NSFW (not just expose a toggle)? ---
+# Providers that hard-moderate UPSTREAM regardless of fal's enable_safety_checker — verified: nano-banana
+# has aggressive IMAGE_SAFETY that blocks nudity even with the checker off; Google/OpenAI policy bans
+# erotic content. These REFUSE NSFW, so they're excluded from the permissive modes.
+UPSTREAM_MODERATED = ("nano-banana", "gemini", "imagen", "gpt-image", "dall-e", "dalle",
+                      "nucleus", "google/", "openai/")
+# Open-weights families known to comply with a disabled checker (community-known permissive bases).
+OPEN_FAMILIES = ("flux", "stable-diffusion", "sdxl", "sd-", "sd3", "sd35", "hidream", "sana",
+                 "seedream", "seedance", "qwen", "wan", "chroma", "pony", "lustify", "juggernaut",
+                 "dreamshaper", "realvis", "realistic-vision", "nsfw", "uncensored", "lumina",
+                 "kolors", "playground", "auraflow", "cogview", "hunyuan")
+# Curated known-uncensored seed — graded `verified` before any empirical run; the harness expands this.
+CURATED_VERIFIED = {
+    "fal-ai/flux/dev", "fal-ai/flux/schnell", "fal-ai/flux-lora", "fal-ai/flux-general",
+    "fal-ai/flux-general/image-to-image", "fal-ai/lora", "fal-ai/stable-diffusion-v35-large",
+    "fal-ai/hidream-i1-full", "fal-ai/sana",
+}
+EMPIRICAL = {}  # id -> {grade, score, ...} loaded from engine/nsfw_capability.json in main() (ground truth)
+
+
+def content_capability(endpoint_id: str, label: str, supports_relaxed: bool) -> str:
+    """upstream_moderated | permissive | verified | filtered.
+    `verified` comes ONLY from an empirical NSFW-classifier pass (the honest bar). A single
+    benchmark `refused` does NOT demote — a tasteful benchmark under-triggers, so it isn't proof
+    of incapability; the model stays `permissive` if it exposes a toggle on an open-weights family
+    (or is curated-known). `unknown` (gen/classify error) likewise falls through to the heuristic."""
+    ev = EMPIRICAL.get(endpoint_id)
+    if ev and ev.get("grade") == "verified":
+        return "verified"
+    text = ((endpoint_id or "") + " " + (label or "")).lower()
+    if any(p in text for p in UPSTREAM_MODERATED):
+        return "upstream_moderated"
+    if supports_relaxed and (endpoint_id in CURATED_VERIFIED or any(f in text for f in OPEN_FAMILIES)):
+        return "permissive"
+    return "filtered"
+
 
 def _get(url: str, auth: bool = False, timeout: int = 45) -> dict:
     headers = {"User-Agent": UA}
@@ -222,6 +258,7 @@ def build_entry(item: dict, use_cache: bool) -> dict:
         "thumb": item.get("thumbnailUrl") or "",
         "price": item.get("pricingInfoOverride") or item.get("billingMessage") or "",
         "supports_relaxed_safety": safe,
+        "content_capability": content_capability(endpoint_id, item.get("title") or endpoint_id, safe),
     }
     entry.update(flags)
     return entry
@@ -235,6 +272,15 @@ def main():
     ap.add_argument("--threads", type=int, default=8)
     args = ap.parse_args()
     use_cache = not args.no_cache
+
+    global EMPIRICAL
+    emp = Path(__file__).resolve().parent.parent / "engine" / "nsfw_capability.json"
+    if emp.exists():
+        try:
+            EMPIRICAL = json.loads(emp.read_text(encoding="utf-8")).get("models", {})
+            print(f"loaded {len(EMPIRICAL)} empirical NSFW grades (override the heuristic)")
+        except Exception:
+            EMPIRICAL = {}
 
     cats = [c.strip() for c in args.categories.split(",") if c.strip()] or CATEGORIES
     items = []

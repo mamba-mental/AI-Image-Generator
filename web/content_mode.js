@@ -10,9 +10,9 @@
   };
   const CONTENT_MODE_HELP = {
     safe: "Default moderation on every model. Best for shared work or client previews.",
-    editorial: "Relaxes each model's built-in filter for tasteful nudity, mature themes, and stylized realism (film-grain “raw” mode where available). Not a guarantee — Google/OpenAI-backed models (Gemini, gpt-image) still moderate upstream.",
+    editorial: "Shows models with an adjustable content filter, relaxed for tasteful nudity, mature themes, and stylized realism. Permissive is not a guarantee. Google/OpenAI-backed models (Gemini, gpt-image, nano-banana) are hidden here — they moderate upstream regardless of the toggle.",
     fashion: "Editorial permissiveness, plus surfaces virtual try-on and fashion models first.",
-    nsfw: "Maximum permissiveness on every model that exposes a safety toggle — sets it to its most-permissive value. Models with no safety parameter are hidden here since their behavior can't be controlled. Google/OpenAI-backed models still moderate upstream regardless.",
+    nsfw: "Shows models whose content filter can be set fully permissive (at max). “Verified” models were confirmed to actually produce NSFW; the rest expose the toggle and are likely-capable but untested (use “Verified only” to narrow). Upstream-moderated providers are excluded — they refuse regardless of the toggle.",
   };
   // non-fal services whose backend accepts a single permissive flag (per-service research §4)
   const SERVICE_SAFETY = { replicate: "disable_safety_checker", together: "disable_safety_checker" };
@@ -22,11 +22,18 @@
     if (!p || !p.values || !p.values.length) return "6";
     return p.values.map(String).sort((a, b) => Number(a) - Number(b)).slice(-1)[0];  // enum max ("6", or "5")
   }
+  // graded capability from the catalog (upstream_moderated | permissive | verified | filtered).
+  // non-fal models carry no grade -> permissive iff the service has a single permissive flag.
+  function contentCapability(model, service) {
+    if (model && model.content_capability) return model.content_capability;
+    return SERVICE_SAFETY[service] ? "permissive" : "filtered";
+  }
   function isRelaxable(model, service) {
-    if (model && model.supports_relaxed_safety) return true;
-    const n = new Set(((model && model.params) || []).map(p => p.name));
-    if (n.has("enable_safety_checker") || n.has("safety_tolerance")) return true;
-    return !!SERVICE_SAFETY[service];  // replicate/together can be relaxed even without a per-model flag
+    const c = contentCapability(model, service);
+    return c === "permissive" || c === "verified";  // shown in Editorial/Fashion/NSFW
+  }
+  function isVerified(model, service) {
+    return contentCapability(model, service) === "verified";  // empirically/curated confirmed NSFW
   }
   function isFashionModel(model) {
     const s = ((model && (model.id + " " + (model.label || "") + " " + (model.description || ""))) || "").toLowerCase();
@@ -51,7 +58,7 @@
   }
 
   const API = { CONTENT_MODES, CONTENT_MODE_HELP, SERVICE_SAFETY, modelMaxTolerance,
-                isRelaxable, isFashionModel, applyContentMode };
+                contentCapability, isRelaxable, isVerified, isFashionModel, applyContentMode };
   if (typeof module !== "undefined" && module.exports) module.exports = API;  // node (verify script)
   else Object.assign(root, API);                                             // browser globals for app.js
 })(typeof window !== "undefined" ? window : this);

@@ -339,6 +339,9 @@ footer .sp { flex: 1; }
 .cmode-seg button.active { color: var(--accent-hi); border-color: var(--accent); background: var(--accent-soft); }
 .nsfw-sub { font-family: var(--mono); font-size: 9.5px; text-transform: uppercase; letter-spacing: .06em; color: var(--txt3); margin: 12px 0 6px; }
 .nsfw-sub:first-child { margin-top: 0; }
+.cmode-verified { display: flex; align-items: center; gap: 6px; margin-top: 8px; font-size: 11px; color: var(--txt2); font-family: var(--disp); cursor: pointer; }
+.cmode-verified input { width: auto; accent-color: var(--accent); }
+.cmode-count { margin-left: auto; font-family: var(--mono); font-size: 9.5px; color: var(--txt3); }
 .nsfw-row { padding: 10px 12px; border: 1px solid var(--border); border-radius: 8px; margin-bottom: 8px; background: var(--card); }
 .nsfw-head { display: flex; justify-content: space-between; align-items: center; }
 .nsfw-head b { color: var(--txt); }

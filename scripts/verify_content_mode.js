@@ -53,7 +53,8 @@ chk("openai NSFW injects no safety flag", Object.keys(applyContentMode({}, oai, 
 chk("openai not relaxable", isRelaxable(oai, "openai") === false);
 
 // AC-3 filter predicate — supports_relaxed_safety respected
-chk("supports_relaxed_safety=true -> relaxable", isRelaxable({ id: "z", params: [], supports_relaxed_safety: true }, "fal") === true);
+chk("content_capability=permissive -> relaxable", isRelaxable({ id: "z", params: [], content_capability: "permissive" }, "fal") === true);
+chk("content_capability=upstream_moderated -> NOT relaxable", isRelaxable({ id: "fal-ai/nano-banana", params: [], content_capability: "upstream_moderated" }, "fal") === false);
 chk("all 4 modes exist", ["safe", "editorial", "fashion", "nsfw"].every((k) => CONTENT_MODES[k]));
 
 console.log(`\n${fail ? "FAILED " + fail : "ALL PASS"} (${pass} passed)`);
