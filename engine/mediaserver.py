@@ -149,3 +149,10 @@ def add_root(path: str) -> None:
     _STATE.setdefault("extra", [])
     if path and path not in _STATE["extra"]:
         _STATE["extra"].append(path)
+
+
+def remove_root(path: str) -> None:
+    """Stop serving from a previously-added extra root (e.g. a library folder toggled off), so a
+    disabled folder stops serving without an app restart. No-op if it wasn't a registered root."""
+    if path and path in _STATE.get("extra", []):
+        _STATE["extra"].remove(path)

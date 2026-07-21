@@ -105,7 +105,8 @@ class JobRegistry:
             saved, errors = save.persist_results(results, paths)
             if saved:
                 meta = {"service": service, "model": model_id,
-                        "prompt": params.get("prompt", ""), "seed": params.get("seed")}
+                        "prompt": params.get("prompt", ""), "seed": params.get("seed"),
+                        "category": params.get("category")}  # persist genre/type for the library filter
                 clean_params = {k: v for k, v in params.items()
                                 if k not in ("prompt", "_inputs", "image",
                                              "enabled_loras", "category")}

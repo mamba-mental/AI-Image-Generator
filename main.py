@@ -25,6 +25,15 @@ def _smoke(window, api):
             state = api.get_state()  # same object JS reaches via pywebview.api
             print("SMOKE js sees api:", js_sees)
             print("SMOKE get_state():", json.dumps(state)[:400], "...")
+            # Library filter-bar DOM probe (Phase 2): renderLibrary() sync-injects the filter bar
+            # + folder toggles before its async NAS crawl, so the controls exist immediately.
+            lib = window.evaluate_js(
+                "(function(){try{renderLibrary();return JSON.stringify({"
+                "filters:!!document.querySelector('.libfilters'),q:!!document.getElementById('libq'),"
+                "svc:!!document.getElementById('libsvc'),type:!!document.getElementById('libtype'),"
+                "folders:!!document.getElementById('libfolders'),add:document.body.innerHTML.indexOf('libadd')>-1"
+                "});}catch(e){return 'ERR: '+e.message;}})()")
+            print("SMOKE library DOM:", lib)
             print("SMOKE OK")
         except Exception as e:
             print(f"SMOKE FAILED: {e}")

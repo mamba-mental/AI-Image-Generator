@@ -170,6 +170,7 @@ class Api:
             "output_dir": self.config["output_directory"],
             "library_dir": self.config.get("library_directory") or "",
             "library_dir_name": Path(self.config["library_directory"]).name if self.config.get("library_directory") else "",
+            "library_dirs": self.list_library_dirs(),  # folder-toggle UI: [{path,name,enabled,exists}]
             "version": self.version,
             "drive_fallback": self.config.get("_drive_fallback"),
             "busy": REGISTRY.is_busy(),
@@ -180,9 +181,9 @@ class Api:
         from engine import keypool
         return {s: keypool.size(s) for s in engine_config.KEY_FIELDS}
 
-    def _library_dirs(self) -> list:
-        """Every folder the LIBRARY view browses. Supports a plural `library_directories`
-        list; falls back to the legacy single `library_directory`. De-duped, order preserved."""
+    def _all_library_dirs(self) -> list:
+        """Every configured library folder (enabled AND disabled). De-duped, order preserved.
+        Supports the plural `library_directories`; falls back to legacy single `library_directory`."""
         dirs = self.config.get("library_directories")
         if not isinstance(dirs, list):
             single = self.config.get("library_directory") or ""
@@ -194,14 +195,27 @@ class Api:
                 out.append(d)
         return out
 
+    def _library_dirs(self) -> list:
+        """Folders the LIBRARY view actually browses = all configured dirs MINUS the ones toggled
+        off in `library_directories_disabled`. This is the single chokepoint feeding the scan,
+        read_meta, and media-server roots — filtering here toggles a folder everywhere at once."""
+        disabled = set(self.config.get("library_directories_disabled") or [])
+        return [d for d in self._all_library_dirs() if d not in disabled]
+
     _LIB_EXTS = {".png", ".jpg", ".jpeg", ".webp", ".mp4", ".webm", ".mov"}
+    _VID_EXTS = {".mp4", ".webm", ".mov"}
+    _LIB_INDEX_VERSION = 2  # bump when the record shape changes (invalidates stale caches)
 
     def _library_index_path(self) -> str:
         return os.path.join(str(engine_config.repo_root()), ".cache", "library_index.json")
 
     def _scan_library(self, bases: list) -> list:
-        """Walk the archive folders once and return de-duped basenames (the slow NAS crawl)."""
-        seen, names = set(), []
+        """Walk the archive folders once and return de-duped per-image RECORDS (the slow NAS crawl).
+        Each record: {file, dir, type} plus any of {service, model, prompt, category} found in the
+        image's `<media>.<ext>.json` sidecar. Sidecar reads run on a small thread pool because NAS
+        round-trips are latency-bound; the whole result is cached to the local index afterward."""
+        from concurrent.futures import ThreadPoolExecutor
+        seen, records = set(), []
         for base in bases:
             d = Path(base)
             if not d.exists():
@@ -209,9 +223,26 @@ class Api:
             for f in d.rglob("*"):
                 if f.is_file() and f.suffix.lower() in self._LIB_EXTS and f.name not in seen:
                     seen.add(f.name)
-                    names.append(f.name)
-        names.sort(key=str.lower)
-        return names
+                    records.append({"file": f.name, "dir": base, "_path": str(f),
+                                    "type": "video" if f.suffix.lower() in self._VID_EXTS else "image"})
+
+        def _enrich(rec):
+            side = Path(rec.pop("_path") + ".json")
+            if side.exists():
+                try:
+                    meta = json.loads(side.read_text(encoding="utf-8"))
+                    for k in ("service", "model", "prompt", "category"):
+                        if meta.get(k):
+                            rec[k] = meta[k]
+                except Exception:
+                    pass
+            return rec
+
+        if records:
+            with ThreadPoolExecutor(max_workers=16) as pool:
+                records = list(pool.map(_enrich, records))
+        records.sort(key=lambda r: r["file"].lower())
+        return records
 
     def model_schema(self, service: str, model_id: str) -> dict:
         """Live per-model param schema for services that expose one (Replicate). {params:[]} otherwise."""
@@ -311,22 +342,66 @@ class Api:
                 if os.path.exists(idx):
                     with open(idx, encoding="utf-8") as f:
                         data = json.load(f)
-                    if data.get("dirs") == bases and isinstance(data.get("files"), list):
-                        return [{"file": n} for n in data["files"][:int(limit)]]
+                    if (data.get("version") == self._LIB_INDEX_VERSION
+                            and data.get("dirs") == bases and isinstance(data.get("files"), list)):
+                        return data["files"][:int(limit)]
             except Exception:
-                pass  # bad/absent index → fall through to a fresh scan
-        names = self._scan_library(bases)
+                pass  # bad/absent/old-version index → fall through to a fresh scan
+        records = self._scan_library(bases)
         try:
             os.makedirs(os.path.dirname(idx), exist_ok=True)
             with open(idx, "w", encoding="utf-8") as f:
-                json.dump({"dirs": bases, "files": names, "count": len(names)}, f)
+                json.dump({"version": self._LIB_INDEX_VERSION, "dirs": bases,
+                           "files": records, "count": len(records)}, f)
         except Exception:
             pass
-        return [{"file": n} for n in names[:int(limit)]]
+        return records[:int(limit)]
 
     def refresh_library(self, limit: int = 8000) -> list:
         """Force a fresh NAS crawl + rebuild the cached index (for the Library ↻ refresh button)."""
         return self.list_library(limit=limit, refresh=True)
+
+    def list_library_dirs(self) -> list:
+        """Every configured library folder + its state, for the folder-toggle UI.
+        [{path, name, enabled, exists}] — enabled = NOT in library_directories_disabled."""
+        disabled = set(self.config.get("library_directories_disabled") or [])
+        return [{"path": d, "name": Path(d).name or d,
+                 "enabled": d not in disabled, "exists": os.path.isdir(d)}
+                for d in self._all_library_dirs()]
+
+    def set_library_dir_enabled(self, path: str, enabled: bool) -> dict:
+        """Toggle one library folder on/off. Off = added to library_directories_disabled + its
+        media-server root removed; on = removed from the disabled set + root re-registered. The
+        library index rebuilds automatically on next list (its cached `dirs` set changes)."""
+        disabled = set(self.config.get("library_directories_disabled") or [])
+        if enabled:
+            disabled.discard(path)
+            if os.path.isdir(path):
+                mediaserver.add_root(path)
+        else:
+            disabled.add(path)
+            mediaserver.remove_root(path)
+        self.config["library_directories_disabled"] = sorted(disabled)
+        self._persist()
+        return {"ok": True, "dirs": self.list_library_dirs()}
+
+    def add_library_dir(self, path: str = "") -> dict:
+        """Add a folder to the library. With no path, opens a native folder picker. Appends to
+        library_directories, registers the media root, persists, returns the updated dir list."""
+        if not path:
+            import webview
+            win = webview.windows[0]
+            sel = win.create_file_dialog(webview.FOLDER_DIALOG)
+            path = (sel[0] if sel else "") or ""
+        if not path or not os.path.isdir(path):
+            return {"ok": False, "error": "not a folder", "dirs": self.list_library_dirs()}
+        if path not in self._all_library_dirs():
+            existing = self.config.get("library_directories")
+            base = list(existing) if isinstance(existing, list) else self._all_library_dirs()
+            self.config["library_directories"] = base + [path]
+            mediaserver.add_root(path)
+            self._persist()
+        return {"ok": True, "dirs": self.list_library_dirs()}
 
     def get_balance(self, service: str) -> dict:
         """Credit/quota status for the footer. Only fal exposes a real balance

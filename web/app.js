@@ -42,6 +42,7 @@ const state = {
   inputFiles: {}, job: null, gallery: [], selected: null,
   genCount: 0, loras: {}, mediaBase: "", outDirName: "generated_images",
   view: "session", grid: "m", lbFile: null, contentMode: "safe", verifiedOnly: false,
+  libRecords: [], libFiltered: [], libraryDirs: [], libFilter: { folder: "", service: "", type: "", q: "" },
 };
 
 /* ---------- bridge helpers ---------- */
@@ -59,6 +60,7 @@ async function boot() {
   state.mediaBase = s.media_base || "";
   state.outDirName = s.output_dir_name || "generated_images";
   state.outDir = s.output_dir || "";
+  state.libraryDirs = s.library_dirs || [];
   state.defaultSize = (s.config || {}).default_image_size || "";
   state.service = s.active_service || "fal";
   const cfg = s.config || {};
@@ -674,25 +676,87 @@ async function renderBrowse() {
   }));
 }
 
-/* ---------- library view (all output files — its own tab) ---------- */
+/* ---------- library view (all archive files — filter + folder toggles) ---------- */
 async function renderLibrary() {
   const wrap = $("library");
-  wrap.innerHTML = `<div class="s2lbl">Library <em>loading…</em><button id="librefresh" class="lib-refresh" title="Rescan the archive folders for new images">↻ refresh</button></div><div class="wmason" id="libmason"></div>`;
-  let files = [];
-  try { files = await api().list_library(8000); } catch (e) { files = []; }
-  wrap.querySelector(".s2lbl em").textContent = `${files.length} files · ${state.libraryDirName || state.outDirName}/`;
-  const rb = $("librefresh");
-  if (rb) rb.addEventListener("click", async () => {
-    rb.disabled = true; rb.textContent = "↻ rescanning…";
+  wrap.innerHTML = `
+    <div class="s2lbl">Library <em id="libcount">loading…</em>
+      <button id="librefresh" class="lib-refresh" title="Rescan the archive folders for new images">↻ refresh</button></div>
+    <div class="libfilters">
+      <input id="libq" type="text" placeholder="search prompt / model…" spellcheck="false">
+      <select id="libfolder" title="Filter by source folder"><option value="">all folders</option></select>
+      <select id="libsvc" title="Filter by where it was generated"><option value="">all sources</option></select>
+      <select id="libtype" title="Filter by media type"><option value="">all types</option><option value="image">images</option><option value="video">video</option></select>
+    </div>
+    <div class="libfolders" id="libfolders"></div>
+    <div class="wmason" id="libmason"><div class="emptystate">loading…</div></div>`;
+  $("librefresh").addEventListener("click", async () => {
+    const rb = $("librefresh"); rb.disabled = true; rb.textContent = "↻ rescanning…";
     try { await api().refresh_library(8000); } catch (e) {}
-    renderLibrary();
+    await loadLibrary();
   });
-  const mason = $("libmason");
-  if (!files.length) { mason.innerHTML = `<div class="emptystate">no images yet — generate something</div>`; return; }
-  mason.innerHTML = files.map((r, i) => `
+  renderLibFolders();
+  await loadLibrary();
+}
+
+function renderLibFolders() {
+  const box = $("libfolders"); if (!box) return;
+  box.innerHTML = state.libraryDirs.map(d =>
+    `<label class="libfolder ${d.enabled ? "on" : ""} ${d.exists ? "" : "missing"}" title="${escapeHtml(d.path)}${d.exists ? "" : " — folder not found"}">
+       <input type="checkbox" data-fp="${escapeHtml(d.path)}" ${d.enabled ? "checked" : ""}> ${escapeHtml(d.name)}</label>`
+  ).join("") + `<button id="libadd" class="libaddbtn" title="Add another folder to the library">＋ add folder</button>`;
+  box.querySelectorAll("input[data-fp]").forEach(cb => cb.addEventListener("change", async () => {
+    cb.disabled = true;
+    try { const res = await api().set_library_dir_enabled(cb.dataset.fp, cb.checked); if (res && res.dirs) state.libraryDirs = res.dirs; } catch (e) {}
+    renderLibFolders();
+    await loadLibrary();
+  }));
+  $("libadd").addEventListener("click", async () => {
+    try { const res = await api().add_library_dir(""); if (res && res.dirs) state.libraryDirs = res.dirs; } catch (e) {}
+    renderLibFolders();
+    await loadLibrary();
+  });
+}
+
+async function loadLibrary() {
+  try { state.libRecords = await api().list_library(8000); } catch (e) { state.libRecords = []; }
+  const dirs = [...new Set(state.libRecords.map(r => r.dir).filter(Boolean))];
+  const svcs = [...new Set(state.libRecords.map(r => r.service).filter(Boolean))].sort();
+  const folderSel = $("libfolder"), svcSel = $("libsvc");
+  if (folderSel) folderSel.innerHTML = `<option value="">all folders</option>` +
+    dirs.map(d => `<option value="${escapeHtml(d)}">${escapeHtml(d.split(/[\\/]/).filter(Boolean).pop() || d)}</option>`).join("");
+  if (svcSel) svcSel.innerHTML = `<option value="">all sources</option>` +
+    svcs.map(s => `<option value="${escapeHtml(s)}">${escapeHtml(s)}</option>`).join("");
+  ["libq", "libfolder", "libsvc", "libtype"].forEach(id => {
+    const el = $(id); if (el && !el._libwired) { el._libwired = true; el.addEventListener("input", applyLibFilter); }
+  });
+  applyLibFilter();
+}
+
+function applyLibFilter() {
+  const q = ($("libq") ? $("libq").value : "").toLowerCase().trim();
+  const folder = $("libfolder") ? $("libfolder").value : "";
+  const svc = $("libsvc") ? $("libsvc").value : "";
+  const type = $("libtype") ? $("libtype").value : "";
+  state.libFiltered = state.libRecords.filter(r =>
+    (!folder || r.dir === folder) &&
+    (!svc || (r.service || "") === svc) &&
+    (!type || (r.type || "image") === type) &&
+    (!q || `${r.prompt || ""} ${r.model || ""} ${r.file}`.toLowerCase().includes(q)));
+  const cnt = $("libcount");
+  if (cnt) cnt.textContent = `${state.libFiltered.length} of ${state.libRecords.length} files`;
+  renderLibTiles();
+}
+
+function renderLibTiles() {
+  const mason = $("libmason"); if (!mason) return;
+  const recs = state.libFiltered;
+  if (!recs.length) { mason.innerHTML = `<div class="emptystate">no images match — adjust the filters or ↻ refresh</div>`; return; }
+  mason.innerHTML = recs.map((r, i) => `
     <div class="wtile" data-wi="${i}">
       ${mediaTag(r.file, { thumb: true })}
-      <div class="wmeta"><b>${r.file.split(".").pop()}</b><span data-open="${i}">open folder</span></div>
+      <div class="wmeta"><b>${escapeHtml(r.service || r.file.split(".").pop())}</b><span data-open="${i}">open folder</span></div>
+      ${r.prompt ? `<div class="wprompt" title="${escapeHtml(r.prompt)}">${escapeHtml(r.prompt.slice(0, 140))}</div>` : ""}
     </div>`).join("");
   applyGrid();
   mason.querySelectorAll("[data-open]").forEach(s => s.addEventListener("click", (e) => {
@@ -700,7 +764,7 @@ async function renderLibrary() {
   }));
   mason.querySelectorAll(".wtile").forEach(t => t.addEventListener("click", e => {
     if (e.target.closest("[data-open]")) return;
-    openLightbox(files[+t.dataset.wi].file);   // #7 lightbox from library too
+    openLightbox(recs[+t.dataset.wi].file);   // #7 lightbox from library too
   }));
 }
 
