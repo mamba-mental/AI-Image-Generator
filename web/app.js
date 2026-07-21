@@ -41,7 +41,7 @@ const state = {
   service: "fal", category: "text-to-image", model: null,
   inputFiles: {}, job: null, gallery: [], selected: null,
   genCount: 0, loras: {}, mediaBase: "", outDirName: "generated_images",
-  view: "session", grid: "m", lbFile: null, lbDir: "", lbTags: [], contentMode: "safe", verifiedOnly: false,
+  view: "session", grid: "m", lbFile: null, lbDir: "", lbTags: [], lbList: null, lbIndex: -1, contentMode: "safe", verifiedOnly: false,
   contentGrades: {}, aspectPreset: "Custom", modelMeta: {},
   novitaCovers: {}, openrouterDescriptions: {}, sweepThumbs: {},
   libRecords: [], libFiltered: [], libraryDirs: [], libFilter: { folder: "", service: "", type: "", q: "", tags: [] },
@@ -1070,7 +1070,7 @@ function renderGallery() {
   applyGrid();
   $("gallery").querySelectorAll(".tile").forEach(t => t.addEventListener("click", e => {
     if (e.target.closest(".acts")) return;
-    openLightbox(state.gallery[+t.dataset.i].file);   // #7 click-to-enlarge
+    openLightbox(state.gallery[+t.dataset.i].file, null, state.gallery);   // #7 click-to-enlarge
   }));
   $("gallery").querySelectorAll("[data-save]").forEach(b => b.addEventListener("click", () =>
     api().save_as(state.gallery[+b.dataset.save].file)));
@@ -1081,9 +1081,13 @@ function renderGallery() {
 }
 
 /* ---------- #7 lightbox + #9 metadata overlay + Spec C #8 manual tags ---------- */
-async function openLightbox(file, dir) {
+// `list` (optional) = the array currently on screen (state.gallery / state.libFiltered) that this
+// image was opened from — powers R3 #2 (←/→ arrow-key nav) without changing any other call site.
+async function openLightbox(file, dir, list) {
   state.lbFile = file;
   state.lbDir = dir || "";
+  if (list) { state.lbList = list; state.lbIndex = list.findIndex(r => r.file === file && (r.dir || "") === (dir || "")); }
+  else { state.lbList = null; state.lbIndex = -1; }
   $("lbmedia").innerHTML = mediaTag(file);          // reuse the media renderer (img/video/audio)
   $("lbside").innerHTML = `<div class="lbm-title">Metadata <em>loading…</em></div>`;
   $("lightbox").hidden = false;
@@ -1195,7 +1199,22 @@ $("lbanalyze").addEventListener("click", async () => {
     btn.textContent = orig; btn.disabled = false;
   }
 });
-document.addEventListener("keydown", e => { if (e.key === "Escape" && !$("lightbox").hidden) closeLightbox(); });
+// R3 #2 — ←/→ walk the lightbox through whatever list it was opened from (session gallery or the
+// current filtered library order); Escape still closes. Ignored while typing (e.g. the tag input).
+function navLightbox(dir) {
+  if (!state.lbList || !state.lbList.length || state.lbIndex < 0) return;
+  const next = state.lbIndex + dir;
+  if (next < 0 || next >= state.lbList.length) return;   // clamp at the ends, no wraparound
+  const r = state.lbList[next];
+  openLightbox(r.file, r.dir, state.lbList);
+}
+document.addEventListener("keydown", e => {
+  if ($("lightbox").hidden) return;
+  if (e.key === "Escape") { closeLightbox(); return; }
+  if (e.key !== "ArrowLeft" && e.key !== "ArrowRight") return;
+  if (/^(INPUT|TEXTAREA)$/.test((e.target && e.target.tagName) || "")) return;
+  navLightbox(e.key === "ArrowLeft" ? -1 : 1);
+});
 
 /* ---------- browse landing (models strip only — pick a model to start) ---------- */
 async function renderBrowse() {
