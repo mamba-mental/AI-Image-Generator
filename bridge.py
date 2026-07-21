@@ -262,6 +262,26 @@ class Api:
             pass
         return {"params": []}
 
+    def novita_models(self, limit: int = 100) -> list:
+        """Live Novita checkpoint catalog (sd_name strings) for the model dropdown — so the exact
+        model names never have to be guessed. Returns [] without a NOVITA_API_KEY."""
+        import urllib.request
+        key = os.environ.get("NOVITA_API_KEY")
+        if not key:
+            return []
+        try:
+            u = f"https://api.novita.ai/v3/model?type=checkpoint&pagination.limit={int(limit)}"
+            req = urllib.request.Request(u, headers={"Authorization": f"Bearer {key}"})
+            d = json.loads(urllib.request.urlopen(req, timeout=20).read())
+            names = []
+            for m in (d.get("models") or []):
+                n = m.get("sd_name") or m.get("name")
+                if n and n not in names:
+                    names.append(n)
+            return names
+        except Exception:
+            return []
+
     def set_config(self, patch: dict) -> dict:
         for k, v in dict(patch).items():
             if k == "parameters" and isinstance(v, dict):
@@ -464,9 +484,24 @@ class Api:
                     left = max(0.0, float(limit) - float(usage or 0))
                     return {"label": f"${left:.2f} left", "kind": "low" if left < 2 else "ok"}
                 return {"label": f"${usage or 0:.2f} used · no cap", "kind": "info"}
+            if service == "novita":
+                key = os.environ.get("NOVITA_API_KEY")
+                if not key:
+                    return {"label": "no key", "kind": "none"}
+                d = json.loads(urllib.request.urlopen(urllib.request.Request(
+                    "https://api.novita.ai/openapi/v1/billing/balance/detail",
+                    headers={"Authorization": f"Bearer {key}"}), timeout=15).read())
+                bal = float(d.get("availableBalance") or 0) / 10000  # availableBalance is 1/10000 USD
+                return {"label": f"${bal:.2f}", "kind": "low" if bal < 2 else "ok"}
         except Exception as e:
             return {"label": f"balance unavailable ({type(e).__name__})", "kind": "none"}
-        return {"label": "", "kind": "none"}
+        # Providers without a live balance API — consistent footer label from key presence (no more blanks).
+        _labels = {"together": "usage-based · together.ai", "runware": "usage-based · runware.ai",
+                   "cliproxy": "self-hosted gateway", "agnes": "usage-based · AGNES",
+                   "ideogram": "subscription", "ideogram-api": "usage-based", "civitai": "LoRA source"}
+        has_key = bool(self.keys_status.get(service))
+        return {"label": (_labels.get(service, "usage-based") if has_key else "no key"),
+                "kind": "info" if has_key else "none"}
 
     def list_models(self, service: str) -> list:
         if service == "fal":

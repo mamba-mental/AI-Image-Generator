@@ -42,7 +42,8 @@ def _build_body(model_id, params):
     enable_nsfw_detection flag lands under `request` + LoRA translation) without a live call."""
     request = {
         "model_name": model_id,
-        "prompt": params.get("prompt", ""),
+        # Novita hard-limits the prompt to 1–1024 runes; strip + clamp so we never trip its validator.
+        "prompt": (params.get("prompt") or "").strip()[:1024],
         "width": int(params.get("width", 1024) or 1024),
         "height": int(params.get("height", 1024) or 1024),
         "image_num": int(params.get("num_outputs", 1) or 1),
@@ -52,7 +53,7 @@ def _build_body(model_id, params):
         "seed": int(params.get("seed", -1) or -1),
     }
     if params.get("negative_prompt"):
-        request["negative_prompt"] = params["negative_prompt"]
+        request["negative_prompt"] = str(params["negative_prompt"]).strip()[:1024]
     if "enable_nsfw_detection" in params:
         request["enable_nsfw_detection"] = bool(params["enable_nsfw_detection"])
     loras = [lo for lo in (params.get("enabled_loras") or []) if lo.get("enabled")]
@@ -67,8 +68,8 @@ def generate(model_id, params, progress=None, cancel_event=None) -> list:
         return ["novita Error: NOVITA_API_KEY not configured (add it in Settings)."]
     if not model_id:
         return ["novita Error: Model not selected."]
-    if not params.get("prompt"):
-        return ["novita Error: prompt required."]
+    if not (params.get("prompt") or "").strip():
+        return ["novita Error: a prompt is required (1–1024 characters)."]
     body = _build_body(model_id, params)
     if progress:
         progress(f"Submitting to Novita: {model_id}")

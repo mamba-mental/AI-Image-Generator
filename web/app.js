@@ -192,6 +192,7 @@ function renderKeyRows() {
       setStatus(cls, txt);
       input.value = "";
       renderService();            // reflect new key state in the dropdown immediately
+      if (s === "novita") { state._novitaFetched = false; render(); }  // load the live Novita catalog now the key exists
       if (s === state.service) refreshBalance();
     });
     // read-only check of the key already in use (does not save)
@@ -238,6 +239,17 @@ async function maybeFetchSchema(service, id) {
     const r = await api().model_schema(service, id);
     if (r && r.params && r.params.length) { state.modelSchemas[id] = r.params; render(); }
   } catch (e) { /* fall back to the service default params */ }
+}
+// Live Novita checkpoint catalog -> the model dropdown (so exact names are never guessed).
+// One-shot on success; retries while empty (e.g. before the key is added). No refetch loop.
+async function maybeFetchNovitaModels() {
+  if (state.service !== "novita" || state._novitaFetched || state._novitaFetching) return;
+  state._novitaFetching = true;
+  try {
+    const names = await api().novita_models(100);
+    if (names && names.length) { state._novitaFetched = true; state.recentModels.novita = names; render(); }
+  } catch (e) { /* keep the seeded fallback */ }
+  finally { state._novitaFetching = false; }
 }
 function pickServiceParams(service, id, category) {
   if (state.modelSchemas[id]) return state.modelSchemas[id];
@@ -301,6 +313,7 @@ function render() {
   const cur = currentModel();
   state.model = cur ? cur.id : null;
   if (cur) maybeFetchSchema(state.service, cur.id);  // live per-model schema for replicate (re-renders when it lands)
+  maybeFetchNovitaModels();  // live Novita checkpoint catalog into the dropdown (one-shot)
   $("model").innerHTML = models.map(m =>
     `<option value="${m.id}" ${cur && m.id === cur.id ? "selected" : ""}>${m.label}${m.price ? " — " + m.price : ""}</option>`).join("");
   $("pricenote").textContent = cur && cur.price ? cur.price : "";
