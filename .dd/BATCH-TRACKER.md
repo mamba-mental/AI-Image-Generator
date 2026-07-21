@@ -1,0 +1,68 @@
+# BATCH TRACKER — Omni-Image finish-the-list (2026-07-21, PRIME-approved plan)
+> Living checklist — updated at EVERY step (session Task tools are down; this file is the task list).
+> Legend: [ ] open · [~] in progress · [x] done+verified · [B] blocked
+
+## Step 0 — main session (sequential)
+- [x] 0.1 Runware key: Consolidated Notes + AI_LLM_Keys §5b + validator probe + env + app config — auth round-trip **OK**
+- [x] 0.2 Wall row: "Buy omni-image domains (.com/.app/.io)" due Sat 07/26/26
+- [x] 0.3 dd contracts (.routed refreshed; agents write own harnesses) + .routed refresh for the batch
+
+## Agent A — runware-sweep (owns runware_api.py, scripts/, console data)
+- [x] A1 Parse inbox 369-line model list → checkpoints vs LoRAs (`runware_loras.json`) — 85 triples/81 unique, 38 LoRAs resolved (15 unresolved) → `engine/runware_loras.json`
+- [x] A2 Resolve checkpoints → CivitAI AIRs via Runware Model Search (record unresolvables) — 26 rows/17 unique AIRs resolved, 2 unresolved → `engine/runware_checkpoints.json`
+- [x] A3 Sweep resolved models (N=3, PRIME prompt, checkNSFW:false, spend-gate print ~$1.5-4) — spend est printed BEFORE spend ($0.66 for 17×3=51 gens, under the $1.5-4 authorization); ran `nsfw_sweep.py --providers runware`, 17/17 tested in 392s: 14 verified, 3 unclear, 0 refused → `engine/nsfw_capability.json`
+- [x] A4 Console rebuild + NAS :31961 redeploy w/ runware rows — `build_nsfw_console.py` downloaded 14 new runware thumbnails, `dashboards/data/nsfw-verified.json` 86 verified total (14 runware), redeployed bundle to nas:/volume1/web/nsfw-console, curl-verified live at http://192.168.86.97:31961/ (200, JSON + thumb 200)
+- [x] A5 App dropdown gets resolved AIRs · verify_runware_lane.py green — seeded `recent_models_runware` in `config.json` (17 resolved checkpoint AIRs + the 2 stock defaults, config-data seed only, did not touch bridge.py) · `.dd/verify_runware_lane.py` = **9/9 PASS**
+
+## Agent B — params-research (DOCS only)
+- [x] B1 `research/2026-07-21_provider-params-matrix.md` — exact params per provider (13 providers incl. HF, primary docs + code ground truth)
+- [x] B2 Aspect-preset model (ideogram-style list → per-provider px mappings, dimension rules) — computed table in the draft JSON + methodology in the research doc
+- [x] B3 `engine/service_params.draft.json` — 13 services, uniform param order, `aspect_presets{}` per service, NOT yet wired into bridge.py (Phase 2 P1 applies it)
+- [x] B4 Judge Rev 2 (84→re-judge pending): added §14 Request-payload cookbook (13 providers, exact casing/omit-vs-send/failure-fallback), turned §15 aspect-preset mapping into a deterministic numbered algorithm w/ explicit NEAREST-with-badge UI policy, retagged every default-bearing table row on a 4-tier provenance scale (DOC-RAW/DOC-SUMMARY/PROBE/CODE — retired the overloaded "CONFIRMED"), added HF/Replicate/OpenRouter minimum-contract one-liners, synced 3 trivially-mechanical cookbook facts into the draft JSON (nvidia.never_send, novita.enable_nsfw_detection.omit_for_permissive, runware.checkNSFW.always_send_explicit)
+
+## Agent C — credits-research (DOCS + probes only)
+- [x] C1 `research/2026-07-21_provider-balance-apis.md` — live-probed balance/usage endpoints per provider, honest portal-only rows. 4/13 real WIRE (fal, novita, openrouter — already wired; runware — real endpoint confirmed live, not yet wired = P2 pickup), 5 PORTAL-ONLY (together, replicate, openai, huggingface, nvidia), 4 N/A (gemini, agnes, ideogram-web, cliproxy). 2 broken keys flagged (huggingface 401, ideogram public-API 401) — not fixed, out of scope.
+- [x] C2 Fix `dashboards_server.py` `_app_key` APPDATA-vs-repo config split — now checks repo config.json first (live file, dev-mode source of truth), then `%APPDATA%\Omni-Image`, then legacy `%APPDATA%\AI Studio Void`. Backed up to `B:\AI-CoWork-Archive\config-backups\2026-07-21\dashboards_server.py.10-32.bak`. Verified standalone (server not restarted, per constraint) — all 5 media-provider fields resolve, incl. `runware_api_key` which the old code missed entirely.
+
+## Agent D — theme-pass (app.css ONLY)
+- [x] D1 Prism spectral accent system (buttons/active/progress/header edge), AA contrast, gentle motion — smoke stays green
+  — `--prism-1..5` + `--prism-gradient` + `--prism-glow-cta` vars; `.brand b` de-duped to reuse the var; header 1px prism edge (`header::after`, opacity .55, no layout shift); `.gen` (all 3 layouts) gets a layered prism glow alongside its existing accent-glow; `.pbar div` loading sweep now spectral; active/selected rings (`.svc button.on`, `.picker button.on`, `.chip.on`, `.viewtoggle button.on`, `.cmode-seg button.active`, `.tagchip.on`) via a border-box gradient-clip trick that repaints ONLY the 1px border seam — every fill/text color is byte-identical to before, so all pre-existing AA pairings are untouched (verified: no new text-over-background pairs introduced). Caught + fixed mid-build: the airy/pro layout overrides for `.svc button.on`/`.chip.on` have higher CSS specificity and would've silently wiped the ring via `background:none`/`border-color:accent` — patched all 4 override rules to carry the same trick with their own fill, so all 3 `[data-layout]` modes stay coherent. Focus rings tinted (`:focus-visible` outline = prism-4 blue, plus a subtle glow on input focus). `web/index.html` app.css `?v=16→17` (the one allowed touch). `timeout 45 python main.py --smoke` → SMOKE OK. Brace-balance check 363/363.
+
+## Agent E — app-integrator (bridge.py, app.js, index.html, content_mode.js)
+- [x] E1 In-app Ask-AI reply — `bridge.suggest_model(query)` grounds a cliproxy `/chat/completions` call in ONLY the keyed/accessible catalog (`_accessible_models()`, new, shares `_recent_models_map()`/`SERVICES` with `get_state()`) + per-model content grade + active Content Mode; reply hard-filtered to accessible ids before returning (`picks`). `web/index.html` gets an "✨ Ask AI" button beside `#modelquery`; `web/app.js` `askAI()` renders the reply + picks as the SAME `.msuggest-chip` markup the instant-filter already uses, so the existing single `#modelsuggest` click listener applies them for free. `CLIPROXY_API_KEY` wrapping-quote strip applied. Graceful "no accessible models" / "cliproxy unreachable" states, never a crash.
+- [x] E2 Novita dual-catalog — `engine/backends/novita_api.py` gains `MODEL_APIS` (7 doc-cited endpoints: seedream-4.0/4.5/5.0-lite, qwen-image-txt2img/-edit, z-image-turbo/-lora — each URL verified against novita.ai/docs) + `_build_model_api_body()` (per-model shape) + `_generate_model_api()`; `generate()` routes any `model_id in MODEL_APIS` there BEFORE the legacy checkpoint path (shared `_poll_task()` extracted for the async ones). Dropdown shows "Novita · Checkpoints" / "Novita · Model APIs" as two real `<optgroup>`s (`renderModelOptions()`, generic — any service can opt in via a `group` field). **Live proof: z-image-turbo generated a real image** (S3 URL returned, $0.005-class render, pre-authorized) — confirms the bespoke async submit→poll path end-to-end, not just the seed list.
+- [x] E3 LoRA import UI — the per-service LoRA panel (`renderLoras()`) gains an "⇉ import to all" row (HF repo/URL + scale) that calls the existing (previously unwired-in-UI) `bridge.import_lora()`, fanning one paste out to every URL-capable provider (fal/together/replicate/HF) in one shot; result posted to the footer `#statusmsg` (the app's existing toast convention — no new UI primitive invented) naming which providers got it.
+- [x] E4 Reveal in Library — session tiles (`.acts`) and history rows (`.h-acts`) get a "📍 Reveal" button → `revealInLibrary(file)`: switches to Library, loads the index, sets the search box to the exact filename, filters, scrolls the matching tile into view with a brief outline pulse (inline style — app.css untouched, that's D's file).
+- [x] E5 New `.dd/verify_suggest.py` (17/17 PASS) — asserts (i) the cliproxy system prompt lists every accessible model and none from an un-keyed provider, (ii) a non-accessible id named in a mocked reply is filtered out of `picks`, (iii) source-text proof the Ask-AI picks reuse the identical `.msuggest-chip` markup + the SAME single click-apply listener as instant-filter (no duplicate wiring), plus an E2 routing sanity check. Re-ran the full existing suite clean: verify_library 21/21, verify_tags 31/31, verify_presets 22+19/19, verify_output 15/15, verify_lora 21/21, verify_pD 19/19, verify_p1_bugfix GREEN. `node --check` on app.js/content_mode.js clean; `python -m py_compile` on bridge.py/novita_api.py clean; `main.py --smoke` OK after every step. `app.js?v=21→22`; `content_mode.js` untouched (still v=4). `app.css` NOT touched (D's file). `engine/service_params.json` NOT touched (B's in-flight file) — Novita's Model-API params show via the existing generic fallback (no per-model schema added; that's Spec B Phase-2 territory).
+
+## Agent F — bench-and-commit
+- [x] F1 Spec A real-NAS benchmark (cold vs warm, 5194-row real library, `.dd/perf/{lib-before,lib-after}.json`).
+      **warm PASSES**: `list_images()` 110.6ms (<250ms) · zero NAS-prefix fs access (0/0/0 rglob/stat/sidecar) ·
+      254x faster than the old crawl (77.0s → 0.303s fresh-process total, or 700x on the in-scope `list_images()` slice alone).
+      **cold FAILS "no regression vs before"**: 192.3s vs before's 77.0s (2.5x SLOWER) — root cause: `index_folder()`'s
+      `max_workers=4` cap (AC-3's intentional "gentler NAS access" design decision) vs the old code's 16-thread pool;
+      real, reproducible, not a harness bug. Flagging for spec owner — the 4-thread cap is a deliberate tradeoff but
+      currently violates the literal cold threshold. `.cache/library.db` backed up + rebuilt clean (5194 rows, verified
+      identical to pre-benchmark state); NAS never modified (read-only). Synthetic harness `.dd/verify_library_index.py`
+      still 15/15 PASS post-run.
+- [x] F2 Committed AI CoWork session deliverables (explicit pathspecs, 3 grouped commits, nothing pushed):
+      `a3db3e2f` feat(nsfw-console) 4 files · `c8164907` feat(fleet-router+naming) 19 files ·
+      `bcc87f08` chore(server+registry) 2 files. Left uncommitted (not this session's scope — fleet-catalog data
+      rebuild, routing-catalog full regen, sp-weekly-goals, sunsama-briefs, prompt-ops.json, etc. — all clearly
+      other concurrent agents' in-flight work): see full list in the F agent's final report. Two stale
+      `.git/index.lock` files (age-verified 3h25m and 4m15s, zero live writers) hit + cleared mid-task — expected
+      on this shared, actively-written tree.
+
+## Phase 2 — after B, C, E complete (sequential, main/integrator)
+- [~] P1 params matrix JUDGED 92/100 ✅ (84→92; rev2 cookbook+algorithm+provenance). Build notes from judge: per-cell provenance in draft JSON · 1-page conformance test plan · explicit badge-when rule. REMAINING = apply → apply: service_params.json regen + aspect-preset dropdown component + consistent per-provider panels
+- [~] P2 Balance overhaul: get_balance for every provider w/ real endpoint; footer $-remaining or honest portal-only chip; credit dashboard update — **runware dashboard-side done** (`dashboards_server.py` `probe_credits()` real balance via accountManagement/getDetails + `image-gen-credit-access.html` wallet row/JS/liveSum wired; server restarted on :31960, live-verified `/api/credits` → runware $19.99, novita $10.00, both errors=None; `/api/fleet-catalog` still 200 post-restart); **bridge/footer half waits on app-integrator** (Agent E — in-app footer $-remaining chip, if any, is E's surface not this one)
+- [ ] P3 Model-metadata parity (Replicate/OpenRouter/Novita descriptions+thumbs; honest fallback blurbs elsewhere)
+- [ ] P4 Full harness suite re-run + smoke + commits + console redeploy
+
+## PRIME's standing items (not this batch, tracked so they don't drop)
+- [B] Open-design cliproxy BYOK — walled Thu 07/24 (wall row has details)
+- [B] Domains purchase — PRIME's call Sat 07/26 (wall row 0.2)
+- [B] HuggingFace token DEAD (401 expired) — PRIME reissue at hf.co/settings/tokens, then paste in app Settings
+- [B] Ideogram API key DEAD (401 rotated?) — PRIME reissue at ideogram.ai, then paste in app Settings
+- [x] 1 expired Together sample thumb — fresh render (together:black-forest-labs/FLUX.1-schnell, disable_safety_checker:true, seed 424242), evidence sample_urls updated, thumb downloaded + NAS :31961 redeployed, curl-verified 200
+- [ ] Frozen-exe %APPDATA% rename migration (at next packaging)
