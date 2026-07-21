@@ -45,6 +45,8 @@ const state = {
   contentGrades: {}, aspectPreset: "Custom", modelMeta: {},
   novitaCovers: {}, openrouterDescriptions: {}, sweepThumbs: {},
   libRecords: [], libFiltered: [], libraryDirs: [], libFilter: { folder: "", service: "", type: "", q: "", tags: [] },
+  libTileEls: null,   // Map<rkey, tileEl> for the library grid — built ONCE per record set, never
+                       // rebuilt on filter (perf fix, see buildLibTiles/syncLibTileVisibility below)
 };
 
 /* ---------- bridge helpers ---------- */
@@ -1325,24 +1327,74 @@ function renderLibTagChips() {
   const clr = $("libtagsclear"); if (clr) clr.addEventListener("click", () => { state.libFilter.tags = []; applyLibFilter(); });
 }
 
+// PERF (R3 #1): the library grid used to fully rebuild `mason.innerHTML` (recreating every <img>)
+// on EVERY filter/tag-chip click, which re-triggered/re-decoded thousands of thumbnails and made
+// the tag filter feel like it was "regenerating" the whole library. Fix: tiles are built ONCE per
+// underlying record set (`state.libRecords`, identity-checked) and kept in a Map; filtering never
+// touches the DOM nodes or their <img src> — it only toggles `.hidden` on the ones already built.
+// Zero new network requests on a filter click, by construction (no src is ever re-assigned).
+const LIB_BUILD_CHUNK = 200;   // records per animation-frame tick — first screen paints immediately,
+                                // the rest streams in without blocking (windowed initial render)
+
+function libKey(r) { return `${r.dir || ""}␟${r.file}`; }
+
 function renderLibTiles() {
   const mason = $("libmason"); if (!mason) return;
-  const recs = state.libFiltered;
-  if (!recs.length) { mason.innerHTML = `<div class="emptystate">no images match — adjust the filters or ↻ refresh</div>`; return; }
-  mason.innerHTML = recs.map((r, i) => `
-    <div class="wtile" data-wi="${i}">
-      ${mediaTag(r.file, { thumb: true })}
-      <div class="wmeta"><b>${escapeHtml(r.service || r.file.split(".").pop())}</b><span data-open="${i}">open folder</span></div>
-      ${r.prompt ? `<div class="wprompt" title="${escapeHtml(r.prompt)}">${escapeHtml(r.prompt.slice(0, 140))}</div>` : ""}
-    </div>`).join("");
-  applyGrid();
-  mason.querySelectorAll("[data-open]").forEach(s => s.addEventListener("click", (e) => {
-    e.stopPropagation(); api().open_output_folder();
-  }));
-  mason.querySelectorAll(".wtile").forEach(t => t.addEventListener("click", e => {
+  if (!state.libRecords.length) {
+    mason.innerHTML = `<div class="emptystate">no images yet — ↻ refresh to scan the archive folders</div>`;
+    state.libTileEls = null;
+    return;
+  }
+  if (!state.libTileEls || state.libTileEls.forArray !== state.libRecords) buildLibTiles(mason);
+  else syncLibTileVisibility();
+}
+
+function buildLibTile(r) {
+  const el = document.createElement("div");
+  el.className = "wtile";
+  el.dataset.rk = libKey(r);
+  el.innerHTML = `
+    ${mediaTag(r.file, { thumb: true })}
+    <div class="wmeta"><b>${escapeHtml(r.service || r.file.split(".").pop())}</b><span data-open="1">open folder</span></div>
+    ${r.prompt ? `<div class="wprompt" title="${escapeHtml(r.prompt)}">${escapeHtml(r.prompt.slice(0, 140))}</div>` : ""}`;
+  el.querySelector("[data-open]").addEventListener("click", (e) => { e.stopPropagation(); api().open_output_folder(); });
+  el.addEventListener("click", e => {
     if (e.target.closest("[data-open]")) return;
-    openLightbox(recs[+t.dataset.wi].file, recs[+t.dataset.wi].dir);   // #7 lightbox from library too — dir disambiguates dup basenames
-  }));
+    openLightbox(r.file, r.dir, state.libFiltered);   // #7 lightbox — nav list = current filtered/displayed order
+  });
+  return el;
+}
+
+function buildLibTiles(mason) {
+  const recs = state.libRecords;
+  const map = new Map();
+  map.forArray = recs;                       // identity tag: which array this build belongs to
+  state.libTileEls = map;
+  mason.innerHTML = `<div class="emptystate" id="libnomatch" hidden>no images match — adjust the filters or ↻ refresh</div>`;
+  applyGrid();
+  let i = 0;
+  (function step() {
+    if (state.libTileEls !== map) return;    // a newer build superseded this one mid-flight — bail
+    const frag = document.createDocumentFragment();
+    const end = Math.min(i + LIB_BUILD_CHUNK, recs.length);
+    for (; i < end; i++) { const el = buildLibTile(recs[i]); map.set(libKey(recs[i]), el); frag.appendChild(el); }
+    mason.appendChild(frag);
+    syncLibTileVisibility();                 // apply the current filter to the just-added chunk
+    if (i < recs.length) requestAnimationFrame(step);
+  })();
+}
+
+function syncLibTileVisibility() {
+  if (!state.libTileEls) return;
+  const visible = new Set(state.libFiltered.map(libKey));
+  let shown = 0;
+  for (const [key, el] of state.libTileEls) {
+    const on = visible.has(key);
+    el.hidden = !on;
+    if (on) shown++;
+  }
+  const nomatch = $("libnomatch");
+  if (nomatch) nomatch.hidden = shown > 0;
 }
 
 /* ---------- E4 — Reveal in Library (Spec C AC-6.4) ---------- */
@@ -1357,8 +1409,8 @@ async function revealInLibrary(file) {
   if (q) q.value = name;
   state.libFilter.tags = [];    // a stale tag filter could hide the very tile we're revealing
   applyLibFilter();
-  const idx = state.libFiltered.findIndex(r => r.file === name);
-  const tile = idx >= 0 ? document.querySelector(`#libmason .wtile[data-wi="${idx}"]`) : null;
+  const rec = state.libFiltered.find(r => r.file === name);
+  const tile = rec && state.libTileEls ? state.libTileEls.get(libKey(rec)) : null;
   if (tile) {
     tile.scrollIntoView({ block: "center", behavior: "smooth" });
     const prev = tile.style.outline;
