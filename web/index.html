@@ -61,6 +61,19 @@
     <h2 class="prefs-h">Presets — Styles &amp; Recipes <span class="phelp" title="Style = reusable, prompt-optional. Recipe = reproduce ONE exact image, provider-pinned. List, rename, delete, set-default here (AC-4.5).">&#9432;</span></h2>
     <div id="stylesmanager" class="presetmanager"></div>
     <div id="recipesmanager" class="presetmanager"></div>
+    <h2 class="prefs-h">Tags <span class="phelp" title="Every tag in the library. Rename a tag TO an already-existing tag name to merge the two (tags are a set per image, so the collapse is automatic). Delete removes a tag from every image that carries it. 'Add a tag + rescan' runs a targeted 12-worker vision pass, asking a plain yes/no question per image, and tags every match. Sorted by frequency; a captioned library can carry tens of thousands of one-off caption tags, so only the top ones render — search to find any other.">&#9432;</span></h2>
+    <div class="pref-in"><input id="tagsearch" type="text" placeholder="search tags…" spellcheck="false"></div>
+    <div id="tagsmanager" class="presetmanager"></div>
+    <div class="pref-note" id="tagscountnote"></div>
+    <div class="pref-row">
+      <label for="tagrescan-name">Add a tag + rescan the library for it</label>
+      <div class="pref-in">
+        <input id="tagrescan-name" type="text" placeholder="tag name, e.g. &quot;beach&quot;" spellcheck="false">
+        <input id="tagrescan-model" type="text" placeholder="vision model (blank = current default)" spellcheck="false">
+        <button id="tagrescanbtn">Rescan library</button>
+      </div>
+      <div class="pref-note" id="tagrescannote"></div>
+    </div>
   </div>
 </div>
 
@@ -215,6 +228,6 @@
 
 <script src="content_mode.js?v=4"></script>
 <script src="presets.js?v=1"></script>
-<script src="app.js?v=26"></script>
+<script src="app.js?v=28"></script>
 </body>
 </html>

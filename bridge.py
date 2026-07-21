@@ -813,11 +813,77 @@ class Api:
         self._reembed_tags(path, tags)
         return {"ok": True, "tags": tags}
 
+    # ---- tag management (R3 #4 — Settings > Tags panel) ----------------------------
+
+    def list_all_tags(self) -> list:
+        """Every distinct tag in the library + its count, for the Settings > Tags list."""
+        return self._index().all_tags()
+
+    def rename_tag(self, old: str, new: str) -> dict:
+        """Renames `old` -> `new` across every image that carries it. Renaming TO an already-
+        existing tag name is how "merge" works (a row's tags are a set — the collapse is
+        automatic, no separate merge endpoint needed).
+        ponytail: doesn't re-embed metadata into each touched file (unlike add_tag/remove_tag,
+        which are single-image and cheap to re-embed) — a bulk rename can touch thousands of
+        files, and per-file image I/O for all of them would make this UI action feel frozen.
+        The SQLite index stays the source of truth; upgrade to a background re-embed pass if
+        embedded-copy drift after a bulk rename ever becomes a real problem."""
+        touched = self._index().rename_tag(old, new)
+        return {"ok": True, "touched": touched}
+
+    def delete_tag(self, tag: str) -> dict:
+        """Removes `tag` from every image that carries it. Same re-embed tradeoff as rename_tag."""
+        touched = self._index().delete_tag(tag)
+        return {"ok": True, "touched": touched}
+
+    def start_tag_rescan(self, tag: str, model: str = "", limit: int = 0) -> dict:
+        """R3 #4 — 'add a tag + rescan images for it with model X': a non-blocking 12-worker
+        targeted vision rescan (engine.vision_tagging.parallel_rescan_tag) over the whole
+        enabled library (or the first `limit` images, if given), applying `tag` to every match.
+        Poll rescan_tag_status() for progress; returns immediately."""
+        from engine import vision_tagging
+        tag = (tag or "").strip()
+        if not tag:
+            return {"ok": False, "error": "empty tag"}
+        if not vision_tagging.is_configured():
+            return {"ok": False, "error": "no vision endpoint configured"}
+        if getattr(self, "_rescan_state", None) and self._rescan_state.get("running"):
+            return {"ok": False, "error": f'a rescan for "{self._rescan_state["tag"]}" is already running'}
+        if model:
+            # ponytail: sticks as the process-wide VISION_TAG_MODEL (same env-driven config the
+            # rest of vision_tagging already uses) rather than threading a one-off model param
+            # through tag_matches/tag_image — a deliberate "with model X" choice sticking as the
+            # new default for future rescans/backfills is reasonable, not a hidden side effect.
+            os.environ["VISION_TAG_MODEL"] = model
+        bases = [d for d in self._library_dirs() if os.path.isdir(d)] or [self.config["output_directory"]]
+        idx = self._index()
+        paths = idx.all_image_paths(bases)
+        if limit:
+            paths = paths[:int(limit)]
+        if not paths:
+            return {"ok": True, "queued": 0}
+        import threading
+        self._rescan_state = {"tag": tag, "done": 0, "total": len(paths), "running": True, "result": None}
+
+        def _progress(done, total):
+            self._rescan_state["done"] = done
+
+        def _run():
+            result = vision_tagging.parallel_rescan_tag(paths, tag, idx, on_progress=_progress)
+            self._rescan_state["running"] = False
+            self._rescan_state["result"] = result
+        threading.Thread(target=_run, daemon=True).start()
+        return {"ok": True, "queued": len(paths)}
+
+    def rescan_tag_status(self) -> dict:
+        return getattr(self, "_rescan_state", None) or {"running": False}
+
     # ---- vision auto-tagging (AC-8.7) ----------------------------------------------
 
     def vision_tagging_status(self) -> dict:
         from engine import vision_tagging
-        return {"configured": vision_tagging.is_configured(), "endpoint": vision_tagging.base_url_label()}
+        return {"configured": vision_tagging.is_configured(), "endpoint": vision_tagging.base_url_label(),
+                "model": vision_tagging._model()}
 
     def start_vision_tag_backfill(self, limit: int = 200) -> dict:
         """Kicks off a non-blocking background batch over the untagged backlog (AC-8.7). Off

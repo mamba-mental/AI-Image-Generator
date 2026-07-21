@@ -114,6 +114,76 @@ def tag_image(path) -> list | None:
     return tags or None
 
 
+def _targeted_prompt(tag: str) -> str:
+    return (f'Does this image match the concept "{tag}"? Reply with ONLY the single word '
+            '"yes" or "no" — no punctuation, no explanation.')
+
+
+def tag_matches(path, tag: str) -> bool | None:
+    """R3 #4 — 'add a tag + rescan for it'. One image -> True/False for whether it matches
+    `tag`, or None on any failure/timeout (never raises). Same shape as tag_image() but a
+    targeted yes/no classification instead of open-ended tag extraction."""
+    if not is_configured():
+        return None
+    data_url = _to_data_url(path)
+    if not data_url:
+        return None
+    body = {
+        "model": _model(),
+        "messages": [{"role": "user", "content": [
+            {"type": "text", "text": _targeted_prompt(tag)},
+            {"type": "image_url", "image_url": {"url": data_url}},
+        ]}],
+        "max_tokens": 5,
+    }
+    req = urllib.request.Request(
+        _base_url() + "/chat/completions", data=json.dumps(body).encode(),
+        headers={"Authorization": f"Bearer {_api_key()}", "Content-Type": "application/json"})
+    try:
+        raw = urllib.request.urlopen(req, timeout=_TIMEOUT).read()
+        text = json.loads(raw)["choices"][0]["message"]["content"].strip().lower()
+    except (urllib.error.URLError, TimeoutError, KeyError, IndexError, ValueError) as e:
+        print(f"vision_tagging.tag_matches failed for {Path(path).name}: {type(e).__name__}: {e}")
+        return None
+    return text.startswith("yes")
+
+
+def parallel_rescan_tag(paths: list, tag: str, index, max_workers: int = 12, on_progress=None) -> dict:
+    """R3 #4 — 12-worker parallel targeted rescan (ponytail: reuse the proven pattern from
+    .dd/parallel_vision_backfill.py verbatim rather than inventing a new concurrency scheme —
+    the sequential batch_tag()'s 0.4s rate delay would take ~35+ minutes over a 5k-image library;
+    this is minutes). Applies `tag` to every image tag_matches() says yes to; a "no" or a failure
+    never touches that image's existing tags. `on_progress(done, total)`, if given, is called
+    from a worker thread after each image — caller's responsibility to make it thread-safe."""
+    import threading
+    from concurrent.futures import ThreadPoolExecutor
+    lock = threading.Lock()
+    counts = {"matched": 0, "no_match": 0, "failed": 0}
+    total = len(paths)
+
+    def work(p):
+        result = tag_matches(p, tag)
+        with lock:   # index writes + the shared counters both need the same guard (mirrors the
+                      # proven parallel_vision_backfill.py pattern)
+            if result is True:
+                try:
+                    index.add_tag(p, tag)
+                    counts["matched"] += 1
+                except Exception as e:
+                    print(f"vision_tagging.parallel_rescan_tag: failed to persist tag for {p}: {e}")
+                    counts["failed"] += 1
+            elif result is False:
+                counts["no_match"] += 1
+            else:
+                counts["failed"] += 1
+            if on_progress:
+                on_progress(counts["matched"] + counts["no_match"] + counts["failed"], total)
+
+    with ThreadPoolExecutor(max_workers=max_workers) as pool:
+        list(pool.map(work, paths))
+    return counts
+
+
 def batch_tag(paths: list, index) -> dict:
     """Background batch — tags each path once, caches via index.mark_vision_tagged (sets
     vision_tagged_at so it's never re-called), never blocks the caller. Run this on its own

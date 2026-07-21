@@ -1024,6 +1024,10 @@ async function renderVisionTagStatus() {
     el.textContent = s.configured ? `configured — ${s.endpoint}` : "not configured (off by default)";
     el.className = "pref-note " + (s.configured ? "vt-on" : "vt-off");
     if (btn) btn.disabled = !s.configured;
+    // R3 #4 — pre-fill the rescan model field with the CURRENT default, without clobbering
+    // anything the user already typed on a prior open of this panel.
+    const mfield = $("tagrescan-model");
+    if (mfield && !mfield.value) mfield.value = s.model || "";
   } catch (e) { el.textContent = "unavailable"; }
   if (btn && !btn._wired) {
     btn._wired = true;
@@ -1037,9 +1041,96 @@ async function renderVisionTagStatus() {
     });
   }
 }
+
+// ---- Settings > Tags manager (R3 #4: list/rename(=merge)/delete + "add a tag + rescan") ----
+// PROVEN LIVE against PRIME's real library: a captioned archive lands 34,499 distinct tags (vision
+// captions are near-unique free-text phrases per image, not a bounded taxonomy) — rendering all of
+// them as DOM rows would repeat R3 #1's exact perf bug. Same fix shape as the library's own tag
+// chips (renderLibTagChips already caps at 40, sorted by frequency): cap the rendered rows + add a
+// client-side search so a specific tag is still reachable without scrolling tens of thousands.
+const TAGS_MANAGER_CAP = 300;
+async function renderTagsManager() {
+  const box = $("tagsmanager"); if (!box) return;
+  try { state._allTags = await api().list_all_tags(); } catch (e) { state._allTags = []; }
+  renderTagsManagerList();
+}
+function renderTagsManagerList() {
+  const box = $("tagsmanager"); if (!box) return;
+  const all = state._allTags || [];
+  const q = ($("tagsearch") ? $("tagsearch").value : "").toLowerCase().trim();
+  const filtered = q ? all.filter(t => t.tag.includes(q)) : all;
+  const shown = filtered.slice(0, TAGS_MANAGER_CAP);
+  box.innerHTML = shown.length ? shown.map(t => `
+    <div class="presetrow" data-tag="${escapeHtml(t.tag)}">
+      <span class="preset-name">${escapeHtml(t.tag)} <em>${t.count}</em></span>
+      <button data-act="rename">rename</button>
+      <button data-act="delete">delete</button>
+    </div>`).join("") : `<div class="preset-empty">${all.length ? "no tags match your search" : "no tags in the library yet"}</div>`;
+  const note = $("tagscountnote");
+  if (note) note.textContent = all.length > shown.length
+    ? `showing ${shown.length} of ${filtered.length}${q ? " matching" : ""} (${all.length} total — search to find others)`
+    : `${all.length} tag${all.length === 1 ? "" : "s"} total`;
+  box.querySelectorAll(".presetrow").forEach(row => {
+    const tag = row.dataset.tag;
+    row.querySelector('[data-act="rename"]').addEventListener("click", async () => {
+      const next = prompt(`Rename "${tag}" to (type an EXISTING tag name to merge the two):`, tag);
+      if (!next || next.trim() === tag) return;
+      const r = await api().rename_tag(tag, next.trim());
+      if (r && r.ok) { $("statusmsg").textContent = `"${tag}" → "${next.trim()}" (${r.touched} image(s))`; renderTagsManager(); refreshLibraryIfOpen(); }
+    });
+    row.querySelector('[data-act="delete"]').addEventListener("click", async () => {
+      if (!confirm(`Delete tag "${tag}" from every image that carries it? This can't be undone.`)) return;
+      const r = await api().delete_tag(tag);
+      if (r && r.ok) { $("statusmsg").textContent = `deleted "${tag}" from ${r.touched} image(s)`; renderTagsManager(); refreshLibraryIfOpen(); }
+    });
+  });
+}
+$("tagsearch") && $("tagsearch").addEventListener("input", renderTagsManagerList);
+// Bulk tag ops (rename/delete/rescan) happen at the DB level, bypassing the per-image sync a
+// single add_tag/remove_tag call gets (R3 #3) — if the Library tab is open, force it to reload
+// so already-built tiles/chips don't go stale after a bulk edit.
+function refreshLibraryIfOpen() { if (state.view === "library") loadLibrary(); }
+let _tagRescanPoll = null;
+function stopTagRescanPoll() { if (_tagRescanPoll) { clearInterval(_tagRescanPoll); _tagRescanPoll = null; } }
+function pollTagRescan(tag) {
+  const note = $("tagrescannote"), btn = $("tagrescanbtn");
+  stopTagRescanPoll();
+  _tagRescanPoll = setInterval(async () => {
+    let s;
+    try { s = await api().rescan_tag_status(); } catch (e) { return; }
+    if (s.running) {
+      note.textContent = `rescanning for "${tag}": ${s.done}/${s.total}…`;
+    } else {
+      stopTagRescanPoll();
+      const r = s.result || {};
+      note.textContent = `done — "${tag}" matched ${r.matched || 0} image(s), ${r.no_match || 0} no match, ${r.failed || 0} failed.`;
+      btn.disabled = false; btn.textContent = "Rescan library";
+      renderTagsManager();
+      refreshLibraryIfOpen();
+    }
+  }, 1500);
+}
+$("tagrescanbtn") && $("tagrescanbtn").addEventListener("click", async () => {
+  const tag = ($("tagrescan-name").value || "").trim();
+  const model = ($("tagrescan-model").value || "").trim();
+  const note = $("tagrescannote"), btn = $("tagrescanbtn");
+  if (!tag) { note.textContent = "type a tag name first."; return; }
+  btn.disabled = true; btn.textContent = "starting…";
+  try {
+    const r = await api().start_tag_rescan(tag, model);
+    if (r && r.ok) {
+      note.textContent = `queued ${r.queued} image(s) — scanning in the background (12 workers).`;
+      if (r.queued > 0) pollTagRescan(tag); else { btn.disabled = false; btn.textContent = "Rescan library"; }
+    } else {
+      note.textContent = (r && r.error) || "failed to start"; btn.disabled = false; btn.textContent = "Rescan library";
+    }
+  } catch (e) { note.textContent = "failed to start"; btn.disabled = false; btn.textContent = "Rescan library"; }
+});
+
 $("settingsbtn").addEventListener("click", () => {
   renderPresetsManager();
   renderVisionTagStatus();
+  renderTagsManager();
 });
 
 /* ---------- gallery ---------- */

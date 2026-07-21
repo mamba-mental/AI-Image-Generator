@@ -413,6 +413,70 @@ class LibraryIndex:
         self._set_tags(path, tags)
         return sorted(tags)
 
+    # ---- tag management (R3 #4 — Settings > Tags panel) ---------------------------
+    def all_tags(self) -> list:
+        """Every distinct tag across the WHOLE library + how many images carry it, sorted by
+        frequency then name. One full scan of just the `tags` column — an admin action, not a
+        hot path, fine at library scale (thousands of rows, not millions)."""
+        freq: dict[str, int] = {}
+        for row in self._db.execute("SELECT tags FROM images WHERE tags != '' AND tags IS NOT NULL"):
+            for t in (row["tags"] or "").split(","):
+                t = t.strip()
+                if t:
+                    freq[t] = freq.get(t, 0) + 1
+        return sorted(({"tag": t, "count": n} for t, n in freq.items()), key=lambda x: (-x["count"], x["tag"]))
+
+    def rename_tag(self, old: str, new: str) -> int:
+        """Rename `old` -> `new` across every image that carries it. Renaming TO an already-
+        existing tag name IS how "merge" works here — a row's tags are a set, so the collapse
+        into one tag happens for free, no separate merge codepath needed. Returns rows touched."""
+        old_n, new_n = _norm_tag(old), _norm_tag(new)
+        if not old_n or not new_n or old_n == new_n:
+            return 0
+        touched = 0
+        # LIKE is a coarse pre-filter (cheap, index-friendly enough at this scale) — the exact
+        # token membership check happens in Python below, so a substring false-positive here
+        # (e.g. "red" LIKE-matching a row tagged "bored") never causes a wrong rewrite.
+        rows = self._db.execute("SELECT path, tags FROM images WHERE tags LIKE ?", (f"%{old_n}%",)).fetchall()
+        for r in rows:
+            tags = set(t for t in (r["tags"] or "").split(",") if t)
+            if old_n in tags:
+                tags.discard(old_n)
+                tags.add(new_n)
+                self._db.execute("UPDATE images SET tags=? WHERE path=?", (",".join(sorted(tags)), r["path"]))
+                touched += 1
+        if touched:
+            self._db.commit()   # one commit for the whole batch, not per-row
+        return touched
+
+    def delete_tag(self, tag: str) -> int:
+        """Remove `tag` from every image that carries it. Returns rows touched."""
+        tag_n = _norm_tag(tag)
+        if not tag_n:
+            return 0
+        touched = 0
+        rows = self._db.execute("SELECT path, tags FROM images WHERE tags LIKE ?", (f"%{tag_n}%",)).fetchall()
+        for r in rows:
+            tags = set(t for t in (r["tags"] or "").split(",") if t)
+            if tag_n in tags:
+                tags.discard(tag_n)
+                self._db.execute("UPDATE images SET tags=? WHERE path=?", (",".join(sorted(tags)), r["path"]))
+                touched += 1
+        if touched:
+            self._db.commit()
+        return touched
+
+    def all_image_paths(self, bases: list) -> list:
+        """Every REAL image path across the given base folders — NOT de-duped by basename like
+        list_images() (that de-dupe is for the DISPLAY grid; a rescan needs every actual file).
+        Used by R3 #4's parallel targeted-tag rescan."""
+        if not bases:
+            return []
+        ph = ",".join("?" * len(bases))
+        rows = self._db.execute(
+            f"SELECT path FROM images WHERE folder IN ({ph}) AND type='image'", bases).fetchall()
+        return [r["path"] for r in rows]
+
     # ---- vision auto-tagging (AC-8.7) --------------------------------------------
     def untagged_paths(self, bases: list, limit: int = 500) -> list:
         """Images with no vision_tagged_at marker yet — the backfill candidate queue."""
