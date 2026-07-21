@@ -101,7 +101,7 @@ class JobRegistry:
                 break
 
             progress("saving…")  # #15 — explicit save stage: queued -> running -> saving -> done
-            paths = save.make_output_paths(output_dir, len(results))
+            paths = save.make_output_paths(output_dir, len(results), seed=params.get("seed"))
             saved, errors = save.persist_results(results, paths)
             if saved:
                 meta = {"service": service, "model": model_id,
