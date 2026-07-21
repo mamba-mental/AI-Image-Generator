@@ -266,8 +266,9 @@ class Api:
             "novita": self.config.get("recent_models_novita", []) or [
                 "epicrealism_naturalSinRC1VAE_106430.safetensors", "epicphotogasm_xPlusPlus_135412.safetensors",
                 "realisticAfmix_realisticAfmix_75178.safetensors", "revAnimated_v122.safetensors"],
-            # E1 — cliproxy image models routable via /v1/images/generations (verified live)
-            "cliproxy": self.config.get("recent_models_cliproxy", []) or [
+            # E1 — cliproxy image models, live-discovered from the proxy (cliproxy_models()),
+            # config seed, then a static fallback if the proxy is unreachable (never empty).
+            "cliproxy": self.config.get("recent_models_cliproxy", []) or cliproxy_api.cliproxy_models() or [
                 "gpt-image-2", "gpt-image-1.5", "grok-imagine-image"],
             # Ideogram = Plus subscription via web session; model auto-selected server-side
             "ideogram": self.config.get("recent_models_ideogram", []) or ["auto"],
@@ -615,7 +616,10 @@ class Api:
     # live key-validation probes (cheapest per provider; endpoints from PRIME's validate.sh)
     _VALIDATE = {
         "fal": ("https://api.fal.ai/v1/models?limit=1", lambda k: {"Authorization": f"Key {k}"}),
-        "replicate": ("https://api.replicate.com/v1/account", lambda k: {"Authorization": f"Token {k}"}),
+        # Replicate is Cloudflare-fronted — the default urllib UA 403s (bot-block "error code: 1010"),
+        # false-rejecting a VALID key. Send a browser UA like the together/civitai probes below.
+        "replicate": ("https://api.replicate.com/v1/account",
+                      lambda k: {"Authorization": f"Token {k}", "User-Agent": "Mozilla/5.0"}),
         "gemini": ("https://generativelanguage.googleapis.com/v1beta/models", lambda k: {"x-goog-api-key": k}),
         "huggingface": ("https://huggingface.co/api/whoami-v2", lambda k: {"Authorization": f"Bearer {k}"}),
         "openai": ("https://api.openai.com/v1/models", lambda k: {"Authorization": f"Bearer {k}"}),
