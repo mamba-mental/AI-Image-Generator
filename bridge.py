@@ -279,6 +279,13 @@ class Api:
         "openai": ("https://api.openai.com/v1/models", lambda k: {"Authorization": f"Bearer {k}"}),
         "nvidia": ("https://integrate.api.nvidia.com/v1/models", lambda k: {"Authorization": f"Bearer {k}"}),
         "openrouter": ("https://openrouter.ai/api/v1/key", lambda k: {"Authorization": f"Bearer {k}"}),
+        # Cloudflare-fronted providers 403 the default urllib UA → send a browser UA.
+        "together": ("https://api.together.xyz/v1/models",
+                     lambda k: {"Authorization": f"Bearer {k}", "User-Agent": "Mozilla/5.0"}),
+        "novita": ("https://api.novita.ai/v1/billing/balance/detail", lambda k: {"Authorization": f"Bearer {k}"}),
+        "agnes": ("https://apihub.agnes-ai.com/v1/models", lambda k: {"Authorization": f"Bearer {k}"}),
+        "civitai": ("https://civitai.com/api/v1/models?limit=1",
+                    lambda k: {"Authorization": f"Bearer {k}", "User-Agent": "Mozilla/5.0"}),
     }
 
     def validate_key(self, service: str, key: str = "") -> dict:
@@ -288,7 +295,11 @@ class Api:
         import urllib.request
         probe = self._VALIDATE.get(service)
         if not probe:
-            return {"valid": False, "http": 0, "detail": f"unknown service {service}"}
+            # A KEY_FIELDS service without a live-validation probe (e.g. runware/ideogram) still
+            # SAVED its key — we just can't confirm it live. valid=None -> frontend shows it neutrally.
+            known = service in engine_config.KEY_FIELDS
+            return {"valid": None if known else False, "http": 0,
+                    "detail": "saved (no live validation for this provider)" if known else f"unknown service {service}"}
         url, hdr = probe
         env_name = engine_config.KEY_FIELDS[service][1]
         k = key.strip() or os.environ.get(env_name, "")

@@ -24,7 +24,7 @@ function catList() {
 }
 const INPUT_KINDS = { needs_input_image: "image", needs_input_video: "video",
                       needs_input_audio: "audio", needs_input_mesh: "mesh" };
-const SVC_LABELS = { fal: "Fal", openai: "OpenAI", nvidia: "NVIDIA", replicate: "Replicate", huggingface: "HF", gemini: "Gemini", openrouter: "OpenRouter", together: "Together", runware: "Runware", novita: "Novita", cliproxy: "CLIProxy", ideogram: "Ideogram", "ideogram-web": "Ideogram (Sub)" };
+const SVC_LABELS = { fal: "Fal", openai: "OpenAI", nvidia: "NVIDIA", replicate: "Replicate", huggingface: "HF", gemini: "Gemini", openrouter: "OpenRouter", together: "Together", runware: "Runware", novita: "Novita", cliproxy: "CLIProxy", agnes: "AGNES-AI", civitai: "CivitAI", ideogram: "Ideogram", "ideogram-api": "Ideogram (API)", "ideogram-web": "Ideogram (Sub)" };
 
 // legacy param set for replicate / hf / gemini (ported from the CTk panel)
 const LEGACY_PARAMS = [
@@ -135,26 +135,41 @@ $("refinerybtn").addEventListener("click", async () => {
 /* ---------- settings modal (API keys) ---------- */
 const KEY_HINTS = {
   fal: "FAL_KEY · fal.ai/dashboard/keys",
+  together: "TOGETHER_API_KEY · api.together.xyz/settings/api-keys (uncensored open models)",
+  runware: "RUNWARE_API_KEY · runware.ai → dashboard → API keys (uncensored + CivitAI)",
+  novita: "NOVITA_API_KEY · novita.ai/settings/key-management (uncensored, opt-in NSFW)",
+  replicate: "REPLICATE_API_TOKEN · replicate.com/account/api-tokens",
   openai: "OPENAI_API_KEY · platform.openai.com/api-keys",
   nvidia: "NVIDIA_API_KEY · build.nvidia.com (nvapi-…)",
-  replicate: "REPLICATE_API_TOKEN · replicate.com/account/api-tokens",
-  gemini: "GEMINI_API_KEY · aistudio.google.com/apikey (free)",
   huggingface: "HUGGINGFACE_TOKEN · huggingface.co/settings/tokens",
+  gemini: "GEMINI_API_KEY · aistudio.google.com/apikey (free)",
+  cliproxy: "CLIPROXY_API_KEY · your cliproxy gateway",
+  agnes: "AGNES_API_KEY · platform.agnes-ai.com/settings/profile",
+  ideogram: "IDEOGRAM_WEB_REFRESH_TOKEN · ideogram.ai subscription session",
+  "ideogram-api": "IDEOGRAM_API_KEY · ideogram.ai/manage-api (Api-Key)",
+  civitai: "CIVITAI_API_KEY · civitai.com/user/account (LoRA browse)",
   openrouter: "OPENROUTER_API_KEY · openrouter.ai/keys (sk-or-v1-…)",
 };
+// media-first order; every KEY_FIELDS provider from get_state().keys_status is shown
+const KEY_ORDER = ["fal", "together", "runware", "novita", "replicate", "openai", "nvidia",
+                   "huggingface", "gemini", "cliproxy", "agnes", "ideogram", "ideogram-api", "civitai", "openrouter"];
 function renderKeyRows() {
-  $("keyrows").innerHTML = ["fal", "openai", "nvidia", "replicate", "huggingface", "gemini", "openrouter"].map(s => `
+  const provs = Object.keys(state.keys || {}).sort((a, b) => {
+    const ia = KEY_ORDER.indexOf(a), ib = KEY_ORDER.indexOf(b);
+    return (ia < 0 ? 99 : ia) - (ib < 0 ? 99 : ib);
+  });
+  $("keyrows").innerHTML = provs.map(s => `
     <div class="keyrow" data-svc="${s}">
       <div class="keyrow-head">
-        <span class="svc-name">${SVC_LABELS[s]}</span>
+        <span class="svc-name">${SVC_LABELS[s] || s}</span>
         <span class="status ${state.keys[s] ? "set" : "unset"}" data-status>${state.keys[s] ? "key set" : "not set"}${(state.keyPools && state.keyPools[s] > 1) ? ` · ${state.keyPools[s]} keys (auto-swap)` : ""}</span>
       </div>
       <div class="keyrow-in">
-        <input type="password" placeholder="paste new ${SVC_LABELS[s]} key to override…" data-keyin>
+        <input type="password" placeholder="paste new ${SVC_LABELS[s] || s} key to override…" data-keyin>
         <button data-save>Save &amp; Validate</button>
         <button data-check title="check the key already in use, without changing it">Check current</button>
       </div>
-      <div class="hint">${KEY_HINTS[s]}</div>
+      <div class="hint">${KEY_HINTS[s] || ""}</div>
     </div>`).join("");
 
   $("keyrows").querySelectorAll(".keyrow").forEach(row => {
@@ -170,8 +185,11 @@ function renderKeyRows() {
       const r = await api().save_and_validate_key(s, input.value);
       state.keys = r.keys_status;
       const v = r.validation;
-      setStatus(v.valid ? "valid" : "invalid",
-                v.valid ? `saved · valid (${v.http})` : `saved · ${v.detail} (${v.http})`);
+      const cls = v.valid === true ? "valid" : v.valid === null ? "set" : "invalid";
+      const txt = v.valid === true ? `saved · valid (${v.http})`
+                : v.valid === null ? `saved · ${v.detail}`
+                : `saved · ${v.detail} (${v.http})`;
+      setStatus(cls, txt);
       input.value = "";
       renderService();            // reflect new key state in the dropdown immediately
       if (s === state.service) refreshBalance();
