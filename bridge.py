@@ -59,6 +59,60 @@ def _load_content_grades() -> dict:
     }
 
 
+# Card-grid sample thumbnails (gap-report: "fal-style card grid for ALL providers"). PRIME's NSFW
+# sweep already rendered a real sample from every "verified" model and saved local copies here
+# (a sibling project's dashboard assets — cross-repo on purpose, one shared source of sample
+# renders instead of duplicating ~86 images into this repo). Registered as a mediaserver root in
+# Api.__init__ so these are served the same basename-lookup way as generated_images/library files.
+_NSFW_ASSETS_DIR = r"C:\AI CoWork\dashboards\assets\nsfw-verified"
+
+
+def _sweep_thumb_filename(provider: str, model_id: str) -> str:
+    """<provider>__<safe-model>.jpg — the exact naming convention the sweep's asset export uses
+    (confirmed against the live files: lowercase model id, every run of non-alnum chars -> '_')."""
+    import re
+    safe = re.sub(r"[^a-z0-9]+", "_", (model_id or "").lower()).strip("_")
+    return f"{provider}__{safe}.jpg"
+
+
+def _sweep_thumbs(media_base: str) -> dict:
+    """{'provider:model' -> {url, sample:true}} for every 'verified'-grade sweep model — a LOCAL
+    copy (never expires) preferred over the sweep's own CDN sample_urls (48h TTL, dead most of the
+    time by the time a card renders). Card-grid fallback #2, behind provider-native metadata."""
+    import urllib.parse
+    cap_path = engine_config.resource_path("engine/nsfw_capability.json")
+    if not cap_path.exists():
+        return {}
+    try:
+        models = json.loads(cap_path.read_text(encoding="utf-8")).get("models", {})
+    except Exception:
+        return {}
+    out = {}
+    for key, ev in models.items():
+        if ev.get("grade") != "verified":
+            continue
+        provider = ev.get("provider") or key.split(":", 1)[0]
+        model_id = ev.get("model") or key.split(":", 1)[-1]
+        fname = _sweep_thumb_filename(provider, model_id)
+        if os.path.isfile(os.path.join(_NSFW_ASSETS_DIR, fname)):
+            out[key] = {"url": media_base + urllib.parse.quote(fname), "sample": True}
+        elif ev.get("sample_urls"):
+            out[key] = {"url": ev["sample_urls"][0], "sample": True}
+    return out
+
+
+def _openrouter_catalog() -> list:
+    """The raw /v1/models list — shared by _openrouter_model_meta (single-id, info panel) and
+    Api.openrouter_descriptions (whole-catalog, card grid) so there's one fetch implementation."""
+    import urllib.request
+    try:
+        d = json.loads(urllib.request.urlopen(
+            urllib.request.Request("https://openrouter.ai/api/v1/models"), timeout=20).read())
+    except Exception:
+        return []
+    return d.get("data") or []
+
+
 def _openapi_props_to_params(schema: dict, comps: dict) -> list:
     """OpenAPI Input schema properties -> UI params[] (name/type/values/default/min/max/description)."""
     props = schema.get("properties", {})
@@ -127,15 +181,8 @@ def _replicate_input_params(d: dict) -> list:
 
 
 def _openrouter_model_meta(model_id: str) -> dict:
-    """P3 — OpenRouter's /v1/models list carries per-model descriptions. One small live fetch,
-    no key needed (the endpoint is public). {} on failure or if the id isn't found."""
-    import urllib.request
-    try:
-        d = json.loads(urllib.request.urlopen(
-            urllib.request.Request("https://openrouter.ai/api/v1/models"), timeout=20).read())
-    except Exception:
-        return {}
-    for m in (d.get("data") or []):
+    """P3 — one model's description from the shared catalog fetch. {} if not found."""
+    for m in _openrouter_catalog():
         if m.get("id") == model_id:
             return {"description": m.get("description")}
     return {}
@@ -168,6 +215,8 @@ class Api:
         for _libdir in self._library_dirs():  # LIBRARY view browses every configured archive
             if os.path.isdir(_libdir):
                 mediaserver.add_root(_libdir)
+        if os.path.isdir(_NSFW_ASSETS_DIR):  # card-grid sample thumbnails (gap-report)
+            mediaserver.add_root(_NSFW_ASSETS_DIR)
         self._ensure_output_registered()  # #6 — generations land in a scanned folder from boot
         # LoRA-capable services (each backend translates {url,scale} to its own request shape).
         self._lora_cfg = {"huggingface": "recent_loras_hf", "replicate": "recent_loras_replicate",
@@ -234,6 +283,7 @@ class Api:
             # endpoint exists for these (Spec B AC-1.7) → the sanctioned offline seed from
             # engine/backends/novita_api.MODEL_APIS, surfaced as its own dropdown group.
             "novita_model_apis": _load_novita_model_apis(),
+            "sweep_thumbs": _sweep_thumbs(self.media_base),  # card-grid sample renders (gap-report)
             "recent_prompts": self.config.get("recent_prompts", []),
             "loras": {s: m.get_loras() for s, m in self.lora_managers.items()},
             "keys_status": self.keys_status,
@@ -401,6 +451,18 @@ class Api:
         except Exception:
             pass
         return {"params": []}
+
+    def novita_covers(self, limit: int = 100) -> dict:
+        """Card-grid: {sd_name -> cover_url} for the WHOLE checkpoint catalog in one call — vs
+        model_schema()'s single-id lookup for the selected-model info panel."""
+        from engine.backends import novita_api
+        return novita_api.novita_model_covers(limit)
+
+    def openrouter_descriptions(self) -> dict:
+        """Card-grid: {model_id -> description} for the WHOLE OpenRouter catalog in one call —
+        vs model_schema()'s single-id lookup for the selected-model info panel."""
+        return {m["id"]: m.get("description") for m in _openrouter_catalog()
+                if m.get("id") and m.get("description")}
 
     def novita_models(self, limit: int = 100) -> list:
         """Live Novita checkpoint catalog (sd_name strings) for the model dropdown — so the exact

@@ -43,6 +43,7 @@ const state = {
   genCount: 0, loras: {}, mediaBase: "", outDirName: "generated_images",
   view: "session", grid: "m", lbFile: null, lbDir: "", lbTags: [], contentMode: "safe", verifiedOnly: false,
   contentGrades: {}, aspectPreset: "Custom", modelMeta: {},
+  novitaCovers: {}, openrouterDescriptions: {}, sweepThumbs: {},
   libRecords: [], libFiltered: [], libraryDirs: [], libFilter: { folder: "", service: "", type: "", q: "", tags: [] },
 };
 
@@ -59,6 +60,7 @@ async function boot() {
   state.contentGrades = s.content_grades || {};  // Spec B §3 sweep evidence — every provider
   state.recentModels = s.recent_models;
   state.novitaModelApis = s.novita_model_apis || [];  // E2 — Novita's second catalog (offline seed)
+  state.sweepThumbs = s.sweep_thumbs || {};  // gap-report — real sample renders, card-grid fallback #2
   state.loras = s.loras || {};
   state.mediaBase = s.media_base || "";
   state.outDirName = s.output_dir_name || "generated_images";
@@ -268,8 +270,23 @@ async function maybeFetchNovitaModels() {
 // One-shot per service on success; retries while empty (e.g. before a key is set); on failure the
 // labelled offline seeds stay. Novita has its own shape → delegates above.
 const CATALOG_SVCS = ["together", "agnes", "nvidia", "openai", "openrouter"];
+// Card-grid metadata one-shots (finish of the gap-report card grid): novita cover images +
+// openrouter descriptions load once per session when their service first renders.
+async function maybeFetchCardMeta() {
+  const svc = state.service;
+  state._metaFetched = state._metaFetched || {};
+  if (state._metaFetched[svc]) return;
+  if (svc === "novita") {
+    state._metaFetched[svc] = true;
+    try { const r = await api().novita_covers(100); if (r && Object.keys(r).length) { state.novitaCovers = r; render(); } } catch (e) {}
+  } else if (svc === "openrouter") {
+    state._metaFetched[svc] = true;
+    try { const r = await api().openrouter_descriptions(); if (r && Object.keys(r).length) { state.openrouterDescriptions = r; render(); } } catch (e) {}
+  }
+}
 async function maybeFetchLiveModels() {
   const svc = state.service;
+  maybeFetchCardMeta();  // covers/descriptions ride the same render tick, one-shot
   if (svc === "novita") return maybeFetchNovitaModels();
   if (!CATALOG_SVCS.includes(svc)) return;
   state._catFetched = state._catFetched || {};
@@ -296,20 +313,42 @@ function pickServiceParams(service, id, category) {
   }
   return sp.default || LEGACY_PARAMS;
 }
+// Card-grid enrichment (gap-report: "fal-style card grid for ALL providers"). Unified shape every
+// non-fal model gets: {thumb?, description?, sample?}. Priority order, honest, never fabricated:
+// 1) provider-native metadata (novita cover, replicate cover, openrouter description-only)
+// 2) our own NSFW-sweep sample render (state.sweepThumbs — local copy preferred server-side,
+//    already resolved to a ready-to-use URL; `sample:true` flags it for the card's corner tag)
+// 3) a static per-service FAMILY_BLURBS one-liner for description when nothing else exists
+// fal is untouched — fal_models.json already carries its own real thumb+description.
+function cardMeta(service, id) {
+  let thumb = null, description = null, sample = false;
+  if (service === "novita" && state.novitaCovers[id]) thumb = state.novitaCovers[id];
+  if (service === "replicate" && state.modelMeta[id]) {
+    thumb = state.modelMeta[id].cover_image_url || null;
+    description = state.modelMeta[id].description || null;
+  }
+  if (service === "openrouter" && state.openrouterDescriptions[id]) description = state.openrouterDescriptions[id];
+  if (!thumb) {
+    const sw = state.sweepThumbs[`${service}:${id}`];
+    if (sw) { thumb = sw.url; sample = true; }
+  }
+  if (!description) description = FAMILY_BLURBS[service] || null;
+  return { thumb, description, sample };
+}
 // E2 — Novita ships TWO catalogs (Spec B AC-1.2): legacy checkpoints (live-fetched) + the modern
 // Model APIs (no list endpoint -> offline seed, engine/backends/novita_api.MODEL_APIS). Each model
 // carries a `group` so the <select> renders them as two labelled optgroups (renderModelOptions).
 function novitaModelsFor(category) {
   const checkpoints = (state.recentModels.novita || []).map(id =>
-    ({ id, label: id, category: "text-to-image", group: "Novita · Checkpoints", params: pickServiceParams("novita", id, category) }));
+    ({ id, label: id, category: "text-to-image", group: "Novita · Checkpoints", params: pickServiceParams("novita", id, category), ...cardMeta("novita", id) }));
   const modelApis = (state.novitaModelApis || []).map(id =>
-    ({ id, label: id, category: "text-to-image", group: "Novita · Model APIs", params: pickServiceParams("novita", id, category) }));
+    ({ id, label: id, category: "text-to-image", group: "Novita · Model APIs", params: pickServiceParams("novita", id, category), ...cardMeta("novita", id) }));
   return checkpoints.concat(modelApis);
 }
 function modelsFor(service, category) {
   let models = service === "fal" ? state.falModels.filter(m => m.category === category)
     : service === "novita" ? novitaModelsFor(category)
-    : (state.recentModels[service] || []).map(id => ({ id, label: id, category: "text-to-image", params: pickServiceParams(service, id, category) }));
+    : (state.recentModels[service] || []).map(id => ({ id, label: id, category: "text-to-image", params: pickServiceParams(service, id, category), ...cardMeta(service, id) }));
   const prof = CONTENT_MODES[state.contentMode] || CONTENT_MODES.safe;
   if (prof.filter) {  // Editorial/Fashion/NSFW: evidence-graded per model, for EVERY provider (Spec B AC-3.1/3.2)
     const grades = state.contentGrades;
@@ -1163,10 +1202,15 @@ async function renderBrowse() {
   const cur = currentModel();
   const cards = models.slice(0, 24).map(m => {
     const on = cur && m.id === cur.id ? " on" : "";
-    const img = m.thumb ? `<img src="${m.thumb}" loading="lazy">` : `<div class="mc-ph">${(m.label || m.id).slice(0, 2)}</div>`;
-    return `<div class="mcard${on}" data-mid="${m.id}">${img}
+    // onerror → swap to the initials placeholder so an expired CDN thumb never renders broken
+    const img = m.thumb
+      ? `<img src="${m.thumb}" loading="lazy" onerror="this.outerHTML='<div class=\\'mc-ph\\'>${(m.label || m.id).slice(0, 2)}</div>'">`
+      : `<div class="mc-ph">${(m.label || m.id).slice(0, 2)}</div>`;
+    const tag = m.sample ? `<span class="mc-sample" title="thumbnail is our own verified render from this model">sample: our render</span>` : "";
+    const desc = m.description ? `<div class="mc-p" title="${escapeHtml(m.description)}">${escapeHtml(m.description).slice(0, 90)}</div>` : "";
+    return `<div class="mcard${on}" data-mid="${m.id}">${tag}${img}
       <div class="mc-t" title="${m.label || m.id}">${m.label || m.id}</div>
-      <div class="mc-p">${m.price || ""}</div></div>`;
+      ${desc || `<div class="mc-p">${m.price || ""}</div>`}</div>`;
   }).join("");
 
   wrap.innerHTML = `

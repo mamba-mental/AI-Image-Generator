@@ -67,3 +67,8 @@
 - [B] Ideogram API key DEAD (401 rotated?) — PRIME reissue at ideogram.ai, then paste in app Settings
 - [x] 1 expired Together sample thumb — fresh render (together:black-forest-labs/FLUX.1-schnell, disable_safety_checker:true, seed 424242), evidence sample_urls updated, thumb downloaded + NAS :31961 redeployed, curl-verified 200
 - [ ] Frozen-exe %APPDATA% rename migration (at next packaging)
+
+## PRIME gap-report round 2 (2026-07-21 late)
+- [~] G1 Vision content-tags were 0 (off-by-default) — vision_endpoint set to cliproxy + gpt-5.5; 5k backfill batch queues after re-index
+- [~] G2 fal-style model CARD GRID for all providers — dispatched to app-integrator (thumbs: provider covers → our sweep samples → honest text cards)
+- [x] G3 224 stranded app-gens at I:\ ROOT moved → I:/generated/legacy (+sidecars, manifest logged, reversible) + repo generated_images/ registered; force re-index running

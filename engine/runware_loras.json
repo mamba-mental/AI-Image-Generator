@@ -1,0 +1,389 @@
+{
+ "_note": "LoRAs from the RunWare Uncensored/NSFW inbox list, resolved to Runware AIRs via modelSearch (category=lora|lycoris). NOT standalone-swept by nsfw_sweep.py — attach to a checkpoint's `lora:[]` task field to test/use them.",
+ "source_inbox": "inbox/RunWare UncensoreNSFW Image Gen Models_raw.txt",
+ "generated_at": "2026-07-21 10:24",
+ "resolver": "Runware modelSearch API (https://runware.ai/docs/utilities/model-search)",
+ "loras": [
+  {
+   "name": "Flux_Lustly_ai_Uncensored_nsfw_v1",
+   "version": "1.0",
+   "source": "Codenamesoul",
+   "air": "codenamesoul:3@3",
+   "matched_name": "Flux_Lustly_ai_Uncensored_nsfw_v1",
+   "architecture": "flux1d"
+  },
+  {
+   "name": "Flux-NSFW-uncensored",
+   "version": "1.0",
+   "source": "Codenamesoul",
+   "air": "codenamesoul:3@2",
+   "matched_name": "Flux-NSFW-uncensored",
+   "architecture": "flux1d"
+  },
+  {
+   "name": "Flux-Uncensored-V2",
+   "version": "2.0",
+   "source": "Codenamesoul",
+   "air": "codenamesoul:2@1",
+   "matched_name": "Flux-Uncensored-V2",
+   "architecture": "flux1d"
+  },
+  {
+   "name": "uncensored ai - female character flux lora",
+   "version": "v1.1",
+   "source": "Civitai",
+   "air": "civitai:1082334@1215286",
+   "matched_name": "uncensored ai - female character flux lora",
+   "architecture": "flux1d"
+  },
+  {
+   "name": "DIVINITY: Angelarium Uncensored",
+   "version": "v1.0",
+   "source": "Civitai",
+   "air": "civitai:121354@132038",
+   "matched_name": "DIVINITY: Angelarium Uncensored",
+   "architecture": "sdxl"
+  },
+  {
+   "name": "CervixUncensored XL",
+   "version": "v01.06-10.03-10.U10.G10",
+   "source": "Civitai",
+   "air": "civitai:276066@311143",
+   "matched_name": "CervixUncensored XL",
+   "architecture": "sdxl"
+  },
+  {
+   "name": "Uncensored concept (female)",
+   "version": "v03.05",
+   "source": "Civitai",
+   "air": "civitai:216652@244161",
+   "matched_name": "Uncensored concept (female)",
+   "architecture": "sd1x"
+  },
+  {
+   "name": "Flux Mystic XXX [NSFW]",
+   "version": "7.0",
+   "source": "Pasaranax",
+   "air": "pasaranax:1295758@2009929",
+   "matched_name": "Flux Mystic XXX [NSFW]",
+   "architecture": "flux1d"
+  },
+  {
+   "name": "Qwen_Real_Nud3s [NSFW]",
+   "version": "1.0",
+   "source": "Pasaranax",
+   "air": "pasaranax:1904517@2155689",
+   "matched_name": "Qwen_Real_Nud3s [NSFW]",
+   "architecture": "qwen_image"
+  },
+  {
+   "name": "Qwen Sex, Nudes, Other Fun Stuff (SNOFS) [NSFW]",
+   "version": "1.0",
+   "source": "Pasaranax",
+   "air": "pasaranax:1972981@2233198",
+   "matched_name": "Qwen Sex, Nudes, Other Fun Stuff (SNOFS) [NSFW]",
+   "architecture": "qwen_image"
+  },
+  {
+   "name": "Qwen Lewd Selfie / Snapchat [NSFW]",
+   "version": "V1",
+   "source": "Pasaranax",
+   "air": "pasaranax:663378@2179228",
+   "matched_name": "Qwen Lewd Selfie / Snapchat [NSFW]",
+   "architecture": "qwen_image"
+  },
+  {
+   "name": "Qwen Just the Tits - Dynamic Breasts [NSFW]",
+   "version": "2.5",
+   "source": "Pasaranax",
+   "air": "pasaranax:708319@2146703",
+   "matched_name": "Qwen Just the Tits - Dynamic Breasts [NSFW]",
+   "architecture": "qwen_image"
+  },
+  {
+   "name": "Qwen Send Nudes [NSFW]",
+   "version": "B.1",
+   "source": "Pasaranax",
+   "air": "pasaranax:719380@2217791",
+   "matched_name": "Qwen Send Nudes [NSFW]",
+   "architecture": "qwen_image"
+  },
+  {
+   "name": "MCNL (Multi Concept NSFW Lora) [Qwen Image]",
+   "version": "1.0",
+   "source": "Pasaranax",
+   "air": "pasaranax:1851673@2105899",
+   "matched_name": "MCNL (Multi Concept NSFW Lora) [Qwen Image]",
+   "architecture": "qwen_image"
+  },
+  {
+   "name": "fluxNsfwV1.0",
+   "version": "V1.0",
+   "source": "Khialmaster",
+   "air": "khialmaster:655753@733658",
+   "matched_name": "fluxNsfwV1.0",
+   "architecture": "fluxkontextdev"
+  },
+  {
+   "name": "Photorealistic NSFW",
+   "version": "NSFW-v2.0-Studio",
+   "source": "Khialmaster",
+   "air": "khialmaster:704013@904370",
+   "matched_name": "Photorealistic NSFW",
+   "architecture": "flux1d"
+  },
+  {
+   "name": "Raiounsfw style (raiou)",
+   "version": "V1",
+   "source": "Civitai",
+   "air": "civitai:1291686@1457642",
+   "matched_name": "Raiounsfw style (raiou)",
+   "architecture": "illustrious"
+  },
+  {
+   "name": "Wet Ink, NSFW - CE",
+   "version": "V01c - XL",
+   "source": "Civitai",
+   "air": "civitai:1280495@1444748",
+   "matched_name": "Wet Ink, NSFW - CE",
+   "architecture": "sd35"
+  },
+  {
+   "name": "Wet Ink, NSFW - CE",
+   "version": "V01c - SD3",
+   "source": "Civitai",
+   "air": "civitai:1280495@1444748",
+   "matched_name": "Wet Ink, NSFW - CE",
+   "architecture": "sd35"
+  },
+  {
+   "name": "Wet Ink, NSFW - CE",
+   "version": "V01c - Flux.1 D",
+   "source": "Civitai",
+   "air": "civitai:1280495@1444748",
+   "matched_name": "Wet Ink, NSFW - CE",
+   "architecture": "sd35"
+  },
+  {
+   "name": "PILA TYAN beautiful sweet sexy cute gorgeous and seductive young European teen girl realistic nsfw erotic 18+",
+   "version": "Pila Tyan 0.3",
+   "source": "Civitai",
+   "air": "civitai:1176847@1445348",
+   "matched_name": "PILA TYAN beautiful sweet sexy cute gorgeous and seductive young European teen girl realistic nsfw erotic 18+",
+   "architecture": "pony"
+  },
+  {
+   "name": "Scott Pilgrim Takes Off - WAI-NSFW (Style)",
+   "version": "v1.0",
+   "source": "Civitai",
+   "air": "civitai:1262929@1424210",
+   "matched_name": "Scott Pilgrim Takes Off - WAI-NSFW (Style)",
+   "architecture": "illustrious"
+  },
+  {
+   "name": "Elf cosplay SFW and NSFW",
+   "version": "V1",
+   "source": "Civitai",
+   "air": "civitai:1232193@1388448",
+   "matched_name": "Elf cosplay SFW and NSFW",
+   "architecture": "flux1d"
+  },
+  {
+   "name": "Ghost SFW/NSFW IL | Shrekman Concepts Collection",
+   "version": "V1",
+   "source": "Civitai",
+   "air": "civitai:1228248@1383942",
+   "matched_name": "Ghost SFW/NSFW IL | Shrekman Concepts Collection",
+   "architecture": "illustrious"
+  },
+  {
+   "name": "VR180 3D PHOTO NSFW",
+   "version": "0.1",
+   "source": "Civitai",
+   "air": "civitai:1225562@1380832",
+   "matched_name": "VR180 3D PHOTO NSFW",
+   "architecture": "flux1d"
+  },
+  {
+   "name": "PILA TYAN beautiful sweet sexy cute gorgeous and seductive young European teen girl realistic nsfw erotic 18+",
+   "version": "Pila Tyan 0.1",
+   "source": "Civitai",
+   "air": "civitai:1176847@1445348",
+   "matched_name": "PILA TYAN beautiful sweet sexy cute gorgeous and seductive young European teen girl realistic nsfw erotic 18+",
+   "architecture": "pony"
+  },
+  {
+   "name": "PILA TYAN beautiful sweet sexy cute gorgeous and seductive young European teen girl realistic nsfw erotic 18+",
+   "version": "Pila Tyan 0.2",
+   "source": "Civitai",
+   "air": "civitai:1176847@1445348",
+   "matched_name": "PILA TYAN beautiful sweet sexy cute gorgeous and seductive young European teen girl realistic nsfw erotic 18+",
+   "architecture": "pony"
+  },
+  {
+   "name": "mana sumita/纯田真奈/純田まな[for WAI-NSFW-illustrious-SDXL]",
+   "version": "mana xl",
+   "source": "Civitai",
+   "air": "civitai:1202938@1354632",
+   "matched_name": "mana sumita/纯田真奈/純田まな[for WAI-NSFW-illustrious-SDXL]",
+   "architecture": "sdxl"
+  },
+  {
+   "name": "(Realistic) Anke from Archer Anime - FLUX | NSFW",
+   "version": "V1",
+   "source": "Civitai",
+   "air": "civitai:1200096@1351328",
+   "matched_name": "(Realistic) Anke from Archer Anime - FLUX | NSFW",
+   "architecture": "flux1d"
+  },
+  {
+   "name": "Orgasm Face for Pyro's NSFW SDXL",
+   "version": "v1.0",
+   "source": "Civitai",
+   "air": "civitai:1200038@1351270",
+   "matched_name": "Orgasm Face for Pyro's NSFW SDXL",
+   "architecture": "sdxl"
+  },
+  {
+   "name": "Mimukauwa (Vocaloid - Nice Try) - LoRA PonyXL [NSFW Support]",
+   "version": "vPXL",
+   "source": "Civitai",
+   "air": "civitai:1166505@1312333",
+   "matched_name": "Mimukauwa (Vocaloid - Nice Try) - LoRA PonyXL [NSFW Support]",
+   "architecture": "pony"
+  },
+  {
+   "name": "Susie (My Ghost Friend) - LoRA PonyXL [NSFW Support]",
+   "version": "vPXL",
+   "source": "Civitai",
+   "air": "civitai:1163135@1308418",
+   "matched_name": "Susie (My Ghost Friend) - LoRA PonyXL [NSFW Support]",
+   "architecture": "pony"
+  },
+  {
+   "name": "Nemia / Fortnite / (NSFW/SFW) SDXL LORA PONY",
+   "version": "v1.0",
+   "source": "Civitai",
+   "air": "civitai:1160588@1305464",
+   "matched_name": "Nemia / Fortnite / (NSFW/SFW) SDXL LORA PONY",
+   "architecture": "pony"
+  },
+  {
+   "name": "Legoshi (Beastars) - COMMISSION LoRA PonyXL [NSFW Support]",
+   "version": "vPXL",
+   "source": "Civitai",
+   "air": "civitai:1154628@1298742",
+   "matched_name": "Legoshi (Beastars) - COMMISSION LoRA PonyXL [NSFW Support]",
+   "architecture": "pony"
+  },
+  {
+   "name": "Lewd FLUX (Beta) | NSFW",
+   "version": "v1.0 NEW (Beta)",
+   "source": "Civitai",
+   "air": "civitai:870694@987348",
+   "matched_name": "Lewd FLUX (Beta) | NSFW",
+   "architecture": "flux1d"
+  },
+  {
+   "name": "Juno (Beastars) - COMMISSION LoRA PonyXL [NSFW Support]",
+   "version": "vPXL",
+   "source": "Civitai",
+   "air": "civitai:1147724@1290845",
+   "matched_name": "Juno (Beastars) - COMMISSION LoRA PonyXL [NSFW Support]",
+   "architecture": "pony"
+  },
+  {
+   "name": "Laura Matsuda / Street Fighter / (NSFW/SFW) SDXL LORA (PONY)",
+   "version": "v1.0",
+   "source": "Civitai",
+   "air": "civitai:1146268@1289212",
+   "matched_name": "Laura Matsuda / Street Fighter / (NSFW/SFW) SDXL LORA (PONY)",
+   "architecture": "pony"
+  },
+  {
+   "name": "Rinwonki (VTuber) - COMMISSION LoRA PonyXL [NSFW Support]",
+   "version": "vPXL",
+   "source": "Civitai",
+   "air": "civitai:1144581@1287272",
+   "matched_name": "Rinwonki (VTuber) - COMMISSION LoRA PonyXL [NSFW Support]",
+   "architecture": "pony"
+  }
+ ],
+ "unresolved": [
+  {
+   "name": "Azula (Avatar: The Last Airbender) - COMMISSION LoRA PonyXL [NSFW Support]",
+   "version": "vPXL",
+   "source": "Civitai"
+  },
+  {
+   "name": "Kusu (Dragon Ball Super) - COMMISSION LoRA PonyXL [NSFW Support]",
+   "version": "vPXL",
+   "source": "Civitai"
+  },
+  {
+   "name": "Jade-Chan (Jackie Chan Adventures) - COMMISSION LoRA PonyXL [NSFW Support]",
+   "version": "vPXL",
+   "source": "Civitai"
+  },
+  {
+   "name": "Kari Kamiya (Digimon Adventure 02) - COMMISSION LoRA PonyXL [NSFW Support]",
+   "version": "vPXL",
+   "source": "Civitai"
+  },
+  {
+   "name": "Meica05 (VTuber) - COMMISSION LoRA PonyXL [NSFW Support]",
+   "version": "v2",
+   "source": "Civitai"
+  },
+  {
+   "name": "GianPierrePeru (VTuber) - COMMISSION LoRA PonyXL [NSFW Support]",
+   "version": "vPXL",
+   "source": "Civitai"
+  },
+  {
+   "name": "Neco Arc (TYPE-MOON) - LoRA PonyXL [NSFW Support]",
+   "version": "vPXL",
+   "source": "Civitai"
+  },
+  {
+   "name": "Ty Lee (Avatar: The Last Airbender) - COMMISSION LoRA PonyXL [NSFW Support]",
+   "version": "vPXL",
+   "source": "Civitai"
+  },
+  {
+   "name": "Maya / Black Ops 6 / (NSFW/SFW) SDXL LORA PONY",
+   "version": "v1.0",
+   "source": "Civitai"
+  },
+  {
+   "name": "E Uchiha (VTuber) - COMMISSION LoRA PonyXL [NSFW Support]",
+   "version": "vPXL",
+   "source": "Civitai"
+  },
+  {
+   "name": "Asuna Yuuki (Sword Art Online) - COMMISSION LoRA PonyXL [NSFW Support]",
+   "version": "vPXL",
+   "source": "Civitai"
+  },
+  {
+   "name": "Sacred Sword Janna (League of Legends) - COMMISSION LoRA PonyXL [NSFW Support]",
+   "version": "vPXL",
+   "source": "Civitai"
+  },
+  {
+   "name": "Louis (Beastars) - COMMISSION LoRA PonyXL [NSFW Support]",
+   "version": "vPXL",
+   "source": "Civitai"
+  },
+  {
+   "name": "Haru (Beastars) - COMMISSION LoRA PonyXL [NSFW Support]",
+   "version": "vPXL",
+   "source": "Civitai"
+  },
+  {
+   "name": "Sam (PNGTuber - IA) - COMMISSION LoRA PonyXL [NSFW Support]",
+   "version": "vPXL",
+   "source": "Civitai"
+  }
+ ]
+}

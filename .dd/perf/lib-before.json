@@ -1,0 +1,15 @@
+{
+  "mode": "before",
+  "bases": [
+    "I:/ideogram-library/images",
+    "I:/scraped-ai-images",
+    "I:\\generated"
+  ],
+  "n_records": 5194,
+  "n_records_after_toggle": 5193,
+  "sidecar_open_count": 5191,
+  "smb_stat_count": 31170,
+  "rglob_count": 3,
+  "wall_ms": 77002.4,
+  "folder_toggle_recrawl": true
+}

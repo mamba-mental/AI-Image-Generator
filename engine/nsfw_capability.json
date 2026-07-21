@@ -3,204 +3,8 @@
  "classifier": "fal-ai/x-ailab/nsfw",
  "prompt_sha256": "4b75adc174cbe3ca347053f5169fe3bdd8147d29c37a0181855bdb94a466cdb1",
  "n_renders": 3,
- "generated_at": "2026-07-21 06:22",
- "excluded": [
-  {
-   "provider": "fal",
-   "id": "fal-ai/flux-pro/kontext/text-to-image",
-   "reason": "BFL-proprietary FLUX Kontext \u2014 provider-enforced content policy with no permissive override; nudity is blocked upstream regardless of client flags."
-  },
-  {
-   "provider": "fal",
-   "id": "fal-ai/flux-pro/kontext/max/text-to-image",
-   "reason": "BFL-proprietary FLUX Kontext \u2014 provider-enforced content policy with no permissive override; nudity is blocked upstream regardless of client flags."
-  },
-  {
-   "provider": "fal",
-   "id": "fal-ai/flux-lora/inpainting",
-   "reason": "Not a text-to-image generation model (utility/analysis endpoint) \u2014 out of scope for a capability sweep."
-  },
-  {
-   "provider": "fal",
-   "id": "fal-ai/flux-kontext-lora/text-to-image",
-   "reason": "BFL-proprietary FLUX Kontext \u2014 provider-enforced content policy with no permissive override; nudity is blocked upstream regardless of client flags."
-  },
-  {
-   "provider": "together",
-   "id": "black-forest-labs/FLUX.1-kontext-pro",
-   "reason": "BFL-proprietary FLUX Kontext \u2014 provider-enforced content policy with no permissive override; nudity is blocked upstream regardless of client flags."
-  },
-  {
-   "provider": "together",
-   "id": "black-forest-labs/FLUX.1-kontext-max",
-   "reason": "BFL-proprietary FLUX Kontext \u2014 provider-enforced content policy with no permissive override; nudity is blocked upstream regardless of client flags."
-  },
-  {
-   "provider": "together",
-   "id": "openai/gpt-image-1.5",
-   "reason": "OpenAI-backed image model \u2014 content moderation is server-side and non-overridable."
-  },
-  {
-   "provider": "together",
-   "id": "google/veo-3.0-fast-audio",
-   "reason": "Google-backed image model \u2014 SynthID + non-overridable safety filters; art-nude refused by policy."
-  },
-  {
-   "provider": "together",
-   "id": "google/veo-3.0-audio",
-   "reason": "Google-backed image model \u2014 SynthID + non-overridable safety filters; art-nude refused by policy."
-  },
-  {
-   "provider": "together",
-   "id": "kwaivgI/kling-2.1-master",
-   "reason": "Video-generation model \u2014 Spec B scopes the NSFW sweep to IMAGE models; video-NSFW testing is an explicit follow-up non-goal."
-  },
-  {
-   "provider": "together",
-   "id": "kwaivgI/kling-2.1-pro",
-   "reason": "Video-generation model \u2014 Spec B scopes the NSFW sweep to IMAGE models; video-NSFW testing is an explicit follow-up non-goal."
-  },
-  {
-   "provider": "together",
-   "id": "google/veo-2.0",
-   "reason": "Google-backed image model \u2014 SynthID + non-overridable safety filters; art-nude refused by policy."
-  },
-  {
-   "provider": "together",
-   "id": "openai/sora-2",
-   "reason": "OpenAI-backed image model \u2014 content moderation is server-side and non-overridable."
-  },
-  {
-   "provider": "together",
-   "id": "kwaivgI/kling-2.1-standard",
-   "reason": "Video-generation model \u2014 Spec B scopes the NSFW sweep to IMAGE models; video-NSFW testing is an explicit follow-up non-goal."
-  },
-  {
-   "provider": "together",
-   "id": "google/veo-3.0-fast",
-   "reason": "Google-backed image model \u2014 SynthID + non-overridable safety filters; art-nude refused by policy."
-  },
-  {
-   "provider": "together",
-   "id": "google/gemini-3-pro-image",
-   "reason": "Google-backed image model \u2014 SynthID + non-overridable safety filters; art-nude refused by policy."
-  },
-  {
-   "provider": "together",
-   "id": "openai/sora-2-pro",
-   "reason": "OpenAI-backed image model \u2014 content moderation is server-side and non-overridable."
-  },
-  {
-   "provider": "together",
-   "id": "ByteDance/Seedance-1.0-lite",
-   "reason": "Video-generation model \u2014 Spec B scopes the NSFW sweep to IMAGE models; video-NSFW testing is an explicit follow-up non-goal."
-  },
-  {
-   "provider": "together",
-   "id": "ByteDance/Seedance-1.0-pro",
-   "reason": "Video-generation model \u2014 Spec B scopes the NSFW sweep to IMAGE models; video-NSFW testing is an explicit follow-up non-goal."
-  },
-  {
-   "provider": "together",
-   "id": "google/imagen-4.0-fast",
-   "reason": "Google-backed image model \u2014 SynthID + non-overridable safety filters; art-nude refused by policy."
-  },
-  {
-   "provider": "together",
-   "id": "google/flash-image-2.5",
-   "reason": "Google-backed image model \u2014 SynthID + non-overridable safety filters; art-nude refused by policy."
-  },
-  {
-   "provider": "together",
-   "id": "minimax/hailuo-02",
-   "reason": "Video-generation model \u2014 Spec B scopes the NSFW sweep to IMAGE models; video-NSFW testing is an explicit follow-up non-goal."
-  },
-  {
-   "provider": "together",
-   "id": "google/imagen-4.0-ultra",
-   "reason": "Google-backed image model \u2014 SynthID + non-overridable safety filters; art-nude refused by policy."
-  },
-  {
-   "provider": "together",
-   "id": "google/imagen-4.0-preview",
-   "reason": "Google-backed image model \u2014 SynthID + non-overridable safety filters; art-nude refused by policy."
-  },
-  {
-   "provider": "together",
-   "id": "google/veo-3.0",
-   "reason": "Google-backed image model \u2014 SynthID + non-overridable safety filters; art-nude refused by policy."
-  },
-  {
-   "provider": "together",
-   "id": "kwaivgI/kling-1.6-standard",
-   "reason": "Video-generation model \u2014 Spec B scopes the NSFW sweep to IMAGE models; video-NSFW testing is an explicit follow-up non-goal."
-  },
-  {
-   "provider": "together",
-   "id": "minimax/video-01-director",
-   "reason": "Video-generation model \u2014 Spec B scopes the NSFW sweep to IMAGE models; video-NSFW testing is an explicit follow-up non-goal."
-  },
-  {
-   "provider": "together",
-   "id": "google/flash-image-3.1",
-   "reason": "Google-backed image model \u2014 SynthID + non-overridable safety filters; art-nude refused by policy."
-  },
-  {
-   "provider": "together",
-   "id": "google/veo-3.1-test-debug",
-   "reason": "Google-backed image model \u2014 SynthID + non-overridable safety filters; art-nude refused by policy."
-  },
-  {
-   "provider": "together",
-   "id": "ByteDance/Seedance-2.0",
-   "reason": "Video-generation model \u2014 Spec B scopes the NSFW sweep to IMAGE models; video-NSFW testing is an explicit follow-up non-goal."
-  },
-  {
-   "provider": "together",
-   "id": "google/veo-3.1",
-   "reason": "Google-backed image model \u2014 SynthID + non-overridable safety filters; art-nude refused by policy."
-  },
-  {
-   "provider": "together",
-   "id": "google/veo-3.1-lite",
-   "reason": "Google-backed image model \u2014 SynthID + non-overridable safety filters; art-nude refused by policy."
-  },
-  {
-   "provider": "together",
-   "id": "openai/gpt-image-2",
-   "reason": "OpenAI-backed image model \u2014 content moderation is server-side and non-overridable."
-  },
-  {
-   "provider": "together",
-   "id": "google/flash-image-3.1-lite",
-   "reason": "Google-backed image model \u2014 SynthID + non-overridable safety filters; art-nude refused by policy."
-  },
-  {
-   "provider": "agnes",
-   "id": "agnes-video-v2.0",
-   "reason": "Video-generation model \u2014 Spec B scopes the NSFW sweep to IMAGE models; video-NSFW testing is an explicit follow-up non-goal."
-  },
-  {
-   "provider": "novita",
-   "id": "realisticVisionV40_v40VAE-inpainting_81543.safetensors",
-   "reason": "Not a text-to-image generation model (utility/analysis endpoint) \u2014 out of scope for a capability sweep."
-  },
-  {
-   "provider": "novita",
-   "id": "pornmasterPro_fullV5-inpainting_135217.safetensors",
-   "reason": "Not a text-to-image generation model (utility/analysis endpoint) \u2014 out of scope for a capability sweep."
-  },
-  {
-   "provider": "novita",
-   "id": "dreamshaper_8Inpainting_95072.safetensors",
-   "reason": "Not a text-to-image generation model (utility/analysis endpoint) \u2014 out of scope for a capability sweep."
-  },
-  {
-   "provider": "novita",
-   "id": "realisticVisionV51_v51VAE-inpainting_94324.safetensors",
-   "reason": "Not a text-to-image generation model (utility/analysis endpoint) \u2014 out of scope for a capability sweep."
-  }
- ],
+ "generated_at": "2026-07-21 10:37",
+ "excluded": [],
  "models": {
   "together:black-forest-labs/FLUX.1-schnell": {
    "provider": "together",
@@ -225,9 +29,9 @@
    "clamped_len": 1342,
    "truncated": false,
    "sample_urls": [
-    "https://api.together.ai/shrt/CBsf0F2xL4qBLVzM"
+    "https://api.together.ai/shrt/mjFpm1bN5hbjNMzP"
    ],
-   "tested_at": "2026-07-21 04:13"
+   "tested_at": "2026-07-21 10:51"
   },
   "together:black-forest-labs/FLUX.2-dev": {
    "provider": "together",
@@ -6043,6 +5847,463 @@
     "https://faas-output-image.s3.ap-southeast-1.amazonaws.com/prod/25506c6c-7efc-4611-8e3f-30a01f95819a/ae90982ca206445788f94884b2d0686a.jpeg?X-Amz-Algorithm=AWS4-HMAC-SHA256&X-Amz-Credential=AKIASVPYCN6LRCW3SOUV%2F20260721%2Fap-southeast-1%2Fs3%2Faws4_request&X-Amz-Date=20260721T102149Z&X-Amz-Expires=172800&X-Amz-SignedHeaders=host&x-id=GetObject&X-Amz-Signature=93dcf35202eb47ae08a6cc74a6344fbd3d693d8f8c29308f2908f3994ae8acba"
    ],
    "tested_at": "2026-07-21 06:22"
+  },
+  "runware:choosenmodelanime:4058@7055": {
+   "provider": "runware",
+   "model": "choosenmodelanime:4058@7055",
+   "grade": "verified",
+   "nsfw_votes": "3/3",
+   "mean": 1,
+   "sd": 0.0,
+   "classifier": "fal-ai/x-ailab/nsfw",
+   "classifier_scores": [
+    true,
+    true,
+    true
+   ],
+   "blocked_scores": [
+    false,
+    false,
+    false
+   ],
+   "seed_base": 100000,
+   "sent_prompt_sha256": "4b75adc174cbe3ca347053f5169fe3bdd8147d29c37a0181855bdb94a466cdb1",
+   "clamped_len": 1342,
+   "truncated": false,
+   "sample_urls": [
+    "https://im.runware.ai/image/os/a04d20/ws/3/ii/0f0ca7a8-f9c6-41b5-81d9-a65c1082a3ff.jpg"
+   ],
+   "tested_at": "2026-07-21 10:31"
+  },
+  "runware:civitai:1196454@1347172": {
+   "provider": "runware",
+   "model": "civitai:1196454@1347172",
+   "grade": "verified",
+   "nsfw_votes": "3/3",
+   "mean": 1,
+   "sd": 0.0,
+   "classifier": "fal-ai/x-ailab/nsfw",
+   "classifier_scores": [
+    true,
+    true,
+    true
+   ],
+   "blocked_scores": [
+    false,
+    false,
+    false
+   ],
+   "seed_base": 100000,
+   "sent_prompt_sha256": "4b75adc174cbe3ca347053f5169fe3bdd8147d29c37a0181855bdb94a466cdb1",
+   "clamped_len": 1342,
+   "truncated": false,
+   "sample_urls": [
+    "https://im.runware.ai/image/os/a08dlim3/ws/3/ii/7e6db806-4058-4320-ba66-7d342f322ce6.jpg"
+   ],
+   "tested_at": "2026-07-21 10:31"
+  },
+  "runware:civitai:127498@139499": {
+   "provider": "runware",
+   "model": "civitai:127498@139499",
+   "grade": "verified",
+   "nsfw_votes": "3/3",
+   "mean": 1,
+   "sd": 0.0,
+   "classifier": "fal-ai/x-ailab/nsfw",
+   "classifier_scores": [
+    true,
+    true,
+    true
+   ],
+   "blocked_scores": [
+    false,
+    false,
+    false
+   ],
+   "seed_base": 100000,
+   "sent_prompt_sha256": "4b75adc174cbe3ca347053f5169fe3bdd8147d29c37a0181855bdb94a466cdb1",
+   "clamped_len": 1342,
+   "truncated": false,
+   "sample_urls": [
+    "https://im.runware.ai/image/os/a10dlim3/ws/3/ii/f4384b1d-08f7-4053-b897-8403dc28e5aa.jpg"
+   ],
+   "tested_at": "2026-07-21 10:32"
+  },
+  "runware:civitai:123942@135224": {
+   "provider": "runware",
+   "model": "civitai:123942@135224",
+   "grade": "verified",
+   "nsfw_votes": "3/3",
+   "mean": 1,
+   "sd": 0.0,
+   "classifier": "fal-ai/x-ailab/nsfw",
+   "classifier_scores": [
+    true,
+    true,
+    true
+   ],
+   "blocked_scores": [
+    false,
+    false,
+    false
+   ],
+   "seed_base": 100000,
+   "sent_prompt_sha256": "4b75adc174cbe3ca347053f5169fe3bdd8147d29c37a0181855bdb94a466cdb1",
+   "clamped_len": 1342,
+   "truncated": false,
+   "sample_urls": [
+    "https://im.runware.ai/image/os/a03d21/ws/3/ii/0cf3e4e7-1134-4bed-b278-f062df1c03d0.jpg"
+   ],
+   "tested_at": "2026-07-21 10:32"
+  },
+  "runware:civitai:1277670@1441401": {
+   "provider": "runware",
+   "model": "civitai:1277670@1441401",
+   "grade": "verified",
+   "nsfw_votes": "3/3",
+   "mean": 1,
+   "sd": 0.0,
+   "classifier": "fal-ai/x-ailab/nsfw",
+   "classifier_scores": [
+    true,
+    true,
+    true
+   ],
+   "blocked_scores": [
+    false,
+    false,
+    false
+   ],
+   "seed_base": 100000,
+   "sent_prompt_sha256": "4b75adc174cbe3ca347053f5169fe3bdd8147d29c37a0181855bdb94a466cdb1",
+   "clamped_len": 1342,
+   "truncated": false,
+   "sample_urls": [
+    "https://im.runware.ai/image/os/a01d21/ws/3/ii/cede52c5-3ef1-4d9a-b97a-78b289d8e452.jpg"
+   ],
+   "tested_at": "2026-07-21 10:32"
+  },
+  "runware:civitai:1277670@1469829": {
+   "provider": "runware",
+   "model": "civitai:1277670@1469829",
+   "grade": "verified",
+   "nsfw_votes": "3/3",
+   "mean": 1,
+   "sd": 0.0,
+   "classifier": "fal-ai/x-ailab/nsfw",
+   "classifier_scores": [
+    true,
+    true,
+    true
+   ],
+   "blocked_scores": [
+    false,
+    false,
+    false
+   ],
+   "seed_base": 100000,
+   "sent_prompt_sha256": "4b75adc174cbe3ca347053f5169fe3bdd8147d29c37a0181855bdb94a466cdb1",
+   "clamped_len": 1342,
+   "truncated": false,
+   "sample_urls": [
+    "https://im.runware.ai/image/os/a05d22/ws/3/ii/26007ad1-90b1-4c46-aaca-982f8df89327.jpg"
+   ],
+   "tested_at": "2026-07-21 10:32"
+  },
+  "runware:civitai:348685@390089": {
+   "provider": "runware",
+   "model": "civitai:348685@390089",
+   "grade": "unclear",
+   "nsfw_votes": "0/3",
+   "mean": null,
+   "sd": 0,
+   "classifier": "fal-ai/x-ailab/nsfw",
+   "classifier_scores": [
+    null,
+    null,
+    null
+   ],
+   "blocked_scores": [
+    null,
+    null,
+    null
+   ],
+   "seed_base": 100000,
+   "sent_prompt_sha256": "4b75adc174cbe3ca347053f5169fe3bdd8147d29c37a0181855bdb94a466cdb1",
+   "clamped_len": 1342,
+   "truncated": false,
+   "sample_urls": [],
+   "tested_at": "2026-07-21 10:32"
+  },
+  "runware:civitai:119202@129422": {
+   "provider": "runware",
+   "model": "civitai:119202@129422",
+   "grade": "verified",
+   "nsfw_votes": "3/3",
+   "mean": 1,
+   "sd": 0.0,
+   "classifier": "fal-ai/x-ailab/nsfw",
+   "classifier_scores": [
+    true,
+    true,
+    true
+   ],
+   "blocked_scores": [
+    false,
+    false,
+    false
+   ],
+   "seed_base": 100000,
+   "sent_prompt_sha256": "4b75adc174cbe3ca347053f5169fe3bdd8147d29c37a0181855bdb94a466cdb1",
+   "clamped_len": 1342,
+   "truncated": false,
+   "sample_urls": [
+    "https://im.runware.ai/image/os/a02d21/ws/3/ii/4658dbf0-fa0a-468d-8cbe-0f663ae5a7b1.jpg"
+   ],
+   "tested_at": "2026-07-21 10:33"
+  },
+  "runware:civitai:1177470@1324949": {
+   "provider": "runware",
+   "model": "civitai:1177470@1324949",
+   "grade": "verified",
+   "nsfw_votes": "3/3",
+   "mean": 1,
+   "sd": 0.0,
+   "classifier": "fal-ai/x-ailab/nsfw",
+   "classifier_scores": [
+    true,
+    true,
+    true
+   ],
+   "blocked_scores": [
+    false,
+    false,
+    false
+   ],
+   "seed_base": 100000,
+   "sent_prompt_sha256": "4b75adc174cbe3ca347053f5169fe3bdd8147d29c37a0181855bdb94a466cdb1",
+   "clamped_len": 1342,
+   "truncated": false,
+   "sample_urls": [
+    "https://im.runware.ai/image/os/a03d21/ws/3/ii/ab9d4fa6-6461-4959-98c4-6c74ccde6d15.jpg"
+   ],
+   "tested_at": "2026-07-21 10:33"
+  },
+  "runware:civitai:1269842@1436248": {
+   "provider": "runware",
+   "model": "civitai:1269842@1436248",
+   "grade": "verified",
+   "nsfw_votes": "3/3",
+   "mean": 1,
+   "sd": 0.0,
+   "classifier": "fal-ai/x-ailab/nsfw",
+   "classifier_scores": [
+    true,
+    true,
+    true
+   ],
+   "blocked_scores": [
+    false,
+    false,
+    false
+   ],
+   "seed_base": 100000,
+   "sent_prompt_sha256": "4b75adc174cbe3ca347053f5169fe3bdd8147d29c37a0181855bdb94a466cdb1",
+   "clamped_len": 1342,
+   "truncated": false,
+   "sample_urls": [
+    "https://im.runware.ai/image/os/a03d21/ws/3/ii/247e13ad-0c8d-462a-9dd1-e8053375bed9.jpg"
+   ],
+   "tested_at": "2026-07-21 10:33"
+  },
+  "runware:civitai:573152@1099200": {
+   "provider": "runware",
+   "model": "civitai:573152@1099200",
+   "grade": "verified",
+   "nsfw_votes": "3/3",
+   "mean": 1,
+   "sd": 0.0,
+   "classifier": "fal-ai/x-ailab/nsfw",
+   "classifier_scores": [
+    true,
+    true,
+    true
+   ],
+   "blocked_scores": [
+    false,
+    false,
+    false
+   ],
+   "seed_base": 100000,
+   "sent_prompt_sha256": "4b75adc174cbe3ca347053f5169fe3bdd8147d29c37a0181855bdb94a466cdb1",
+   "clamped_len": 1342,
+   "truncated": false,
+   "sample_urls": [
+    "https://im.runware.ai/image/os/a01d21/ws/3/ii/dad4a382-30e3-401e-90e3-e4dd5ceecdc8.jpg"
+   ],
+   "tested_at": "2026-07-21 10:33"
+  },
+  "runware:x:42@1490781": {
+   "provider": "runware",
+   "model": "x:42@1490781",
+   "grade": "verified",
+   "nsfw_votes": "3/3",
+   "mean": 1,
+   "sd": 0.0,
+   "classifier": "fal-ai/x-ailab/nsfw",
+   "classifier_scores": [
+    true,
+    true,
+    true
+   ],
+   "blocked_scores": [
+    false,
+    false,
+    false
+   ],
+   "seed_base": 100000,
+   "sent_prompt_sha256": "4b75adc174cbe3ca347053f5169fe3bdd8147d29c37a0181855bdb94a466cdb1",
+   "clamped_len": 1342,
+   "truncated": false,
+   "sample_urls": [
+    "https://im.runware.ai/image/os/a02d21/ws/3/ii/39b9755c-6068-42e8-8bde-b0511e290777.jpg"
+   ],
+   "tested_at": "2026-07-21 10:34"
+  },
+  "runware:civitai:147480@170718": {
+   "provider": "runware",
+   "model": "civitai:147480@170718",
+   "grade": "verified",
+   "nsfw_votes": "3/3",
+   "mean": 1,
+   "sd": 0.0,
+   "classifier": "fal-ai/x-ailab/nsfw",
+   "classifier_scores": [
+    true,
+    true,
+    true
+   ],
+   "blocked_scores": [
+    false,
+    false,
+    false
+   ],
+   "seed_base": 100000,
+   "sent_prompt_sha256": "4b75adc174cbe3ca347053f5169fe3bdd8147d29c37a0181855bdb94a466cdb1",
+   "clamped_len": 1342,
+   "truncated": false,
+   "sample_urls": [
+    "https://im.runware.ai/image/os/a01d21/ws/3/ii/2530ef3e-2f8c-4fa6-972c-75fd6e34cf69.jpg"
+   ],
+   "tested_at": "2026-07-21 10:34"
+  },
+  "runware:loraimagegen:11111@11111": {
+   "provider": "runware",
+   "model": "loraimagegen:11111@11111",
+   "grade": "verified",
+   "nsfw_votes": "3/3",
+   "mean": 1,
+   "sd": 0.0,
+   "classifier": "fal-ai/x-ailab/nsfw",
+   "classifier_scores": [
+    true,
+    true,
+    true
+   ],
+   "blocked_scores": [
+    false,
+    false,
+    false
+   ],
+   "seed_base": 100000,
+   "sent_prompt_sha256": "4b75adc174cbe3ca347053f5169fe3bdd8147d29c37a0181855bdb94a466cdb1",
+   "clamped_len": 1342,
+   "truncated": false,
+   "sample_urls": [
+    "https://im.runware.ai/image/os/a02d21/ws/3/ii/f50fdade-f704-4fda-aa92-5b98127bdc22.jpg"
+   ],
+   "tested_at": "2026-07-21 10:34"
+  },
+  "runware:civitai:891340@997436": {
+   "provider": "runware",
+   "model": "civitai:891340@997436",
+   "grade": "verified",
+   "nsfw_votes": "3/3",
+   "mean": 1,
+   "sd": 0.0,
+   "classifier": "fal-ai/x-ailab/nsfw",
+   "classifier_scores": [
+    true,
+    true,
+    true
+   ],
+   "blocked_scores": [
+    false,
+    false,
+    false
+   ],
+   "seed_base": 100000,
+   "sent_prompt_sha256": "4b75adc174cbe3ca347053f5169fe3bdd8147d29c37a0181855bdb94a466cdb1",
+   "clamped_len": 1342,
+   "truncated": false,
+   "sample_urls": [
+    "https://im.runware.ai/image/os/a05d22/ws/3/ii/5d8e7d93-ff3a-44e2-b275-b63f9b836c68.jpg"
+   ],
+   "tested_at": "2026-07-21 10:35"
+  },
+  "runware:civitai:319953@1040860": {
+   "provider": "runware",
+   "model": "civitai:319953@1040860",
+   "grade": "unclear",
+   "nsfw_votes": "1/3",
+   "mean": 1,
+   "sd": 0,
+   "classifier": "fal-ai/x-ailab/nsfw",
+   "classifier_scores": [
+    null,
+    null,
+    true
+   ],
+   "blocked_scores": [
+    null,
+    null,
+    false
+   ],
+   "seed_base": 100000,
+   "sent_prompt_sha256": "4b75adc174cbe3ca347053f5169fe3bdd8147d29c37a0181855bdb94a466cdb1",
+   "clamped_len": 1342,
+   "truncated": false,
+   "sample_urls": [
+    "https://im.runware.ai/image/os/a08dlim3/ws/3/ii/cf17e9b4-7961-4262-9149-79969e83015f.jpg"
+   ],
+   "tested_at": "2026-07-21 10:36"
+  },
+  "runware:civitai:404154@1085338": {
+   "provider": "runware",
+   "model": "civitai:404154@1085338",
+   "grade": "unclear",
+   "nsfw_votes": "1/3",
+   "mean": 1,
+   "sd": 0,
+   "classifier": "fal-ai/x-ailab/nsfw",
+   "classifier_scores": [
+    null,
+    null,
+    true
+   ],
+   "blocked_scores": [
+    null,
+    null,
+    false
+   ],
+   "seed_base": 100000,
+   "sent_prompt_sha256": "4b75adc174cbe3ca347053f5169fe3bdd8147d29c37a0181855bdb94a466cdb1",
+   "clamped_len": 1342,
+   "truncated": false,
+   "sample_urls": [
+    "https://im.runware.ai/image/os/a08dlim3/ws/3/ii/6d99a4f3-2c1b-4870-8294-9440847c7529.jpg"
+   ],
+   "tested_at": "2026-07-21 10:37"
   }
  }
 }

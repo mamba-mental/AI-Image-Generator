@@ -1,15 +1,18 @@
 """Multi-provider NSFW capability sweep (Spec B §2/§3, the WIDEST scope PRIME authorized).
 
-For every reachable, non-excluded model across fal + novita + together + agnes, run PRIME's REAL
-explicit prompt (engine/nsfw_benchmark_prompt.txt) with that provider's most-permissive safety
-config (engine/safety_matrix.json), N=3 renders, classify each with fal-ai/x-ailab/nsfw PLUS a
+For every reachable, non-excluded model across fal + novita + together + agnes + runware, run
+PRIME's REAL explicit prompt (engine/nsfw_benchmark_prompt.txt) with that provider's most-permissive
+safety config (engine/safety_matrix.json), N=3 renders, classify each with fal-ai/x-ailab/nsfw PLUS a
 blank/refusal detector, grade per rubric bands, and write an evidence row to
 engine/nsfw_capability.json (v2). Re-runnable + resumable (skips models that already have evidence
 unless --recheck). Excluded-by-rule models (engine/nsfw_exclusions.json) never enter the queue.
+runware scope = the checkpoint AIRs resolved into engine/runware_checkpoints.json (LoRAs in
+runware_loras.json are not standalone-swept — they attach to a checkpoint's lora:[] field).
 
   python scripts/nsfw_sweep.py --dry-run        # FREE: scope + spend estimate, no gens
   python scripts/nsfw_sweep.py                  # SPENDS: full sweep (est. printed first)
   python scripts/nsfw_sweep.py --providers fal,together   # limit providers
+  python scripts/nsfw_sweep.py --providers runware         # just the runware AIR lane
   python scripts/nsfw_sweep.py --recheck        # re-test already-evidenced models
 """
 import argparse
@@ -121,6 +124,16 @@ def build_scope(providers):
     if "novita" in providers:
         for mid in (api.novita_models(100) or []):   # 100 = Novita's page cap (200 returns empty)
             add("novita", mid)
+    if "runware" in providers:
+        # checkpoint AIRs resolved from the inbox model list via Runware modelSearch (see
+        # engine/runware_checkpoints.json's own "resolver" field) — no live catalog API to page.
+        try:
+            ck = json.loads((ROOT / "engine" / "runware_checkpoints.json").read_text(encoding="utf-8"))
+            airs = sorted({r["air"] for r in ck.get("checkpoints", [])})
+        except Exception:
+            airs = []
+        for air in airs:
+            add("runware", air)
     return scope, skipped, api
 
 
@@ -238,7 +251,7 @@ def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("--dry-run", action="store_true")
     ap.add_argument("--recheck", action="store_true")
-    ap.add_argument("--providers", default="fal,together,agnes,novita")
+    ap.add_argument("--providers", default="fal,together,agnes,novita,runware")
     ap.add_argument("--limit", type=int, default=0, help="cap models tested (smoke); 0 = all")
     args = ap.parse_args()
     providers = [p.strip() for p in args.providers.split(",") if p.strip()]

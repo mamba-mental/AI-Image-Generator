@@ -1,0 +1,236 @@
+{
+ "_note": "Checkpoints from the RunWare Uncensored/NSFW inbox list, resolved to Runware AIRs via modelSearch (category=checkpoint). Consumed by scripts/nsfw_sweep.py --providers runware and seeded as recent_models_runware in the app.",
+ "source_inbox": "inbox/RunWare UncensoreNSFW Image Gen Models_raw.txt",
+ "generated_at": "2026-07-21 10:24",
+ "resolver": "Runware modelSearch API (https://runware.ai/docs/utilities/model-search)",
+ "checkpoints": [
+  {
+   "name": "Here's refiner model-uncensored‘’Nobody uses it anymore, right?",
+   "version": "v1.0",
+   "source": "Civitai",
+   "air": "civitai:348685@390089",
+   "matched_name": "Here's refiner model-uncensored‘’Nobody uses it anymore, right?",
+   "architecture": "sdxl"
+  },
+  {
+   "name": "Comics Characters Database (UNCENSORED)",
+   "version": "v1.0",
+   "source": "Civitai",
+   "air": "civitai:891340@997436",
+   "matched_name": "Comics Characters Database (UNCENSORED)",
+   "architecture": "sdxl"
+  },
+  {
+   "name": "Cat Ear SDXL Uncensored",
+   "version": "v1.0",
+   "source": "Civitai",
+   "air": "civitai:127498@139499",
+   "matched_name": "Cat Ear SDXL Uncensored",
+   "architecture": "sdxl"
+  },
+  {
+   "name": "Cat Ear SDXL Uncensored",
+   "version": "v1.1",
+   "source": "Civitai",
+   "air": "civitai:127498@139499",
+   "matched_name": "Cat Ear SDXL Uncensored",
+   "architecture": "sdxl"
+  },
+  {
+   "name": "TalmendoXL - SDXL Uncensored Full Model",
+   "version": "v1.0-Beta",
+   "source": "Civitai",
+   "air": "civitai:119202@129422",
+   "matched_name": "TalmendoXL - SDXL Uncensored Full Model",
+   "architecture": "sdxl"
+  },
+  {
+   "name": "TalmendoXL - SDXL Uncensored Full Model",
+   "version": "v1.1-Beta",
+   "source": "Civitai",
+   "air": "civitai:119202@129422",
+   "matched_name": "TalmendoXL - SDXL Uncensored Full Model",
+   "architecture": "sdxl"
+  },
+  {
+   "name": "LUSTIFY! [SDXL NSFW checkpoint]",
+   "version": "0.1",
+   "source": "Beam",
+   "air": "civitai:573152@1099200",
+   "matched_name": "LUSTIFY! [SDXL NSFW checkpoint]",
+   "architecture": "sdxl"
+  },
+  {
+   "name": "Hadrian Delice SDXL ILL nsfw",
+   "version": "v7.1",
+   "source": "Choosenmodelanime",
+   "air": "choosenmodelanime:4058@7055",
+   "matched_name": "Hadrian Delice SDXL ILL nsfw",
+   "architecture": "illustrious"
+  },
+  {
+   "name": "WAI-NSFW-illustrious-SDXL",
+   "version": "v14.0",
+   "source": "X",
+   "air": "x:42@1490781",
+   "matched_name": "WAI-NSFW-illustrious-SDXL",
+   "architecture": "sdxl"
+  },
+  {
+   "name": "Fluxedup NSFW",
+   "version": "0.1",
+   "source": "Loraimagegen",
+   "air": "loraimagegen:11111@11111",
+   "matched_name": "Fluxedup NSFW",
+   "architecture": "flux1d"
+  },
+  {
+   "name": "WAI-ANI-NSFW-PONYXL",
+   "version": "v14.0",
+   "source": "Civitai",
+   "air": "civitai:404154@1085338",
+   "matched_name": "WAI-ANI-NSFW-PONYXL",
+   "architecture": "pony"
+  },
+  {
+   "name": "WAI-NSFW-illustrious-SDXL",
+   "version": "v12.0",
+   "source": "X",
+   "air": "x:42@1490781",
+   "matched_name": "WAI-NSFW-illustrious-SDXL",
+   "architecture": "sdxl"
+  },
+  {
+   "name": "WAI-NSFW-illustrious-SDXL",
+   "version": "v13.0",
+   "source": "Civitai",
+   "air": "x:42@1490781",
+   "matched_name": "WAI-NSFW-illustrious-SDXL",
+   "architecture": "sdxl"
+  },
+  {
+   "name": "JANKU v2 - illustrious NoobAI EPS NSFW Mix",
+   "version": "v2.0",
+   "source": "Civitai",
+   "air": "civitai:1277670@1469829",
+   "matched_name": "JANKU v2 - illustrious NoobAI EPS NSFW Mix",
+   "architecture": "illustrious"
+  },
+  {
+   "name": "JANKU v1 - illustrious NoobAI EPS NSFW Mix",
+   "version": "v1.0",
+   "source": "Civitai",
+   "air": "civitai:1277670@1441401",
+   "matched_name": "JANKU v1 - illustrious NoobAI EPS NSFW Mix",
+   "architecture": "illustrious"
+  },
+  {
+   "name": "[Merge] Synthesis-X (WAI-NSFW + Illu 1.0)",
+   "version": "wai-v9-v11+pony+noob+illu",
+   "source": "Civitai",
+   "air": "civitai:1269842@1436248",
+   "matched_name": "[Merge] Synthesis-X (WAI-NSFW + Illu 1.0)",
+   "architecture": "illustrious"
+  },
+  {
+   "name": "[Merge] Synthesis-X (WAI-NSFW + Illu 1.0)",
+   "version": "wai-v9-11+illu-v1",
+   "source": "Civitai",
+   "air": "civitai:1269842@1436248",
+   "matched_name": "[Merge] Synthesis-X (WAI-NSFW + Illu 1.0)",
+   "architecture": "illustrious"
+  },
+  {
+   "name": "WAI-NSFW-illustrious-SDXL",
+   "version": "v11.0",
+   "source": "Civitai",
+   "air": "x:42@1490781",
+   "matched_name": "WAI-NSFW-illustrious-SDXL",
+   "architecture": "sdxl"
+  },
+  {
+   "name": "Mklan AIO NSFW",
+   "version": "AIOv4",
+   "source": "Civitai",
+   "air": "civitai:319953@1040860",
+   "matched_name": "Mklan AIO NSFW",
+   "architecture": "sdxlhyper"
+  },
+  {
+   "name": "SDXL Sim-V2Full UltraRes αβγδ [SFW/NSFW]",
+   "version": "V2 Full BF16",
+   "source": "Civitai",
+   "air": "civitai:1177470@1324949",
+   "matched_name": "SDXL Sim-V2Full UltraRes αβγδ [SFW/NSFW]",
+   "architecture": "sdxl"
+  },
+  {
+   "name": "Coldflesh Realistic LCM (SFW/NSFW)",
+   "version": "v1.0",
+   "source": "Civitai",
+   "air": "civitai:1196454@1347172",
+   "matched_name": "Coldflesh Realistic LCM (SFW/NSFW)",
+   "architecture": "sd1x"
+  },
+  {
+   "name": "Ultrium V9.333.NSFW+SFW.SDXL.VAE",
+   "version": "Ultrium V9 3/4.NSFW+SFW",
+   "source": "Civitai",
+   "air": "civitai:147480@170718",
+   "matched_name": "Ultrium V9.333.NSFW+SFW.SDXL.VAE",
+   "architecture": "sdxl"
+  },
+  {
+   "name": "SDXL Sim-V2Full UltraRes αβγδ [SFW/NSFW]",
+   "version": "v21β",
+   "source": "Civitai",
+   "air": "civitai:1177470@1324949",
+   "matched_name": "SDXL Sim-V2Full UltraRes αβγδ [SFW/NSFW]",
+   "architecture": "sdxl"
+  },
+  {
+   "name": "SDXL Sim-V2Full UltraRes αβγδ [SFW/NSFW]",
+   "version": "v22β",
+   "source": "Civitai",
+   "air": "civitai:1177470@1324949",
+   "matched_name": "SDXL Sim-V2Full UltraRes αβγδ [SFW/NSFW]",
+   "architecture": "sdxl"
+  },
+  {
+   "name": "ErosMix ( SFW & NSFW )",
+   "version": "v1.0",
+   "source": "Civitai",
+   "air": "civitai:123942@135224",
+   "matched_name": "ErosMix ( SFW & NSFW )",
+   "architecture": "sd1x"
+  },
+  {
+   "name": "WAI-ANI-NSFW-PONYXL",
+   "version": "v13.0",
+   "source": "Civitai",
+   "air": "civitai:404154@1085338",
+   "matched_name": "WAI-ANI-NSFW-PONYXL",
+   "architecture": "pony"
+  }
+ ],
+ "unresolved": [
+  {
+   "name": "Diffusion Brush ( Everything ) - SFW / NSFW- All Purpose Checkpoint - [ Nuclear Diffusion ] - [ Anime Hybrid ]",
+   "version": "v1.0",
+   "source": "Civitai"
+  },
+  {
+   "name": "Partygoer (Backroom Monster) - IL (SFW & NSFW)",
+   "version": "v1.0 - IL",
+   "source": "Civitai"
+  }
+ ],
+ "counts": {
+  "parsed_triples": 85,
+  "unique": 81,
+  "checkpoints": 26,
+  "loras": 38,
+  "other": 0,
+  "unresolved": 17
+ }
+}

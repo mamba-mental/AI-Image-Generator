@@ -1,0 +1,54 @@
+{
+  "cold": {
+    "mode": "cold",
+    "bases": [
+      "I:/ideogram-library/images",
+      "I:/scraped-ai-images",
+      "I:\\generated"
+    ],
+    "n_rows_indexed": 5194,
+    "sidecar_open_count": 5191,
+    "smb_stat_count": 41558,
+    "rglob_count": 3,
+    "connect_ms": 127.9,
+    "index_build_ms": 192156.8,
+    "wall_ms": 192284.6
+  },
+  "warm": {
+    "mode": "warm",
+    "bases": [
+      "I:/ideogram-library/images",
+      "I:/scraped-ai-images",
+      "I:\\generated"
+    ],
+    "n_rows": 5194,
+    "sidecar_open_count": 0,
+    "smb_stat_count": 0,
+    "rglob_count": 0,
+    "nas_rglob_count": 0,
+    "nas_stat_count": 0,
+    "nas_sidecar_open_count": 0,
+    "nas_access_total": 0,
+    "connect_ms": 192.2,
+    "ensure_indexed_ms": 0.1,
+    "list_images_ms": 110.6,
+    "wall_ms": 303.0
+  },
+  "thresholds": {
+    "warm_ms_max": 250,
+    "cold_ms_max": 77002.4
+  },
+  "checks": {
+    "AC-0_before_ran": true,
+    "AC-0_folder_toggle_recrawl_true": true,
+    "cold_no_regression_vs_before": false,
+    "warm_list_images_under_250ms": true,
+    "warm_zero_nas_access": true
+  },
+  "warm_fresh_process_total_ms": 303.0,
+  "warm_fresh_process_under_250ms_informational": false,
+  "pass": false,
+  "delta_before_wall_ms_vs_warm_wall_ms": 76699.4,
+  "speedup_x": 254.1,
+  "db_backup": "C:\\GitHub_Projects\\2026.0226 - AI-Image-Generator\\.dd\\perf\\_db_backup\\library.db.bak-20260721-102925"
+}
