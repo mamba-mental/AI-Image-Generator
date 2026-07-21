@@ -42,7 +42,7 @@ const state = {
   inputFiles: {}, job: null, gallery: [], selected: null,
   genCount: 0, loras: {}, mediaBase: "", outDirName: "generated_images",
   view: "session", grid: "m", lbFile: null, lbDir: "", lbTags: [], contentMode: "safe", verifiedOnly: false,
-  contentGrades: {},
+  contentGrades: {}, aspectPreset: "Custom", modelMeta: {},
   libRecords: [], libFiltered: [], libraryDirs: [], libFilter: { folder: "", service: "", type: "", q: "", tags: [] },
 };
 
@@ -235,14 +235,23 @@ $("settings").addEventListener("click", e => { if (e.target.id === "settings") $
 /* ---------- model catalog ---------- */
 // per-service param schema (retires LEGACY_PARAMS): a dynamically-fetched per-model schema wins,
 // else the service's service_params.json entry (by_id_contains match, else default), else LEGACY_PARAMS.
-// fetch a live per-model Input schema for services that expose one (replicate); cache + re-render once
+// fetch a live per-model Input schema for services that expose one (replicate); cache + re-render once.
+// P3 — the SAME call also carries description/cover_image_url for replicate/openrouter/novita
+// (bridge.model_schema()), cached separately into state.modelMeta so it never fights the params cache.
 async function maybeFetchSchema(service, id) {
-  if (service !== "replicate" || !id || (id in state.modelSchemas)) return;  // key present = fetched or in-flight
-  state.modelSchemas[id] = null;  // mark in-flight (null is ignored by pickServiceParams -> uses service default)
+  if (!["replicate", "openrouter", "novita"].includes(service) || !id) return;
+  const wantParams = service === "replicate" && !(id in state.modelSchemas);
+  const wantMeta = !(id in state.modelMeta);
+  if (!wantParams && !wantMeta) return;  // both already fetched or in-flight
+  if (wantParams) state.modelSchemas[id] = null;  // in-flight marker (falls back to service default meanwhile)
+  if (wantMeta) state.modelMeta[id] = null;
   try {
     const r = await api().model_schema(service, id);
-    if (r && r.params && r.params.length) { state.modelSchemas[id] = r.params; render(); }
-  } catch (e) { /* fall back to the service default params */ }
+    if (wantParams && r && r.params && r.params.length) state.modelSchemas[id] = r.params;
+    if (wantMeta) state.modelMeta[id] = (r && (r.description || r.cover_image_url))
+      ? { description: r.description, cover_image_url: r.cover_image_url } : {};
+    render();
+  } catch (e) { /* fall back to the service default params / no meta */ }
 }
 // Live Novita checkpoint catalog -> the model dropdown (so exact names are never guessed).
 // One-shot on success; retries while empty (e.g. before the key is added). No refetch loop.
@@ -388,6 +397,97 @@ function renderModelOptions(models, cur) {
   if (open) html += `</optgroup>`;
   return html;
 }
+
+/* ---------- P1 — aspect-preset dropdown (research/2026-07-21_provider-params-matrix.md §15) ----------
+   Fully data-driven off engine/service_params.json's per-service `aspect_presets{}` (precomputed by
+   the §15 algorithm, one entry per preset key -> the exact value that service's size_mode wants:
+   {width,height} for free_wh/fixed_wh_enum_independent, a "WxH" string for enum_wh_string, an
+   "R:R"/"RxR" string for enum-native ratio families). No client-side re-derivation of the algorithm —
+   the table already encodes it per provider. */
+function servicePresetTable(service) {
+  const sp = state.serviceParams[service];
+  return (sp && sp.aspect_presets) || null;
+}
+function _parseRatioStr(s) {
+  const m = String(s).match(/^(\d+(?:\.\d+)?)\s*[:x]\s*(\d+(?:\.\d+)?)$/i);
+  return m ? parseFloat(m[1]) / parseFloat(m[2]) : null;
+}
+function achievedRatio(val) {
+  if (val == null) return null;
+  return typeof val === "object" ? val.width / val.height : _parseRatioStr(val);
+}
+function renderAspectPreset(model) {
+  const wrap = $("aspectwrap"), sel = $("aspectpreset");
+  if (!wrap || !sel) return;
+  const table = servicePresetTable(state.service);
+  wrap.style.display = table ? "" : "none";
+  if (!table) return;
+  const keys = Object.keys(table);
+  if (!keys.includes(state.aspectPreset)) state.aspectPreset = "Custom";
+  sel.innerHTML = keys.map(k => `<option value="${k}" ${k === state.aspectPreset ? "selected" : ""}>${k}</option>`).join("");
+  updateAspectBadge(model);
+}
+// NEAREST-with-badge policy (§15): badge only when the sent value's true ratio differs from the
+// preset's own — never for Custom/Auto (no comparison applies to either).
+function updateAspectBadge(model) {
+  const badge = $("aspectbadge");
+  if (!badge) return;
+  const table = servicePresetTable(state.service);
+  const preset = state.aspectPreset;
+  const want = table && preset !== "Custom" && preset !== "Auto" ? _parseRatioStr(preset) : null;
+  const val = table ? table[preset] : null;
+  if (want == null || val == null) { badge.textContent = ""; badge.title = ""; return; }
+  const got = achievedRatio(val);
+  const mismatch = got == null || Math.abs(got - want) > 0.02;
+  const sentStr = typeof val === "object" ? `${val.width}×${val.height}` : val;
+  badge.textContent = mismatch ? "≈" : "";
+  badge.title = mismatch ? `requested ${preset} — this provider sends ${sentStr} (achieved ratio ${got ? got.toFixed(3) : "?"} vs true ${want.toFixed(3)})` : "";
+}
+function applyAspectPreset(key) {
+  state.aspectPreset = key;
+  const table = servicePresetTable(state.service);
+  updateAspectBadge(currentModel());
+  if (!table || key === "Custom") return;  // §15 step 2 — pass the user's own width/height through
+  const val = table[key];
+  if (key === "Auto") {  // §15 step 3 — a literal "auto" sentinel if the provider has one, else omit
+    if (val === "auto") setComposerParam("size", "auto");
+    return;
+  }
+  if (val == null) return;
+  if (typeof val === "object") { setComposerParam("width", val.width); setComposerParam("height", val.height); }
+  else if (/^\d+x\d+$/i.test(val)) setComposerParam("size", val);   // enum_wh_string (openai/cliproxy/agnes)
+  else setComposerParam("aspect_ratio", val);                       // enum-native ratio (gemini/ideogram/openrouter)
+}
+$("aspectpreset") && $("aspectpreset").addEventListener("change", () => applyAspectPreset($("aspectpreset").value));
+
+/* ---------- P3 — model-info panel (description + cover, where the provider's catalog has one) ---------- */
+// One-line honest family blurbs for providers with no per-model description API (cites the matrix).
+const FAMILY_BLURBS = {
+  openai: "OpenAI gpt-image family — enum size (auto/1024²/1536×1024/1024×1536), quality + background control (params matrix §1).",
+  cliproxy: "Self-hosted OpenAI-compat proxy to the same gpt-image family as OpenAI, one hop removed (params matrix §2).",
+  gemini: "Gemini image models — closed 10-value aspect-ratio enum + a 1K/2K/4K resolution tier, no free width/height (params matrix §3).",
+  together: "Together.ai FLUX family — free width/height, steps + guidance_scale, optional LoRA on FLUX.1-dev-lora/FLUX.2-dev (params matrix §5).",
+  huggingface: "HF Inference — forwards to whichever provider backs the chosen model; ranges are genuinely per-model, not a fixed contract (params matrix §8).",
+  ideogram: "Ideogram v3 — native aspect_ratio/resolution enum, rendering-speed + style-type controls, magic prompt (params matrix §9).",
+  agnes: "AGNES-AI (Sapiens) — OpenAI-compatible image + async video, sparse public docs (params matrix §10).",
+  nvidia: "NVIDIA NIM (FLUX.1-dev/schnell, SD3.5-large) — width/height locked to a shared 10-value enum, no negative_prompt field exists (params matrix §4).",
+  runware: "Runware — single array-of-tasks POST, mixed-case fields (CFGScale/positivePrompt), model-dependent size bounds (params matrix §7).",
+};
+function renderModelInfo(model) {
+  const box = $("modelinfo");
+  if (!box) return;
+  const meta = model && state.modelMeta[model.id];
+  if (meta && (meta.description || meta.cover_image_url)) {
+    box.innerHTML = (meta.cover_image_url ? `<img src="${meta.cover_image_url}" alt="" loading="lazy" style="max-width:100%;border-radius:4px;display:block;margin-bottom:6px">` : "")
+      + (meta.description ? `<span>${escapeHtml(meta.description)}</span>` : "");
+    box.hidden = false;
+    return;
+  }
+  const blurb = FAMILY_BLURBS[state.service];
+  if (blurb) { box.innerHTML = `<span>${escapeHtml(blurb)}</span>`; box.hidden = false; return; }
+  box.hidden = true;
+}
+
 function render() {
   const isFal = state.service === "fal";
   // categories only meaningful for fal; legacy services are t2i (+img via uploader)
@@ -411,10 +511,12 @@ function render() {
 
   renderInputPickers(cur);
   renderPromptGuide(cur);
+  renderModelInfo(cur);       // P3 — description/cover (dynamic) or a family blurb (static)
   // #12 — negative prompt only where the family actually uses it (FLUX/gpt-image/nano-banana hide it)
   const fam = PROMPT_GUIDE[modelFamily(cur && cur.id)] || PROMPT_GUIDE.generic;
   $("negwrap").style.display = fam.neg ? "" : "none";
   renderParams(cur);
+  renderAspectPreset(cur);    // P1 — must run AFTER renderParams so its width/height/size controls exist
   renderNsfw(cur);
   renderLoras();
   if (state.view === "session") renderGallery();  // refresh stage (browse landing or session gallery)
