@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <title>Omni-Image</title>
 <link rel="stylesheet" href="tokens.css">
-<link rel="stylesheet" href="app.css?v=16">
+<link rel="stylesheet" href="app.css?v=17">
 </head>
 <body>
 <header>
@@ -72,8 +72,9 @@
       <select id="svc"></select>
     </div>
     <div class="sec" id="msuggestwrap">
-      <div class="lbl">Which model? <span class="phelp" title="Type what you want — instantly filters the models you can actually access, across your keyed providers. Click a match to load it.">✨ suggest</span></div>
+      <div class="lbl">Which model? <span class="phelp" title="Type what you want — instantly filters the models you can actually access, across your keyed providers. Click a match to load it, or hit Ask AI for a grounded recommendation.">✨ suggest</span></div>
       <input type="text" id="modelquery" class="msuggest-input" placeholder='e.g. "uncensored photoreal" · "fast flux" · "kontext"' autocomplete="off">
+      <button type="button" id="askaibtn" title="Ask AI to recommend a model from what you can actually reach (grounded — never suggests a model you don't have a key for)">✨ Ask AI</button>
       <div id="modelsuggest" class="msuggest"></div>
     </div>
     <div class="sec">
@@ -202,6 +203,6 @@
 
 <script src="content_mode.js?v=4"></script>
 <script src="presets.js?v=1"></script>
-<script src="app.js?v=21"></script>
+<script src="app.js?v=22"></script>
 </body>
 </html>

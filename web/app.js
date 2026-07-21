@@ -37,7 +37,7 @@ const LEGACY_PARAMS = [
 ];
 
 const state = {
-  services: [], keys: {}, falModels: [], serviceParams: {}, recentModels: {}, lastUsed: {}, modelSchemas: {},
+  services: [], keys: {}, falModels: [], serviceParams: {}, recentModels: {}, novitaModelApis: [], lastUsed: {}, modelSchemas: {},
   service: "fal", category: "text-to-image", model: null,
   inputFiles: {}, job: null, gallery: [], selected: null,
   genCount: 0, loras: {}, mediaBase: "", outDirName: "generated_images",
@@ -58,6 +58,7 @@ async function boot() {
   state.serviceParams = s.service_params || {};
   state.contentGrades = s.content_grades || {};  // Spec B §3 sweep evidence — every provider
   state.recentModels = s.recent_models;
+  state.novitaModelApis = s.novita_model_apis || [];  // E2 — Novita's second catalog (offline seed)
   state.loras = s.loras || {};
   state.mediaBase = s.media_base || "";
   state.outDirName = s.output_dir_name || "generated_images";
@@ -286,9 +287,19 @@ function pickServiceParams(service, id, category) {
   }
   return sp.default || LEGACY_PARAMS;
 }
+// E2 — Novita ships TWO catalogs (Spec B AC-1.2): legacy checkpoints (live-fetched) + the modern
+// Model APIs (no list endpoint -> offline seed, engine/backends/novita_api.MODEL_APIS). Each model
+// carries a `group` so the <select> renders them as two labelled optgroups (renderModelOptions).
+function novitaModelsFor(category) {
+  const checkpoints = (state.recentModels.novita || []).map(id =>
+    ({ id, label: id, category: "text-to-image", group: "Novita · Checkpoints", params: pickServiceParams("novita", id, category) }));
+  const modelApis = (state.novitaModelApis || []).map(id =>
+    ({ id, label: id, category: "text-to-image", group: "Novita · Model APIs", params: pickServiceParams("novita", id, category) }));
+  return checkpoints.concat(modelApis);
+}
 function modelsFor(service, category) {
-  let models = service === "fal"
-    ? state.falModels.filter(m => m.category === category)
+  let models = service === "fal" ? state.falModels.filter(m => m.category === category)
+    : service === "novita" ? novitaModelsFor(category)
     : (state.recentModels[service] || []).map(id => ({ id, label: id, category: "text-to-image", params: pickServiceParams(service, id, category) }));
   const prof = CONTENT_MODES[state.contentMode] || CONTENT_MODES.safe;
   if (prof.filter) {  // Editorial/Fashion/NSFW: evidence-graded per model, for EVERY provider (Spec B AC-3.1/3.2)
@@ -321,8 +332,8 @@ function accessibleModels() {
   const out = [];
   for (const svc of state.services) {
     if (!state.keys[svc]) continue;               // only providers with a key = actually reachable
-    const list = svc === "fal"
-      ? state.falModels.filter(m => m.category === "text-to-image")
+    const list = svc === "fal" ? state.falModels.filter(m => m.category === "text-to-image")
+      : svc === "novita" ? (state.recentModels[svc] || []).concat(state.novitaModelApis || []).map(id => ({ id, label: id }))
       : (state.recentModels[svc] || []).map(id => ({ id, label: id }));
     for (const m of list) out.push({ id: m.id, label: m.label || m.id, service: svc });
   }
@@ -361,6 +372,22 @@ async function refreshBalance() {
     el.textContent = "";
   }
 }
+// E2 — <option> list for the model <select>, wrapping contiguous same-`group` runs in an
+// <optgroup> (Novita's "Checkpoints" / "Model APIs"). No-op passthrough for ungrouped models.
+function renderModelOptions(models, cur) {
+  let html = "", curGroup = undefined, open = false;
+  for (const m of models) {
+    if (m.group !== curGroup) {
+      if (open) html += `</optgroup>`;
+      open = !!m.group;
+      if (open) html += `<optgroup label="${escapeHtml(m.group)}">`;
+      curGroup = m.group;
+    }
+    html += `<option value="${m.id}" ${cur && m.id === cur.id ? "selected" : ""}>${m.label}${m.price ? " — " + m.price : ""}</option>`;
+  }
+  if (open) html += `</optgroup>`;
+  return html;
+}
 function render() {
   const isFal = state.service === "fal";
   // categories only meaningful for fal; legacy services are t2i (+img via uploader)
@@ -376,8 +403,7 @@ function render() {
   if (cur) maybeFetchSchema(state.service, cur.id);  // live per-model schema for replicate (re-renders when it lands)
   maybeFetchLiveModels();  // live catalog into the dropdown (novita + openai-compat providers, one-shot)
   renderModelSuggest();    // keep the §4 suggestion results fresh as catalogs load
-  $("model").innerHTML = models.map(m =>
-    `<option value="${m.id}" ${cur && m.id === cur.id ? "selected" : ""}>${m.label}${m.price ? " — " + m.price : ""}</option>`).join("");
+  $("model").innerHTML = renderModelOptions(models, cur);
   $("pricenote").textContent = cur && cur.price ? cur.price : "";
   $("estcost").textContent = cur && cur.price ? "est " + cur.price : "";
   $("modellabel").textContent = cur ? cur.label || cur.id : "";
@@ -623,7 +649,12 @@ function renderLoras() {
       <button id="loraaddbtn" title="Add this LoRA">add</button>
       <button id="loracivbtn" title="Search CivitAI LoRAs">🔍 Civitai</button>
     </div>
-    <div class="civ-search" id="civsearch" hidden></div>`;
+    <div class="civ-search" id="civsearch" hidden></div>
+    <div class="lora-import">
+      <input id="loraimportref" placeholder="import to ALL providers — HF repo (user/repo) or .safetensors URL" spellcheck="false">
+      <input id="loraimportscale" type="number" step="0.05" min="0" max="1.5" value="0.8" title="scale">
+      <button id="loraimportbtn" title="Resolve this HF repo once and add it to every URL-capable provider (fal/together/replicate/HF) in one shot">⇉ import to all</button>
+    </div>`;
   $("loras").querySelectorAll("[data-li]").forEach(el => el.addEventListener("change", async () => {
     state.loras[svc] = await api().lora_set(svc, +el.dataset.li, { enabled: el.checked }); renderLoras();
   }));
@@ -640,6 +671,28 @@ function renderLoras() {
   $("loracivbtn").addEventListener("click", () => {
     const box = $("civsearch"); box.hidden = !box.hidden;
     if (!box.hidden) renderCivitai(svc);
+  });
+  // E3 — one paste fans out to every URL-capable provider (bridge.import_lora), not just `svc`.
+  $("loraimportbtn").addEventListener("click", async () => {
+    const ref = $("loraimportref").value.trim();
+    const scale = parseFloat($("loraimportscale").value) || 0.8;
+    if (!ref) { $("statusmsg").textContent = "paste a HF repo (user/repo) or .safetensors URL first"; return; }
+    const btn = $("loraimportbtn"), orig = btn.textContent;
+    btn.disabled = true; btn.textContent = "resolving…";
+    try {
+      const r = await api().import_lora(ref, scale);
+      if (r && r.ok) {
+        $("statusmsg").textContent = `LoRA added to: ${r.added_to.join(", ") || "none"} — ${r.note}`;
+        for (const s of r.added_to) state.loras[s] = await api().lora_list(s);
+        renderLoras();
+      } else {
+        $("statusmsg").textContent = `LoRA import failed: ${(r && r.error) || "unknown error"}`;
+      }
+    } catch (e) {
+      $("statusmsg").textContent = `LoRA import failed: ${e}`;
+    } finally {
+      btn.disabled = false; btn.textContent = orig;
+    }
   });
 }
 
@@ -865,6 +918,7 @@ function renderGallery() {
       <div class="acts">
         <button data-save="${i}">Save As</button>
         <button data-open="${i}">Folder</button>
+        <button data-reveal="${i}" title="Jump to this image in the Library">📍 Reveal</button>
       </div>
       <div class="meta"><span><b>${g.meta.model.split("/").pop()}</b>${g.meta.seed ? " · " + g.meta.seed : ""}</span><span>${g.time}</span></div>
     </div>`).join("");
@@ -879,6 +933,8 @@ function renderGallery() {
     api().save_as(state.gallery[+b.dataset.save].file)));
   $("gallery").querySelectorAll("[data-open]").forEach(b => b.addEventListener("click", () =>
     api().open_output_folder()));
+  $("gallery").querySelectorAll("[data-reveal]").forEach(b => b.addEventListener("click", () =>
+    revealInLibrary(state.gallery[+b.dataset.reveal].file)));
 }
 
 /* ---------- #7 lightbox + #9 metadata overlay + Spec C #8 manual tags ---------- */
@@ -1143,6 +1199,30 @@ function renderLibTiles() {
   }));
 }
 
+/* ---------- E4 — Reveal in Library (Spec C AC-6.4) ---------- */
+// Jumps from a Session tile / History row to its entry in the Library: switches view, waits for
+// the index to load, sets the search box to the exact filename, filters, scrolls it into view.
+async function revealInLibrary(file) {
+  if (!file) return;
+  const name = file.split(/[\\/]/).pop();
+  setView("library");           // renders the Library shell + kicks off its own loadLibrary()
+  await loadLibrary();          // ensure records are current (warm DB read — cheap even if doubled)
+  const q = $("libq");
+  if (q) q.value = name;
+  state.libFilter.tags = [];    // a stale tag filter could hide the very tile we're revealing
+  applyLibFilter();
+  const idx = state.libFiltered.findIndex(r => r.file === name);
+  const tile = idx >= 0 ? document.querySelector(`#libmason .wtile[data-wi="${idx}"]`) : null;
+  if (tile) {
+    tile.scrollIntoView({ block: "center", behavior: "smooth" });
+    const prev = tile.style.outline;
+    tile.style.outline = "2px solid var(--accent, #8B5CF6)";
+    setTimeout(() => { tile.style.outline = prev; }, 1600);
+  } else {
+    $("statusmsg").textContent = `"${name}" not found in the library index — try ↻ refresh`;
+  }
+}
+
 /* ---------- history view ---------- */
 async function renderHistory() {
   const wrap = $("history");
@@ -1165,11 +1245,16 @@ async function renderHistory() {
         <div class="h-acts">
           <button data-reuse="${i}">↻ reuse prompt</button>
           <button data-copy="${i}">copy prompt</button>
+          <button data-reveal="${i}" ${files.length ? "" : "disabled"} title="Jump to this image in the Library">📍 reveal</button>
         </div>
       </div>
     </div>`;
   }).join("");
 
+  wrap.querySelectorAll("[data-reveal]").forEach(b => b.addEventListener("click", () => {
+    const r = rows[+b.dataset.reveal];
+    revealInLibrary((r.files || [])[0]);
+  }));
   wrap.querySelectorAll("[data-reuse]").forEach(b => b.addEventListener("click", () => {
     const r = rows[+b.dataset.reuse];
     $("prompt").value = r.prompt || "";
@@ -1370,6 +1455,36 @@ $("modelsuggest") && $("modelsuggest").addEventListener("click", e => {
   $("modelquery").value = "";
   render();
 });
+
+// §4 AC-4.3/4.4 — Ask-AI model-answered reply (grounded in accessible models, via bridge.suggest_model).
+// Picks render as the SAME .msuggest-chip markup as the instant-filter results, so the click-apply
+// listener above handles both paths for free — no separate wiring needed.
+async function askAI() {
+  const box = $("modelsuggest");
+  const q = ($("modelquery") && $("modelquery").value.trim()) || "";
+  if (!box) return;
+  if (!q) { box.innerHTML = `<div class="msuggest-empty">type what you're looking for first</div>`; return; }
+  const btn = $("askaibtn"), orig = btn && btn.textContent;
+  if (btn) { btn.disabled = true; btn.textContent = "asking…"; }
+  box.innerHTML = `<div class="msuggest-empty">asking AI…</div>`;
+  try {
+    const r = await api().suggest_model(q);
+    if (!r || !r.ok) {
+      box.innerHTML = `<div class="msuggest-empty">${escapeHtml((r && r.error) || "cliproxy unreachable")}</div>`;
+    } else {
+      const chips = (r.picks || []).map(m =>
+        `<button class="msuggest-chip" data-svc="${m.service}" data-id="${encodeURIComponent(m.id)}"><b>${escapeHtml(m.label)}</b><span>${m.service}</span></button>`).join("");
+      box.innerHTML = `<div class="askai-answer" style="white-space:pre-wrap">${escapeHtml((r.text || "").trim())}</div>` +
+        (chips || `<div class="msuggest-empty">no accessible model named in the reply — try rephrasing</div>`);
+    }
+  } catch (e) {
+    box.innerHTML = `<div class="msuggest-empty">cliproxy unreachable — ${escapeHtml(String(e))}</div>`;
+  } finally {
+    if (btn) { btn.disabled = false; btn.textContent = orig; }
+  }
+}
+$("askaibtn") && $("askaibtn").addEventListener("click", askAI);
+$("modelquery") && $("modelquery").addEventListener("keydown", e => { if (e.key === "Enter") { e.preventDefault(); askAI(); } });
 
 /* ---------- boot ---------- */
 function tryBoot() {
