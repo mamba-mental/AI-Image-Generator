@@ -1,0 +1,21 @@
+{
+  "created": "2026-07-21T06:29:52.666178+00:00",
+  "config": {
+    "artifact": "C:\\GitHub_Projects\\2026.0226 - AI-Image-Generator\\docs\\specs\\B-truth-about-models.md",
+    "spec": "docs/specs/B-source-request.md",
+    "type": "content",
+    "judge": "codex",
+    "fill": "deep-research",
+    "guard": "test -f docs/specs/B-truth-about-models.md && grep -q 'PRIME' docs/specs/B-truth-about-models.md",
+    "target_score": 90.0,
+    "rounds": 5,
+    "max_mutations": 12,
+    "min_delta": 2.0,
+    "budget": 1854
+  },
+  "baseline": null,
+  "rounds_log": [],
+  "best_score": null,
+  "calls_used": 0,
+  "last_gate": null
+}
