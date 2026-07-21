@@ -16,7 +16,7 @@ _LOCK = threading.Lock()
 # drive is missing we try this once before falling back to a local dir.
 _MOUNT_SCRIPT = r"C:/Scripts/Mount-AIImagesDrive.ps1"
 
-APP_NAME = "AI Studio Void"
+APP_NAME = "Omni-Image"  # renamed from "AI Studio Void" 2026-07-21 (PRIME pick; frozen-exe %APPDATA% migration = Spec D §9 on package)
 PLACEHOLDER_MARKERS = ("YOUR_REPLICATE_API_TOKEN", "YOUR_HUGGINGFACE_TOKEN",
                        "YOUR_GEMINI_API_KEY", "YOUR_FAL_KEY")
 

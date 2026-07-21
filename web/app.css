@@ -17,7 +17,12 @@ header {
   flex: none;
 }
 .brand { font-weight: 700; font-size: 15px; letter-spacing: 1px; }
-.brand b { color: var(--accent); }
+/* Omni-Image prism identity: spectral gradient on the OMNI wordmark (logo = prism split-beam B1) */
+.brand b {
+  background: linear-gradient(90deg, #e05666, #d8a24a, #45c088, #4aa8d8, #8b5cf6);
+  -webkit-background-clip: text; background-clip: text; color: transparent;
+}
+.brand .brand-dash { color: var(--txt3); }
 .verbadge { font-family: var(--mono); font-size: 10px; line-height: 1; opacity: .5; padding: 3px 8px; margin-left: 10px; border: 1px solid var(--border); border-radius: 999px; white-space: nowrap; color: var(--txt3); }
 .drivebanner { background: #5a1717; color: #ffdcdc; font-size: 12.5px; line-height: 1.4; padding: 8px 16px; text-align: center; border-bottom: 1px solid #7a2020; }
 .prefs-h { font-size: 13px; margin: 18px 0 8px; color: var(--txt2, #bbb); border-top: 1px solid var(--border); padding-top: 14px; }
