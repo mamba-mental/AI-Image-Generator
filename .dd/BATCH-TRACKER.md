@@ -69,6 +69,6 @@
 - [ ] Frozen-exe %APPDATA% rename migration (at next packaging)
 
 ## PRIME gap-report round 2 (2026-07-21 late)
-- [~] G1 Vision content-tags were 0 (off-by-default) — vision_endpoint set to cliproxy + gpt-5.5; 5k backfill batch queues after re-index
-- [~] G2 fal-style model CARD GRID for all providers — dispatched to app-integrator (thumbs: provider covers → our sweep samples → honest text cards)
+- [x] G1 Vision content-tags COMPLETE — 5604/5606 tagged (99.96%) via 12-worker parallel gpt-5.5 (35min + key-repair retry pass); FTS queryable (3509 "portrait" hits). 2 untaggable: 1 video (vision N/A) + 1 corrupt 489-byte stub (terra 400s too — file broken, not model). Root cause of the ~258 stragglers = empty config cliproxy key on retry; fixed w/ proven client key. were 0 (off-by-default) — vision_endpoint set to cliproxy + gpt-5.5; 5k backfill batch queues after re-index
+- [x] G2 fal-style model CARD GRID — integrator hit session limit; FINISHED by main (card template desc+sample-tag+onerror, covers/descriptions one-shots, .mc-sample css) commit f38e5c3, SMOKE OK for all providers — dispatched to app-integrator (thumbs: provider covers → our sweep samples → honest text cards)
 - [x] G3 224 stranded app-gens at I:\ ROOT moved → I:/generated/legacy (+sidecars, manifest logged, reversible) + repo generated_images/ registered; force re-index running

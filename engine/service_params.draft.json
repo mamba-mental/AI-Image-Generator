@@ -1,0 +1,2251 @@
+{
+  "version": 1,
+  "generated": "2026-07-21",
+  "note": "DRAFT -- Batch B research deliverable. Same shape as fal_models.json params[] plus a new aspect_presets{} block per service (PRIME's 16-preset ideogram-style model: Portrait 1:3/1:2/9:16/10:16/2:3/3:4/4:5, Landscape 3:1/2:1/16:9/16:10/3:2/4:3/5:4, plus 1:1/Custom/Auto). Field order within params[] is uniform: size -> steps -> guidance -> sampler -> seed -> negative -> outputs, exactly where a service supports each stage. NOT yet wired into bridge.py/modelsFor() -- Phase 2 (per BATCH-TRACKER.md P1) applies this after refine-to-spec review.",
+  "services": {
+    "openai": {
+      "size_mode": "enum_wh_string",
+      "notes": "Only 3 concrete WxH strings + auto are legal for gpt-image-*. Any other size must be snapped client-side (openai_api.py._size() already does this).",
+      "aspect_presets": {
+        "1:3": "1024x1536",
+        "1:2": "1024x1536",
+        "9:16": "1024x1536",
+        "10:16": "1024x1536",
+        "2:3": "1024x1536",
+        "3:4": "1024x1536",
+        "4:5": "1024x1536",
+        "3:1": "1536x1024",
+        "2:1": "1536x1024",
+        "16:9": "1536x1024",
+        "16:10": "1536x1024",
+        "3:2": "1536x1024",
+        "4:3": "1536x1024",
+        "5:4": "1536x1024",
+        "1:1": "1024x1024",
+        "Custom": null,
+        "Auto": null
+      },
+      "params": [
+        {
+          "name": "size",
+          "api_name": "size",
+          "type": "enum",
+          "values": [
+            "auto",
+            "1024x1024",
+            "1536x1024",
+            "1024x1536"
+          ],
+          "default": "auto",
+          "provenance_cell": {
+            "provenance": "DOC-SUMMARY",
+            "source": {
+              "url": "https://developers.openai.com/api/docs/guides/image-generation",
+              "ref": "Size section -- 'auto (default)' explicitly marked",
+              "retrieved_at": "2026-07-21"
+            }
+          }
+        },
+        {
+          "name": "quality",
+          "api_name": "quality",
+          "type": "enum",
+          "values": [
+            "auto",
+            "low",
+            "medium",
+            "high"
+          ],
+          "default": "auto",
+          "provenance_cell": {
+            "provenance": "DOC-SUMMARY",
+            "source": {
+              "url": "https://developers.openai.com/api/docs/guides/image-generation",
+              "ref": "Quality section -- '(default)' marked",
+              "retrieved_at": "2026-07-21"
+            }
+          }
+        },
+        {
+          "name": "background",
+          "api_name": "background",
+          "type": "enum",
+          "values": [
+            "auto",
+            "opaque",
+            "transparent"
+          ],
+          "default": "auto",
+          "note": "gpt-image-2 does not support transparent (server 400s if requested).",
+          "provenance_cell": {
+            "provenance": "DOC-SUMMARY",
+            "source": {
+              "url": "https://developers.openai.com/api/docs/guides/image-generation",
+              "ref": "Background section -- '(default)' marked; transparent unsupported on gpt-image-2 per same note",
+              "retrieved_at": "2026-07-21"
+            }
+          }
+        },
+        {
+          "name": "output_format",
+          "api_name": "output_format",
+          "type": "enum",
+          "values": [
+            "png",
+            "jpeg",
+            "webp"
+          ],
+          "default": "png",
+          "provenance_cell": {
+            "provenance": "DOC-SUMMARY",
+            "source": {
+              "url": "https://developers.openai.com/api/docs/guides/image-generation",
+              "ref": "Output Format section -- enum stated, no default marked",
+              "retrieved_at": "2026-07-21"
+            },
+            "default_provenance": "CODE"
+          }
+        },
+        {
+          "name": "output_compression",
+          "api_name": "output_compression",
+          "type": "int",
+          "min": 0,
+          "max": 100,
+          "optional": true,
+          "note": "jpeg/webp only.",
+          "provenance_cell": {
+            "provenance": "DOC-SUMMARY",
+            "source": {
+              "url": "https://developers.openai.com/api/docs/guides/image-generation",
+              "ref": "Output Compression section -- 0-100 range, jpeg/webp only",
+              "retrieved_at": "2026-07-21"
+            }
+          }
+        },
+        {
+          "name": "moderation",
+          "api_name": "moderation",
+          "type": "enum",
+          "values": [
+            "auto",
+            "low"
+          ],
+          "default": "auto",
+          "provenance_cell": {
+            "provenance": "DOC-SUMMARY",
+            "source": {
+              "url": "https://developers.openai.com/api/docs/guides/image-generation",
+              "ref": "Moderation section -- '(default)' marked",
+              "retrieved_at": "2026-07-21"
+            }
+          }
+        },
+        {
+          "name": "num_outputs",
+          "api_name": "n",
+          "type": "int",
+          "min": 1,
+          "max": 10,
+          "default": 1,
+          "unverified": "exact max n for gpt-image-2 not confirmed live; 10 is the historical dall-e-2 ceiling, carried forward as a conservative default.",
+          "provenance_cell": {
+            "provenance": "UNVERIFIED",
+            "source": {
+              "url": null,
+              "ref": "n not stated in the fetched doc at all; max=10 (dall-e-2 ceiling) and default=1 are app convention, service_params.json",
+              "retrieved_at": "2026-07-21"
+            },
+            "default_provenance": "CODE"
+          }
+        }
+      ]
+    },
+    "cliproxy": {
+      "size_mode": "enum_wh_string",
+      "notes": "Mirrors OpenAI gpt-image /v1/images/generations 1:1 (self-hosted CLIProxyAPI, no independent spec). BUG: cliproxy_api.py builds size from raw width/height WITHOUT snapping to the 3 legal enum values the way openai_api.py does -- an arbitrary size string will 400.",
+      "aspect_presets": {
+        "1:3": "1024x1536",
+        "1:2": "1024x1536",
+        "9:16": "1024x1536",
+        "10:16": "1024x1536",
+        "2:3": "1024x1536",
+        "3:4": "1024x1536",
+        "4:5": "1024x1536",
+        "3:1": "1536x1024",
+        "2:1": "1536x1024",
+        "16:9": "1536x1024",
+        "16:10": "1536x1024",
+        "3:2": "1536x1024",
+        "4:3": "1536x1024",
+        "5:4": "1536x1024",
+        "1:1": "1024x1024",
+        "Custom": null,
+        "Auto": null
+      },
+      "params": [
+        {
+          "name": "size",
+          "api_name": "size",
+          "type": "enum",
+          "values": [
+            "auto",
+            "1024x1024",
+            "1536x1024",
+            "1024x1536"
+          ],
+          "default": "auto",
+          "provenance_cell": {
+            "provenance": "DOC-SUMMARY",
+            "source": {
+              "url": "https://developers.openai.com/api/docs/guides/image-generation",
+              "ref": "mirrors OpenAI Size section; cliproxy's own default-if-omitted behavior never independently tested",
+              "retrieved_at": "2026-07-21"
+            }
+          }
+        },
+        {
+          "name": "quality",
+          "api_name": "quality",
+          "type": "enum",
+          "values": [
+            "auto",
+            "low",
+            "medium",
+            "high"
+          ],
+          "default": "auto",
+          "provenance_cell": {
+            "provenance": "DOC-SUMMARY",
+            "source": {
+              "url": "https://developers.openai.com/api/docs/guides/image-generation",
+              "ref": "mirrors OpenAI Quality section",
+              "retrieved_at": "2026-07-21"
+            }
+          }
+        },
+        {
+          "name": "background",
+          "api_name": "background",
+          "type": "enum",
+          "values": [
+            "auto",
+            "opaque",
+            "transparent"
+          ],
+          "default": "auto",
+          "provenance_cell": {
+            "provenance": "DOC-SUMMARY",
+            "source": {
+              "url": "https://developers.openai.com/api/docs/guides/image-generation",
+              "ref": "mirrors OpenAI Background section",
+              "retrieved_at": "2026-07-21"
+            }
+          }
+        },
+        {
+          "name": "output_format",
+          "api_name": "output_format",
+          "type": "enum",
+          "values": [
+            "png",
+            "jpeg",
+            "webp"
+          ],
+          "default": "png",
+          "provenance_cell": {
+            "provenance": "DOC-SUMMARY",
+            "source": {
+              "url": "https://developers.openai.com/api/docs/guides/image-generation",
+              "ref": "mirrors OpenAI Output Format section",
+              "retrieved_at": "2026-07-21"
+            },
+            "default_provenance": "CODE"
+          }
+        },
+        {
+          "name": "num_outputs",
+          "api_name": "n",
+          "type": "int",
+          "min": 1,
+          "max": 10,
+          "default": 1,
+          "provenance_cell": {
+            "provenance": "UNVERIFIED",
+            "source": {
+              "url": null,
+              "ref": "mirrors OpenAI n -- not stated anywhere, app convention",
+              "retrieved_at": "2026-07-21"
+            },
+            "default_provenance": "CODE"
+          }
+        }
+      ]
+    },
+    "gemini": {
+      "size_mode": "aspect_ratio_enum_plus_tier",
+      "notes": "No width/height override exists at all -- aspectRatio is a closed 10-value enum; imageConfig.imageSize is a separate resolution TIER (1K default; 2K/4K only on gemini-3.1-flash-image / gemini-3-pro-image; 512px/0.5K only on gemini-3.1-flash-lite-image). Uppercase K is mandatory (1K not 1k).",
+      "aspect_presets": {
+        "1:3": "9:16",
+        "1:2": "9:16",
+        "9:16": "9:16",
+        "10:16": "2:3",
+        "2:3": "2:3",
+        "3:4": "3:4",
+        "4:5": "4:5",
+        "3:1": "21:9",
+        "2:1": "16:9",
+        "16:9": "16:9",
+        "16:10": "3:2",
+        "3:2": "3:2",
+        "4:3": "4:3",
+        "5:4": "5:4",
+        "1:1": "1:1",
+        "Custom": null,
+        "Auto": "1:1"
+      },
+      "params": [
+        {
+          "name": "aspect_ratio",
+          "api_name": "generationConfig.imageConfig.aspectRatio",
+          "type": "enum",
+          "values": [
+            "1:1",
+            "2:3",
+            "3:2",
+            "3:4",
+            "4:3",
+            "4:5",
+            "5:4",
+            "9:16",
+            "16:9",
+            "21:9"
+          ],
+          "default": "1:1",
+          "provenance_cell": {
+            "provenance": "DOC-SUMMARY",
+            "source": {
+              "url": "https://ai.google.dev/gemini-api/docs/image-generation",
+              "ref": "aspectRatio 10-value enum stated; default '1:1' NOT stated in the fetched text",
+              "retrieved_at": "2026-07-21"
+            },
+            "default_provenance": "CODE"
+          }
+        },
+        {
+          "name": "image_size",
+          "api_name": "generationConfig.imageConfig.imageSize",
+          "type": "enum",
+          "values": [
+            "1K",
+            "2K",
+            "4K"
+          ],
+          "default": "1K",
+          "note": "2K/4K model-gated; 0.5K only on flash-lite-image (not currently in this enum).",
+          "provenance_cell": {
+            "provenance": "DOC-SUMMARY",
+            "source": {
+              "url": "https://ai.google.dev/gemini-api/docs/image-generation",
+              "ref": "imageSize enum stated w/ literal default note ('1K ... all models support this default resolution')",
+              "retrieved_at": "2026-07-21"
+            }
+          }
+        }
+      ]
+    },
+    "nvidia": {
+      "size_mode": "fixed_wh_enum_independent",
+      "notes": "Width AND height each independently constrained to the SAME 10-value enum [768,832,896,960,1024,1088,1152,1216,1280,1344] -- NOT a continuous 320-1536 range as the current service_params.json declares. Because both axes are capped at 1344 max / 768 min, extreme ratios (3:1, 1:3, 2:1, 1:2) are UNACHIEVABLE -- nearest achievable pair is used and the true ratio is not preserved for those 4 presets. Sourced from the self-hosted NIM container OpenAPI spec (FLUX.1-dev + SD3.5-large both confirmed identical); the hosted ai.api.nvidia.com/v1/genai/{model} endpoint our backend calls is assumed (not independently re-confirmed) to share this schema -- same publisher, same container family.",
+      "aspect_presets": {
+        "1:3": {
+          "width": 768,
+          "height": 1344
+        },
+        "1:2": {
+          "width": 768,
+          "height": 1344
+        },
+        "9:16": {
+          "width": 768,
+          "height": 1344
+        },
+        "10:16": {
+          "width": 832,
+          "height": 1344
+        },
+        "2:3": {
+          "width": 768,
+          "height": 1152
+        },
+        "3:4": {
+          "width": 768,
+          "height": 1024
+        },
+        "4:5": {
+          "width": 768,
+          "height": 960
+        },
+        "3:1": {
+          "width": 1344,
+          "height": 768
+        },
+        "2:1": {
+          "width": 1344,
+          "height": 768
+        },
+        "16:9": {
+          "width": 1344,
+          "height": 768
+        },
+        "16:10": {
+          "width": 1344,
+          "height": 832
+        },
+        "3:2": {
+          "width": 1152,
+          "height": 768
+        },
+        "4:3": {
+          "width": 1024,
+          "height": 768
+        },
+        "5:4": {
+          "width": 960,
+          "height": 768
+        },
+        "1:1": {
+          "width": 768,
+          "height": 768
+        },
+        "Custom": null,
+        "Auto": null
+      },
+      "params": [
+        {
+          "name": "width",
+          "api_name": "width",
+          "type": "enum",
+          "values": [
+            768,
+            832,
+            896,
+            960,
+            1024,
+            1088,
+            1152,
+            1216,
+            1280,
+            1344
+          ],
+          "default": 1024,
+          "provenance_cell": {
+            "provenance": "DOC-RAW",
+            "source": {
+              "url": "https://docs.nvidia.com/nim/visual-genai/latest/api/flux.1-dev.html",
+              "ref": "ImageRequest.width enum in flux.openapi.yaml / sd-3.5.openapi.yaml (byte-identical schemas)",
+              "retrieved_at": "2026-07-21"
+            }
+          }
+        },
+        {
+          "name": "height",
+          "api_name": "height",
+          "type": "enum",
+          "values": [
+            768,
+            832,
+            896,
+            960,
+            1024,
+            1088,
+            1152,
+            1216,
+            1280,
+            1344
+          ],
+          "default": 1024,
+          "provenance_cell": {
+            "provenance": "DOC-RAW",
+            "source": {
+              "url": "https://docs.nvidia.com/nim/visual-genai/latest/api/flux.1-dev.html",
+              "ref": "ImageRequest.height enum, same schema",
+              "retrieved_at": "2026-07-21"
+            }
+          }
+        },
+        {
+          "name": "steps",
+          "api_name": "steps",
+          "type": "int",
+          "min": 5,
+          "max": 100,
+          "default": 50,
+          "bug": "current schema says min 1 max 50 default 25 -- real min is 5, real max is 100.",
+          "provenance_cell": {
+            "provenance": "DOC-RAW",
+            "source": {
+              "url": "https://docs.nvidia.com/nim/visual-genai/latest/api/flux.1-dev.html",
+              "ref": "ImageRequest.steps: minimum=5, maximum=100, default=50",
+              "retrieved_at": "2026-07-21"
+            }
+          }
+        },
+        {
+          "name": "guidance_scale",
+          "api_name": "cfg_scale",
+          "type": "float",
+          "min": 1.0,
+          "min_exclusive": true,
+          "max": 9.0,
+          "default": 3.5,
+          "bug": "current schema says min 0 max 20 default 4.5 -- real range is (1.0, 9.0], default 3.5.",
+          "provenance_cell": {
+            "provenance": "DOC-RAW",
+            "source": {
+              "url": "https://docs.nvidia.com/nim/visual-genai/latest/api/flux.1-dev.html",
+              "ref": "ImageRequest.cfg_scale: exclusiveMinimum=1.0, maximum=9.0, default=3.5",
+              "retrieved_at": "2026-07-21"
+            }
+          }
+        },
+        {
+          "name": "seed",
+          "api_name": "seed",
+          "type": "int",
+          "min": 0,
+          "max": 4294967295,
+          "optional": true,
+          "provenance_cell": {
+            "provenance": "DOC-RAW",
+            "source": {
+              "url": "https://docs.nvidia.com/nim/visual-genai/latest/api/flux.1-dev.html",
+              "ref": "ImageRequest.seed: minimum=0, exclusiveMaximum=4294967296, default=0",
+              "retrieved_at": "2026-07-21"
+            }
+          }
+        },
+        {
+          "name": "num_outputs",
+          "api_name": "samples",
+          "type": "int",
+          "min": 1,
+          "max": 1,
+          "default": 1,
+          "note": "hard-locked to 1 -- the API rejects >1.",
+          "provenance_cell": {
+            "provenance": "DOC-RAW",
+            "source": {
+              "url": "https://docs.nvidia.com/nim/visual-genai/latest/api/flux.1-dev.html",
+              "ref": "ImageRequest.samples: minimum=1, maximum=1, default=1 (hard-locked)",
+              "retrieved_at": "2026-07-21"
+            }
+          }
+        },
+        {
+          "name": "disable_safety_checker",
+          "api_name": "disable_safety_checker",
+          "type": "bool",
+          "default": false,
+          "note": "server gates this behind NIM_ALLOW_UNCHECKED_GENERATION=true; may be a no-op on the hosted endpoint if that flag is not set server-side.",
+          "provenance_cell": {
+            "provenance": "DOC-RAW",
+            "source": {
+              "url": "https://docs.nvidia.com/nim/visual-genai/latest/api/flux.1-dev.html",
+              "ref": "ImageRequest.disable_safety_checker: default=false; effect gated server-side behind NIM_ALLOW_UNCHECKED_GENERATION",
+              "retrieved_at": "2026-07-21"
+            }
+          }
+        }
+      ],
+      "never_send": [
+        "negative_prompt"
+      ],
+      "removed_unsupported": [
+        {
+          "name": "negative_prompt",
+          "reason": "NOT in the ImageRequest schema for FLUX.1-dev or SD3.5-large. text_prompts (deprecated) locks weight to const 1.0 -- no negative-weight mechanism exists. nvidia_api.py currently sends negative_prompt unconditionally when the UI field is filled -- likely silently ignored or a 422, needs live verification. Cookbook rule: the key must be ABSENT from the body, not null/empty."
+        }
+      ]
+    },
+    "together": {
+      "size_mode": "free_wh",
+      "notes": "Docs give NO explicit width/height multiple-of-N or hard min/max -- 256-1792 step 64 is the app's OWN existing assumption, not primary-doc-confirmed. guidance_scale range is only a suggested 1-10 in the docs, not a hard enum; default 3.5 confirmed.",
+      "aspect_presets": {
+        "1:3": {
+          "width": 592,
+          "height": 1776
+        },
+        "1:2": {
+          "width": 720,
+          "height": 1456
+        },
+        "9:16": {
+          "width": 768,
+          "height": 1360
+        },
+        "10:16": {
+          "width": 816,
+          "height": 1296
+        },
+        "2:3": {
+          "width": 832,
+          "height": 1248
+        },
+        "3:4": {
+          "width": 880,
+          "height": 1184
+        },
+        "4:5": {
+          "width": 912,
+          "height": 1152
+        },
+        "3:1": {
+          "width": 1776,
+          "height": 592
+        },
+        "2:1": {
+          "width": 1456,
+          "height": 720
+        },
+        "16:9": {
+          "width": 1360,
+          "height": 768
+        },
+        "16:10": {
+          "width": 1296,
+          "height": 816
+        },
+        "3:2": {
+          "width": 1248,
+          "height": 832
+        },
+        "4:3": {
+          "width": 1184,
+          "height": 880
+        },
+        "5:4": {
+          "width": 1152,
+          "height": 912
+        },
+        "1:1": {
+          "width": 1024,
+          "height": 1024
+        },
+        "Custom": null,
+        "Auto": null
+      },
+      "params": [
+        {
+          "name": "width",
+          "api_name": "width",
+          "type": "int",
+          "min": 256,
+          "max": 1792,
+          "default": 1024,
+          "step": 16,
+          "unverified": "multiple-of-16 and exact bounds are app convention, not doc-confirmed.",
+          "provenance_cell": {
+            "provenance": "DOC-SUMMARY",
+            "source": {
+              "url": "https://docs.together.ai/reference/post-images-generations",
+              "ref": "width/height shown ONLY as an example payload value ('height':1024,'width':1152), never a stated Default field; range wholly undocumented",
+              "retrieved_at": "2026-07-21"
+            },
+            "default_provenance": "CODE"
+          }
+        },
+        {
+          "name": "height",
+          "api_name": "height",
+          "type": "int",
+          "min": 256,
+          "max": 1792,
+          "default": 1024,
+          "step": 16,
+          "unverified": "same as width.",
+          "provenance_cell": {
+            "provenance": "DOC-SUMMARY",
+            "source": {
+              "url": "https://docs.together.ai/reference/post-images-generations",
+              "ref": "same example-payload caveat as width",
+              "retrieved_at": "2026-07-21"
+            },
+            "default_provenance": "CODE"
+          }
+        },
+        {
+          "name": "steps",
+          "api_name": "steps",
+          "type": "int",
+          "default": 20,
+          "unverified": "no documented min/max.",
+          "provenance_cell": {
+            "provenance": "DOC-SUMMARY",
+            "source": {
+              "url": "https://docs.together.ai/reference/post-images-generations",
+              "ref": "parameter table Default column = 20; no range stated",
+              "retrieved_at": "2026-07-21"
+            }
+          }
+        },
+        {
+          "name": "guidance_scale",
+          "api_name": "guidance_scale",
+          "type": "float",
+          "min": 1,
+          "max": 10,
+          "default": 3.5,
+          "unverified": "docs call this a suggested range, not enforced.",
+          "provenance_cell": {
+            "provenance": "DOC-SUMMARY",
+            "source": {
+              "url": "https://docs.together.ai/reference/post-images-generations",
+              "ref": "parameter table Default column = 3.5; '1-10' range is advisory prose, not a hard enum",
+              "retrieved_at": "2026-07-21"
+            }
+          }
+        },
+        {
+          "name": "seed",
+          "api_name": "seed",
+          "type": "int",
+          "optional": true,
+          "provenance_cell": {
+            "provenance": "DOC-SUMMARY",
+            "source": {
+              "url": "https://docs.together.ai/reference/post-images-generations",
+              "ref": "field listed, no default given",
+              "retrieved_at": "2026-07-21"
+            }
+          }
+        },
+        {
+          "name": "negative_prompt",
+          "api_name": "negative_prompt",
+          "type": "string",
+          "optional": true,
+          "provenance_cell": {
+            "provenance": "DOC-SUMMARY",
+            "source": {
+              "url": "https://docs.together.ai/reference/post-images-generations",
+              "ref": "field listed, no default given",
+              "retrieved_at": "2026-07-21"
+            }
+          }
+        },
+        {
+          "name": "num_outputs",
+          "api_name": "n",
+          "type": "int",
+          "min": 1,
+          "max": 4,
+          "default": 1,
+          "unverified": "app-assumed cap; docs don't state a max.",
+          "provenance_cell": {
+            "provenance": "DOC-SUMMARY",
+            "source": {
+              "url": "https://docs.together.ai/reference/post-images-generations",
+              "ref": "parameter table Default column (n) = 1; max undocumented, app assumes 4",
+              "retrieved_at": "2026-07-21"
+            }
+          }
+        },
+        {
+          "name": "output_format",
+          "api_name": "output_format",
+          "type": "enum",
+          "values": [
+            "jpeg",
+            "png"
+          ],
+          "default": "jpeg",
+          "provenance_cell": {
+            "provenance": "DOC-SUMMARY",
+            "source": {
+              "url": "https://docs.together.ai/reference/post-images-generations",
+              "ref": "parameter table Default column = jpeg",
+              "retrieved_at": "2026-07-21"
+            }
+          }
+        },
+        {
+          "name": "disable_safety_checker",
+          "api_name": "disable_safety_checker",
+          "type": "bool",
+          "default": false,
+          "provenance_cell": {
+            "provenance": "DOC-SUMMARY",
+            "source": {
+              "url": "https://docs.together.ai/reference/post-images-generations",
+              "ref": "field listed, but Default column literally shows '--' (no default given)",
+              "retrieved_at": "2026-07-21"
+            },
+            "default_provenance": "CODE"
+          }
+        }
+      ]
+    },
+    "novita": {
+      "size_mode": "free_wh",
+      "notes": "The 'Model APIs' nav category IS the async txt2img endpoint (POST /v3/async/txt2img) -- no separate synchronous endpoint was found; same body shape either way.",
+      "aspect_presets": {
+        "1:3": {
+          "width": 592,
+          "height": 1776
+        },
+        "1:2": {
+          "width": 720,
+          "height": 1456
+        },
+        "9:16": {
+          "width": 768,
+          "height": 1360
+        },
+        "10:16": {
+          "width": 816,
+          "height": 1296
+        },
+        "2:3": {
+          "width": 832,
+          "height": 1248
+        },
+        "3:4": {
+          "width": 880,
+          "height": 1184
+        },
+        "4:5": {
+          "width": 912,
+          "height": 1152
+        },
+        "3:1": {
+          "width": 1776,
+          "height": 592
+        },
+        "2:1": {
+          "width": 1456,
+          "height": 720
+        },
+        "16:9": {
+          "width": 1360,
+          "height": 768
+        },
+        "16:10": {
+          "width": 1296,
+          "height": 816
+        },
+        "3:2": {
+          "width": 1248,
+          "height": 832
+        },
+        "4:3": {
+          "width": 1184,
+          "height": 880
+        },
+        "5:4": {
+          "width": 1152,
+          "height": 912
+        },
+        "1:1": {
+          "width": 1024,
+          "height": 1024
+        },
+        "Custom": null,
+        "Auto": null
+      },
+      "params": [
+        {
+          "name": "width",
+          "api_name": "width",
+          "type": "int",
+          "min": 128,
+          "max": 2048,
+          "default": 1024,
+          "provenance_cell": {
+            "provenance": "DOC-SUMMARY",
+            "source": {
+              "url": "https://novita.ai/docs/api-reference/model-apis-text-to-image",
+              "ref": "width/height range [128,2048] stated; no default stated",
+              "retrieved_at": "2026-07-21"
+            }
+          }
+        },
+        {
+          "name": "height",
+          "api_name": "height",
+          "type": "int",
+          "min": 128,
+          "max": 2048,
+          "default": 1024,
+          "provenance_cell": {
+            "provenance": "DOC-SUMMARY",
+            "source": {
+              "url": "https://novita.ai/docs/api-reference/model-apis-text-to-image",
+              "ref": "same as width",
+              "retrieved_at": "2026-07-21"
+            }
+          }
+        },
+        {
+          "name": "steps",
+          "api_name": "steps",
+          "type": "int",
+          "min": 1,
+          "max": 100,
+          "default": 25,
+          "provenance_cell": {
+            "provenance": "DOC-SUMMARY",
+            "source": {
+              "url": "https://novita.ai/docs/api-reference/model-apis-text-to-image",
+              "ref": "steps range [1,100] stated; no default stated",
+              "retrieved_at": "2026-07-21"
+            }
+          }
+        },
+        {
+          "name": "guidance_scale",
+          "api_name": "guidance_scale",
+          "type": "float",
+          "min": 1,
+          "max": 30,
+          "default": 7,
+          "bug": "current schema says min 0 -- documented floor is 1.",
+          "provenance_cell": {
+            "provenance": "DOC-SUMMARY",
+            "source": {
+              "url": "https://novita.ai/docs/api-reference/model-apis-text-to-image",
+              "ref": "guidance_scale range [1,30] stated; default not doc-stated -- 7 is novita_api.py's params.get('guidance_scale',7.0) fallback",
+              "retrieved_at": "2026-07-21"
+            },
+            "default_provenance": "CODE"
+          }
+        },
+        {
+          "name": "sampler_name",
+          "api_name": "sampler_name",
+          "type": "enum",
+          "values": [
+            "Euler a",
+            "Euler",
+            "LMS",
+            "Heun",
+            "DPM2",
+            "DPM2 a",
+            "DPM++ 2S a",
+            "DPM++ 2M",
+            "DPM++ SDE",
+            "DPM fast",
+            "DPM adaptive",
+            "LMS Karras",
+            "DPM2 Karras",
+            "DPM2 a Karras",
+            "DPM++ 2S a Karras",
+            "DPM++ 2M Karras",
+            "DPM++ SDE Karras",
+            "DDIM",
+            "PLMS",
+            "UniPC"
+          ],
+          "default": "Euler a",
+          "note": "current schema only lists 5 of the 19 documented values -- safe (all 5 are valid subsets), just incomplete.",
+          "provenance_cell": {
+            "provenance": "DOC-SUMMARY",
+            "source": {
+              "url": "https://novita.ai/docs/api-reference/model-apis-text-to-image",
+              "ref": "19-value enum stated; default not doc-stated -- 'Euler a' is novita_api.py's own fallback",
+              "retrieved_at": "2026-07-21"
+            },
+            "default_provenance": "CODE"
+          }
+        },
+        {
+          "name": "seed",
+          "api_name": "seed",
+          "type": "int",
+          "min": -1,
+          "default": -1,
+          "provenance_cell": {
+            "provenance": "DOC-SUMMARY",
+            "source": {
+              "url": "https://novita.ai/docs/api-reference/model-apis-text-to-image",
+              "ref": "seed >= -1, literal 'Default: -1' stated",
+              "retrieved_at": "2026-07-21"
+            }
+          }
+        },
+        {
+          "name": "negative_prompt",
+          "api_name": "negative_prompt",
+          "type": "string",
+          "optional": true,
+          "max_length": 1024,
+          "provenance_cell": {
+            "provenance": "DOC-SUMMARY",
+            "source": {
+              "url": "https://novita.ai/docs/api-reference/model-apis-text-to-image",
+              "ref": "1-1024 rune clamp stated; independently cross-checked against _build_body()'s own clamp",
+              "retrieved_at": "2026-07-21"
+            }
+          }
+        },
+        {
+          "name": "num_outputs",
+          "api_name": "image_num",
+          "type": "int",
+          "min": 1,
+          "max": 8,
+          "default": 1,
+          "provenance_cell": {
+            "provenance": "DOC-SUMMARY",
+            "source": {
+              "url": "https://novita.ai/docs/api-reference/model-apis-text-to-image",
+              "ref": "image_num range [1,8] stated; no default stated (app defaults to 1, CODE)",
+              "retrieved_at": "2026-07-21"
+            }
+          }
+        },
+        {
+          "name": "enable_nsfw_detection",
+          "api_name": "enable_nsfw_detection",
+          "type": "bool",
+          "default": false,
+          "omit_for_permissive": true,
+          "note": "adds $0.0015/image when true. Cookbook rule: omit the key entirely for permissive mode (matches the app's Content Mode convention); explicit false also works but omission is the documented-lighter path.",
+          "provenance_cell": {
+            "provenance": "UNVERIFIED",
+            "source": {
+              "url": "https://novita.ai/docs/api-reference/model-apis-text-to-image",
+              "ref": "billing note ('adds $0.0015/image when enabled') implies opt-in/false-by-default; no literal Default field seen",
+              "retrieved_at": "2026-07-21"
+            }
+          }
+        }
+      ]
+    },
+    "runware": {
+      "size_mode": "free_wh",
+      "notes": "Docs don't state a hard width/height multiple or range (varies per model on the platform) -- bounds below are the app's existing conservative assumption.",
+      "aspect_presets": {
+        "1:3": {
+          "width": 592,
+          "height": 1776
+        },
+        "1:2": {
+          "width": 720,
+          "height": 1456
+        },
+        "9:16": {
+          "width": 768,
+          "height": 1360
+        },
+        "10:16": {
+          "width": 816,
+          "height": 1296
+        },
+        "2:3": {
+          "width": 832,
+          "height": 1248
+        },
+        "3:4": {
+          "width": 880,
+          "height": 1184
+        },
+        "4:5": {
+          "width": 912,
+          "height": 1152
+        },
+        "3:1": {
+          "width": 1776,
+          "height": 592
+        },
+        "2:1": {
+          "width": 1456,
+          "height": 720
+        },
+        "16:9": {
+          "width": 1360,
+          "height": 768
+        },
+        "16:10": {
+          "width": 1296,
+          "height": 816
+        },
+        "3:2": {
+          "width": 1248,
+          "height": 832
+        },
+        "4:3": {
+          "width": 1184,
+          "height": 880
+        },
+        "5:4": {
+          "width": 1152,
+          "height": 912
+        },
+        "1:1": {
+          "width": 1024,
+          "height": 1024
+        },
+        "Custom": null,
+        "Auto": null
+      },
+      "params": [
+        {
+          "name": "width",
+          "api_name": "width",
+          "type": "int",
+          "min": 128,
+          "max": 2048,
+          "default": 1024,
+          "unverified": "model-dependent per docs; app-assumed bound.",
+          "provenance_cell": {
+            "provenance": "UNVERIFIED",
+            "source": {
+              "url": "https://runware.ai/docs/image-inference/api-reference",
+              "ref": "docs state dimensions vary per model, no universal bound; 1024/1152 seen elsewhere is example data, not a stated default",
+              "retrieved_at": "2026-07-21"
+            }
+          }
+        },
+        {
+          "name": "height",
+          "api_name": "height",
+          "type": "int",
+          "min": 128,
+          "max": 2048,
+          "default": 1024,
+          "unverified": "model-dependent per docs; app-assumed bound.",
+          "provenance_cell": {
+            "provenance": "UNVERIFIED",
+            "source": {
+              "url": "https://runware.ai/docs/image-inference/api-reference",
+              "ref": "same as width",
+              "retrieved_at": "2026-07-21"
+            }
+          }
+        },
+        {
+          "name": "steps",
+          "api_name": "steps",
+          "type": "int",
+          "min": 1,
+          "max": 100,
+          "default": 20,
+          "provenance_cell": {
+            "provenance": "DOC-SUMMARY",
+            "source": {
+              "url": "https://runware.ai/docs/image-inference/api-reference",
+              "ref": "WebSearch AI-overview of the docs page, literal 'default: 20' -- not independently re-fetched",
+              "retrieved_at": "2026-07-21"
+            }
+          }
+        },
+        {
+          "name": "guidance_scale",
+          "api_name": "CFGScale",
+          "type": "float",
+          "min": 0,
+          "max": 50,
+          "default": 7,
+          "bug": "current schema caps max at 30 -- documented max is 50.",
+          "provenance_cell": {
+            "provenance": "DOC-SUMMARY",
+            "source": {
+              "url": "https://runware.ai/docs/image-inference/api-reference",
+              "ref": "WebSearch AI-overview, literal 'default: 7', range [0,50]",
+              "retrieved_at": "2026-07-21"
+            }
+          }
+        },
+        {
+          "name": "scheduler",
+          "api_name": "scheduler",
+          "type": "string",
+          "optional": true,
+          "provenance_cell": {
+            "provenance": "DOC-SUMMARY",
+            "source": {
+              "url": "https://runware.ai/docs/image-inference/api-reference",
+              "ref": "field listed, no default given",
+              "retrieved_at": "2026-07-21"
+            }
+          }
+        },
+        {
+          "name": "seed",
+          "api_name": "seed",
+          "type": "int",
+          "optional": true,
+          "provenance_cell": {
+            "provenance": "DOC-SUMMARY",
+            "source": {
+              "url": "https://runware.ai/docs/image-inference/api-reference",
+              "ref": "field listed, no default given",
+              "retrieved_at": "2026-07-21"
+            }
+          }
+        },
+        {
+          "name": "negative_prompt",
+          "api_name": "negativePrompt",
+          "type": "string",
+          "optional": true,
+          "provenance_cell": {
+            "provenance": "DOC-SUMMARY",
+            "source": {
+              "url": "https://runware.ai/docs/image-inference/api-reference",
+              "ref": "field listed (negativePrompt), no default given",
+              "retrieved_at": "2026-07-21"
+            }
+          }
+        },
+        {
+          "name": "num_outputs",
+          "api_name": "numberResults",
+          "type": "int",
+          "min": 1,
+          "max": 20,
+          "default": 1,
+          "bug": "current schema caps max at 4 -- documented max is 20.",
+          "provenance_cell": {
+            "provenance": "DOC-SUMMARY",
+            "source": {
+              "url": "https://runware.ai/docs/image-inference/api-reference",
+              "ref": "WebSearch AI-overview, literal 'default: 1', range [1,20]",
+              "retrieved_at": "2026-07-21"
+            }
+          }
+        },
+        {
+          "name": "checkNSFW",
+          "api_name": "checkNSFW",
+          "type": "bool",
+          "default": false,
+          "always_send_explicit": true,
+          "note": "Cookbook rule: always send true/false explicitly -- the server's own default when omitted is undocumented, don't rely on it.",
+          "provenance_cell": {
+            "provenance": "DOC-SUMMARY",
+            "source": {
+              "url": "https://runware.ai/docs/image-inference/api-reference",
+              "ref": "field exists (opt-in framing); false default is runware_api.py's own assumption, not doc-stated",
+              "retrieved_at": "2026-07-21"
+            },
+            "default_provenance": "CODE"
+          }
+        },
+        {
+          "name": "output_format",
+          "api_name": "outputFormat",
+          "type": "string",
+          "optional": true,
+          "provenance_cell": {
+            "provenance": "DOC-SUMMARY",
+            "source": {
+              "url": "https://runware.ai/docs/image-inference/api-reference",
+              "ref": "field exists (outputType/outputFormat); 'URL' default is our own assumption",
+              "retrieved_at": "2026-07-21"
+            },
+            "default_provenance": "CODE"
+          }
+        }
+      ]
+    },
+    "huggingface": {
+      "size_mode": "free_wh_model_dependent",
+      "notes": "No universal API contract -- InferenceClient.text_to_image forwards kwargs to whichever Inference Provider backs the chosen model; legal ranges genuinely vary per model. Table below is illustrative (SDXL/SD-family convention), not a confirmed spec.",
+      "aspect_presets": {
+        "1:3": {
+          "width": 592,
+          "height": 1536
+        },
+        "1:2": {
+          "width": 720,
+          "height": 1456
+        },
+        "9:16": {
+          "width": 768,
+          "height": 1360
+        },
+        "10:16": {
+          "width": 816,
+          "height": 1296
+        },
+        "2:3": {
+          "width": 832,
+          "height": 1248
+        },
+        "3:4": {
+          "width": 880,
+          "height": 1184
+        },
+        "4:5": {
+          "width": 912,
+          "height": 1152
+        },
+        "3:1": {
+          "width": 1536,
+          "height": 592
+        },
+        "2:1": {
+          "width": 1456,
+          "height": 720
+        },
+        "16:9": {
+          "width": 1360,
+          "height": 768
+        },
+        "16:10": {
+          "width": 1296,
+          "height": 816
+        },
+        "3:2": {
+          "width": 1248,
+          "height": 832
+        },
+        "4:3": {
+          "width": 1184,
+          "height": 880
+        },
+        "5:4": {
+          "width": 1152,
+          "height": 912
+        },
+        "1:1": {
+          "width": 1024,
+          "height": 1024
+        },
+        "Custom": null,
+        "Auto": null
+      },
+      "params": [
+        {
+          "name": "width",
+          "api_name": "width",
+          "type": "int",
+          "min": 256,
+          "max": 1536,
+          "default": 1024,
+          "unverified": true,
+          "provenance_cell": {
+            "provenance": "CODE",
+            "source": {
+              "url": null,
+              "ref": "engine/backends/hf_api.py + engine/service_params.json -- no universal HF API spec exists (InferenceClient forwards to whichever provider backs the model); illustrative SDXL/SD convention only",
+              "retrieved_at": "2026-07-21"
+            }
+          }
+        },
+        {
+          "name": "height",
+          "api_name": "height",
+          "type": "int",
+          "min": 256,
+          "max": 1536,
+          "default": 1024,
+          "unverified": true,
+          "provenance_cell": {
+            "provenance": "CODE",
+            "source": {
+              "url": null,
+              "ref": "engine/backends/hf_api.py + engine/service_params.json -- no universal HF API spec exists (InferenceClient forwards to whichever provider backs the model); illustrative SDXL/SD convention only",
+              "retrieved_at": "2026-07-21"
+            }
+          }
+        },
+        {
+          "name": "num_inference_steps",
+          "api_name": "num_inference_steps",
+          "type": "int",
+          "min": 1,
+          "max": 100,
+          "default": 28,
+          "unverified": true,
+          "provenance_cell": {
+            "provenance": "CODE",
+            "source": {
+              "url": null,
+              "ref": "engine/backends/hf_api.py + engine/service_params.json -- no universal HF API spec exists (InferenceClient forwards to whichever provider backs the model); illustrative SDXL/SD convention only",
+              "retrieved_at": "2026-07-21"
+            }
+          }
+        },
+        {
+          "name": "guidance_scale",
+          "api_name": "guidance_scale",
+          "type": "float",
+          "min": 0,
+          "max": 20,
+          "default": 7.5,
+          "unverified": true,
+          "provenance_cell": {
+            "provenance": "CODE",
+            "source": {
+              "url": null,
+              "ref": "engine/backends/hf_api.py + engine/service_params.json -- no universal HF API spec exists (InferenceClient forwards to whichever provider backs the model); illustrative SDXL/SD convention only",
+              "retrieved_at": "2026-07-21"
+            }
+          }
+        },
+        {
+          "name": "scheduler",
+          "api_name": "scheduler",
+          "type": "string",
+          "optional": true,
+          "provenance_cell": {
+            "provenance": "CODE",
+            "source": {
+              "url": null,
+              "ref": "engine/backends/hf_api.py + engine/service_params.json -- no universal HF API spec exists (InferenceClient forwards to whichever provider backs the model); illustrative SDXL/SD convention only",
+              "retrieved_at": "2026-07-21"
+            }
+          }
+        },
+        {
+          "name": "seed",
+          "api_name": "seed",
+          "type": "int",
+          "optional": true,
+          "provenance_cell": {
+            "provenance": "CODE",
+            "source": {
+              "url": null,
+              "ref": "engine/backends/hf_api.py + engine/service_params.json -- no universal HF API spec exists (InferenceClient forwards to whichever provider backs the model); illustrative SDXL/SD convention only",
+              "retrieved_at": "2026-07-21"
+            }
+          }
+        },
+        {
+          "name": "negative_prompt",
+          "api_name": "negative_prompt",
+          "type": "string",
+          "optional": true,
+          "provenance_cell": {
+            "provenance": "CODE",
+            "source": {
+              "url": null,
+              "ref": "engine/backends/hf_api.py + engine/service_params.json -- no universal HF API spec exists (InferenceClient forwards to whichever provider backs the model); illustrative SDXL/SD convention only",
+              "retrieved_at": "2026-07-21"
+            }
+          }
+        }
+      ]
+    },
+    "ideogram": {
+      "size_mode": "aspect_ratio_or_resolution_enum",
+      "notes": "PRIME's 15 ratio presets map 1:1 onto Ideogram's own native aspect_ratio enum -- ONLY the separator differs (: vs x). aspect_ratio and resolution are mutually exclusive; resolution is a much finer ~76-value exact-WxH list (512x1536 .. 1536x512) for when a precise pixel size matters more than the named ratio.",
+      "aspect_presets": {
+        "1:3": "1x3",
+        "1:2": "1x2",
+        "9:16": "9x16",
+        "10:16": "10x16",
+        "2:3": "2x3",
+        "3:4": "3x4",
+        "4:5": "4x5",
+        "3:1": "3x1",
+        "2:1": "2x1",
+        "16:9": "16x9",
+        "16:10": "16x10",
+        "3:2": "3x2",
+        "4:3": "4x3",
+        "5:4": "5x4",
+        "1:1": "1x1",
+        "Custom": null,
+        "Auto": null
+      },
+      "params": [
+        {
+          "name": "aspect_ratio",
+          "api_name": "aspect_ratio",
+          "type": "enum",
+          "values": [
+            "1x3",
+            "3x1",
+            "1x2",
+            "2x1",
+            "9x16",
+            "16x9",
+            "10x16",
+            "16x10",
+            "2x3",
+            "3x2",
+            "3x4",
+            "4x3",
+            "4x5",
+            "5x4",
+            "1x1"
+          ],
+          "default": "1x1",
+          "provenance_cell": {
+            "provenance": "DOC-SUMMARY",
+            "source": {
+              "url": "https://developer.ideogram.ai/api-reference/api-reference/generate-v3",
+              "ref": "15-value enum + literal 'Default: 1x1'",
+              "retrieved_at": "2026-07-21"
+            }
+          }
+        },
+        {
+          "name": "resolution",
+          "api_name": "resolution",
+          "type": "string",
+          "optional": true,
+          "note": "~76 exact WxH options; overrides aspect_ratio when set.",
+          "provenance_cell": {
+            "provenance": "DOC-SUMMARY",
+            "source": {
+              "url": "https://developer.ideogram.ai/api-reference/api-reference/generate-v3",
+              "ref": "~76-value WxH range description, no default (optional, overrides aspect_ratio)",
+              "retrieved_at": "2026-07-21"
+            }
+          }
+        },
+        {
+          "name": "rendering_speed",
+          "api_name": "rendering_speed",
+          "type": "enum",
+          "values": [
+            "FLASH",
+            "TURBO",
+            "DEFAULT",
+            "QUALITY"
+          ],
+          "default": "DEFAULT",
+          "note": "current schema is missing FLASH.",
+          "provenance_cell": {
+            "provenance": "DOC-SUMMARY",
+            "source": {
+              "url": "https://developer.ideogram.ai/api-reference/api-reference/generate-v3",
+              "ref": "literal 'Default: DEFAULT'",
+              "retrieved_at": "2026-07-21"
+            }
+          }
+        },
+        {
+          "name": "magic_prompt",
+          "api_name": "magic_prompt",
+          "type": "enum",
+          "values": [
+            "AUTO",
+            "ON",
+            "OFF"
+          ],
+          "default": "AUTO",
+          "provenance_cell": {
+            "provenance": "DOC-SUMMARY",
+            "source": {
+              "url": "https://developer.ideogram.ai/api-reference/api-reference/generate-v3",
+              "ref": "'Options: AUTO, ON, OFF' -- no default marked",
+              "retrieved_at": "2026-07-21"
+            },
+            "default_provenance": "CODE"
+          }
+        },
+        {
+          "name": "style_type",
+          "api_name": "style_type",
+          "type": "enum",
+          "values": [
+            "AUTO",
+            "GENERAL",
+            "REALISTIC",
+            "DESIGN",
+            "FICTION"
+          ],
+          "default": "GENERAL",
+          "note": "current schema is missing FICTION and defaults to AUTO not GENERAL.",
+          "provenance_cell": {
+            "provenance": "DOC-SUMMARY",
+            "source": {
+              "url": "https://developer.ideogram.ai/api-reference/api-reference/generate-v3",
+              "ref": "literal 'Default: GENERAL' (the shipped pre-draft schema had wrongly declared AUTO)",
+              "retrieved_at": "2026-07-21"
+            }
+          }
+        },
+        {
+          "name": "num_outputs",
+          "api_name": "num_images",
+          "type": "int",
+          "min": 1,
+          "max": 8,
+          "default": 1,
+          "unverified": "exact documented max not independently confirmed; app-assumed 8.",
+          "provenance_cell": {
+            "provenance": "DOC-SUMMARY",
+            "source": {
+              "url": "https://developer.ideogram.ai/api-reference/api-reference/generate-v3",
+              "ref": "literal '(default: 1)'; exact max cap never stated, app assumes 8",
+              "retrieved_at": "2026-07-21"
+            }
+          }
+        },
+        {
+          "name": "negative_prompt",
+          "api_name": "negative_prompt",
+          "type": "string",
+          "optional": true,
+          "provenance_cell": {
+            "provenance": "DOC-SUMMARY",
+            "source": {
+              "url": "https://developer.ideogram.ai/api-reference/api-reference/generate-v3",
+              "ref": "field listed, no default given",
+              "retrieved_at": "2026-07-21"
+            }
+          }
+        },
+        {
+          "name": "seed",
+          "api_name": "seed",
+          "type": "int",
+          "optional": true,
+          "provenance_cell": {
+            "provenance": "DOC-SUMMARY",
+            "source": {
+              "url": "https://developer.ideogram.ai/api-reference/api-reference/generate-v3",
+              "ref": "field listed, no default given",
+              "retrieved_at": "2026-07-21"
+            }
+          }
+        }
+      ]
+    },
+    "agnes": {
+      "size_mode": "free_wh_string",
+      "notes": "OpenAI-compatible shape (size='WxH' string). Docs don't state a hard bound or multiple -- table below mirrors the app's existing convention. response_format must be nested under extra_body (not top-level) per AGNES docs, though the app doesn't currently send it at all (harmless -- b64_json/url auto-detected from whatever comes back).",
+      "aspect_presets": {
+        "1:3": "592x1776",
+        "1:2": "720x1456",
+        "9:16": "768x1360",
+        "10:16": "816x1296",
+        "2:3": "832x1248",
+        "3:4": "880x1184",
+        "4:5": "912x1152",
+        "3:1": "1776x592",
+        "2:1": "1456x720",
+        "16:9": "1360x768",
+        "16:10": "1296x816",
+        "3:2": "1248x832",
+        "4:3": "1184x880",
+        "5:4": "1152x912",
+        "1:1": "1024x1024",
+        "Custom": null,
+        "Auto": null
+      },
+      "params": [
+        {
+          "name": "size",
+          "api_name": "size",
+          "type": "string",
+          "default": "1024x1024",
+          "note": "WIDTHxHEIGHT.",
+          "provenance_cell": {
+            "provenance": "DOC-SUMMARY",
+            "source": {
+              "url": "https://agnes-ai.com/en/docs/agnes-image-20-flash",
+              "ref": "'size':'1024x768' shown as an EXAMPLE payload value, never a stated Default",
+              "retrieved_at": "2026-07-21"
+            },
+            "default_provenance": "CODE"
+          }
+        },
+        {
+          "name": "num_outputs",
+          "api_name": "n",
+          "type": "int",
+          "min": 1,
+          "max": 4,
+          "default": 1,
+          "unverified": "app-assumed cap; not doc-confirmed.",
+          "provenance_cell": {
+            "provenance": "UNVERIFIED",
+            "source": {
+              "url": "https://agnes-ai.com/en/docs/agnes-image-20-flash",
+              "ref": "no example, no field list found anywhere for n specifically",
+              "retrieved_at": "2026-07-21"
+            }
+          }
+        }
+      ],
+      "by_id_contains": {
+        "video": {
+          "size_mode": "free_wh",
+          "notes": "aspect_ratio + duration confirmed by a LIVE probe (2026-07-20, HTTP 200 status:queued) -- not from public docs (none found for the video model). num_frames/frame_rate constraints are the app's own assumption, unverified against a published spec.",
+          "params": [
+            {
+              "name": "width",
+              "api_name": "width",
+              "type": "int",
+              "min": 512,
+              "max": 1920,
+              "default": 1152,
+              "step": 32,
+              "unverified": true,
+              "provenance_cell": {
+                "provenance": "CODE",
+                "source": {
+                  "url": null,
+                  "ref": "engine/backends/agnes_api.py + service_params.json -- app's own assumption, never doc-confirmed or probed for this specific bound",
+                  "retrieved_at": "2026-07-21"
+                }
+              }
+            },
+            {
+              "name": "height",
+              "api_name": "height",
+              "type": "int",
+              "min": 512,
+              "max": 1920,
+              "default": 768,
+              "step": 32,
+              "unverified": true,
+              "provenance_cell": {
+                "provenance": "CODE",
+                "source": {
+                  "url": null,
+                  "ref": "same as width",
+                  "retrieved_at": "2026-07-21"
+                }
+              }
+            },
+            {
+              "name": "num_frames",
+              "api_name": "num_frames",
+              "type": "int",
+              "min": 9,
+              "max": 441,
+              "default": 49,
+              "note": "must be 8n+1.",
+              "unverified": true,
+              "provenance_cell": {
+                "provenance": "CODE",
+                "source": {
+                  "url": null,
+                  "ref": "app's own assumption ('must be 8n+1'), never doc-confirmed or probed",
+                  "retrieved_at": "2026-07-21"
+                }
+              }
+            },
+            {
+              "name": "frame_rate",
+              "api_name": "frame_rate",
+              "type": "int",
+              "min": 1,
+              "max": 60,
+              "default": 24,
+              "unverified": true,
+              "provenance_cell": {
+                "provenance": "CODE",
+                "source": {
+                  "url": null,
+                  "ref": "app's own assumption, never doc-confirmed or probed",
+                  "retrieved_at": "2026-07-21"
+                }
+              }
+            },
+            {
+              "name": "aspect_ratio",
+              "api_name": "aspect_ratio",
+              "type": "enum",
+              "values": [
+                "16:9",
+                "9:16",
+                "1:1",
+                "4:3",
+                "3:4"
+              ],
+              "default": "16:9",
+              "note": "live-probe confirmed accepted.",
+              "provenance_cell": {
+                "provenance": "PROBE",
+                "source": {
+                  "url": null,
+                  "ref": ".dd/pD-providers-contract.md -- live POST /v1/videos 2026-07-20, HTTP 200 status:queued confirms the field NAME is accepted; the specific default '16:9' is CODE, not proven by the probe",
+                  "retrieved_at": "2026-07-21"
+                },
+                "default_provenance": "CODE"
+              }
+            },
+            {
+              "name": "duration",
+              "api_name": "duration",
+              "type": "int",
+              "min": 1,
+              "max": 10,
+              "optional": true,
+              "note": "live-probe confirmed accepted.",
+              "provenance_cell": {
+                "provenance": "PROBE",
+                "source": {
+                  "url": null,
+                  "ref": ".dd/pD-providers-contract.md -- same live probe, field name/type accepted",
+                  "retrieved_at": "2026-07-21"
+                }
+              }
+            },
+            {
+              "name": "seed",
+              "api_name": "seed",
+              "type": "int",
+              "optional": true,
+              "provenance_cell": {
+                "provenance": "CODE",
+                "source": {
+                  "url": null,
+                  "ref": "no doc, no probe of this specific field",
+                  "retrieved_at": "2026-07-21"
+                }
+              }
+            },
+            {
+              "name": "negative_prompt",
+              "api_name": "negative_prompt",
+              "type": "string",
+              "optional": true,
+              "provenance_cell": {
+                "provenance": "CODE",
+                "source": {
+                  "url": null,
+                  "ref": "no doc, no probe of this specific field",
+                  "retrieved_at": "2026-07-21"
+                }
+              }
+            }
+          ]
+        }
+      }
+    },
+    "openrouter": {
+      "size_mode": "NONE_via_current_endpoint / tier_and_ratio_via_dedicated_endpoint",
+      "notes": "CRITICAL: openrouter_api.py currently posts to /api/v1/chat/completions with modalities:['image','text'] -- that legacy multimodal-chat path has NO documented size/aspect_ratio/resolution body field at all; output dimensions are entirely prompt-text-driven / model-default. Any aspect-preset the unified UI sends for OpenRouter today is a SILENT NO-OP. OpenRouter's NEWER dedicated endpoint (POST /api/v1/images) DOES accept resolution/aspect_ratio/size and is the provider's own recommended path going forward (all existing image models continue to be supported here per their announcement) -- migrating the backend to this endpoint is required before aspect-ratio control can work for OpenRouter at all.",
+      "aspect_presets": {
+        "1:3": "1:3",
+        "1:2": "1:2",
+        "9:16": "9:16",
+        "10:16": "10:16",
+        "2:3": "2:3",
+        "3:4": "3:4",
+        "4:5": "4:5",
+        "3:1": "3:1",
+        "2:1": "2:1",
+        "16:9": "16:9",
+        "16:10": "16:10",
+        "3:2": "3:2",
+        "4:3": "4:3",
+        "5:4": "5:4",
+        "1:1": "1:1",
+        "Custom": null,
+        "Auto": null
+      },
+      "params_current_chat_path": [
+        {
+          "name": "modalities",
+          "api_name": "modalities",
+          "type": "const",
+          "value": [
+            "image",
+            "text"
+          ],
+          "provenance_cell": {
+            "provenance": "DOC-SUMMARY",
+            "source": {
+              "url": "https://openrouter.ai/docs/features/multimodal/image-generation",
+              "ref": "legacy chat/completions image-modality doc -- modalities:['image','text'] confirmed, no size field exists on this path",
+              "retrieved_at": "2026-07-21"
+            }
+          }
+        },
+        {
+          "name": "prompt",
+          "api_name": "messages[0].content",
+          "type": "string",
+          "provenance_cell": {
+            "provenance": "DOC-SUMMARY",
+            "source": {
+              "url": "https://openrouter.ai/docs/features/multimodal/image-generation",
+              "ref": "same -- plain chat message content",
+              "retrieved_at": "2026-07-21"
+            }
+          }
+        }
+      ],
+      "params_recommended_images_path": [
+        {
+          "name": "resolution",
+          "api_name": "resolution",
+          "type": "enum",
+          "values": [
+            "512",
+            "1K",
+            "2K",
+            "4K"
+          ],
+          "optional": true,
+          "note": "model-dependent tier.",
+          "provenance_cell": {
+            "provenance": "DOC-SUMMARY",
+            "source": {
+              "url": "https://openrouter.ai/blog/announcements/image-api/",
+              "ref": "announcement blog -- tier enum 512/1K/2K/4K, model-dependent",
+              "retrieved_at": "2026-07-21"
+            }
+          }
+        },
+        {
+          "name": "aspect_ratio",
+          "api_name": "aspect_ratio",
+          "type": "string",
+          "optional": true,
+          "note": "provider clamps to its own supported subset; a mismatched size+aspect_ratio pair 400s.",
+          "provenance_cell": {
+            "provenance": "DOC-SUMMARY",
+            "source": {
+              "url": "https://openrouter.ai/blog/announcements/image-api/",
+              "ref": "announcement blog -- ratio string, provider clamps to its own subset",
+              "retrieved_at": "2026-07-21"
+            }
+          }
+        },
+        {
+          "name": "size",
+          "api_name": "size",
+          "type": "string",
+          "optional": true,
+          "note": "explicit WxH -- authoritative when paired with resolution/aspect_ratio.",
+          "provenance_cell": {
+            "provenance": "DOC-SUMMARY",
+            "source": {
+              "url": "https://openrouter.ai/blog/announcements/image-api/",
+              "ref": "announcement blog -- explicit WxH, authoritative when paired w/ resolution/aspect_ratio; mismatched pair 400s",
+              "retrieved_at": "2026-07-21"
+            }
+          }
+        },
+        {
+          "name": "num_outputs",
+          "api_name": "n",
+          "type": "int",
+          "min": 1,
+          "max": 10,
+          "unverified": "per-model cap, not universally documented.",
+          "provenance_cell": {
+            "provenance": "DOC-SUMMARY",
+            "source": {
+              "url": "https://openrouter.ai/blog/announcements/image-api/",
+              "ref": "announcement blog states 'up to 10, model-dependent' generically; exact per-model cap not documented",
+              "retrieved_at": "2026-07-21"
+            }
+          }
+        },
+        {
+          "name": "seed",
+          "api_name": "seed",
+          "type": "int",
+          "optional": true,
+          "unverified": "model-dependent support.",
+          "provenance_cell": {
+            "provenance": "UNVERIFIED",
+            "source": {
+              "url": "https://openrouter.ai/blog/announcements/image-api/",
+              "ref": "model-dependent support, not documented which models honor it",
+              "retrieved_at": "2026-07-21"
+            }
+          }
+        }
+      ]
+    },
+    "replicate": {
+      "size_mode": "dynamic_per_model",
+      "notes": "No static schema -- bridge.py:_replicate_input_params() fetches GET /v1/models/{owner}/{name}, reads latest_version.openapi_schema.components.schemas.Input, and _openapi_props_to_params() translates it into this same params[] shape live. Resolution strategy: if the fetched Input schema declares an aspect_ratio string-enum field, send the preset's colon-form ratio directly (nearest enum match if not present verbatim); elif it declares width+height ints, use the generic continuous table below clamped to THAT model's own min/max (not a fixed global bound); if neither is declared, omit size control and let the model use its built-in default.",
+      "aspect_presets_generic_fallback": {
+        "1:3": {
+          "width": 592,
+          "height": 1536
+        },
+        "1:2": {
+          "width": 720,
+          "height": 1456
+        },
+        "9:16": {
+          "width": 768,
+          "height": 1360
+        },
+        "10:16": {
+          "width": 816,
+          "height": 1296
+        },
+        "2:3": {
+          "width": 832,
+          "height": 1248
+        },
+        "3:4": {
+          "width": 880,
+          "height": 1184
+        },
+        "4:5": {
+          "width": 912,
+          "height": 1152
+        },
+        "3:1": {
+          "width": 1536,
+          "height": 592
+        },
+        "2:1": {
+          "width": 1456,
+          "height": 720
+        },
+        "16:9": {
+          "width": 1360,
+          "height": 768
+        },
+        "16:10": {
+          "width": 1296,
+          "height": 816
+        },
+        "3:2": {
+          "width": 1248,
+          "height": 832
+        },
+        "4:3": {
+          "width": 1184,
+          "height": 880
+        },
+        "5:4": {
+          "width": 1152,
+          "height": 912
+        },
+        "1:1": {
+          "width": 1024,
+          "height": 1024
+        },
+        "Custom": null,
+        "Auto": null
+      },
+      "params_always_injected_by_app": [
+        {
+          "name": "width",
+          "api_name": "width",
+          "type": "int",
+          "optional": true,
+          "provenance_cell": {
+            "provenance": "CODE",
+            "source": {
+              "url": null,
+              "ref": "engine/backends/replicate_api.py::_build_input -- sent unconditionally to every model as this app's own overlay, independent of Replicate's per-model schema (fetched live at call time and self-verifying, so not something this static file encodes)",
+              "retrieved_at": "2026-07-21"
+            }
+          }
+        },
+        {
+          "name": "height",
+          "api_name": "height",
+          "type": "int",
+          "optional": true,
+          "provenance_cell": {
+            "provenance": "CODE",
+            "source": {
+              "url": null,
+              "ref": "engine/backends/replicate_api.py::_build_input -- sent unconditionally to every model as this app's own overlay, independent of Replicate's per-model schema (fetched live at call time and self-verifying, so not something this static file encodes)",
+              "retrieved_at": "2026-07-21"
+            }
+          }
+        },
+        {
+          "name": "steps",
+          "api_name": "num_inference_steps",
+          "type": "int",
+          "default": 28,
+          "provenance_cell": {
+            "provenance": "CODE",
+            "source": {
+              "url": null,
+              "ref": "engine/backends/replicate_api.py::_build_input -- sent unconditionally to every model as this app's own overlay, independent of Replicate's per-model schema (fetched live at call time and self-verifying, so not something this static file encodes)",
+              "retrieved_at": "2026-07-21"
+            }
+          }
+        },
+        {
+          "name": "guidance_scale",
+          "api_name": "guidance_scale",
+          "type": "float",
+          "default": 7.5,
+          "note": "falls back to params['guidance'] if guidance_scale absent.",
+          "provenance_cell": {
+            "provenance": "CODE",
+            "source": {
+              "url": null,
+              "ref": "engine/backends/replicate_api.py::_build_input -- sent unconditionally to every model as this app's own overlay, independent of Replicate's per-model schema (fetched live at call time and self-verifying, so not something this static file encodes)",
+              "retrieved_at": "2026-07-21"
+            }
+          }
+        },
+        {
+          "name": "negative_prompt",
+          "api_name": "negative_prompt",
+          "type": "string",
+          "default": "",
+          "provenance_cell": {
+            "provenance": "CODE",
+            "source": {
+              "url": null,
+              "ref": "engine/backends/replicate_api.py::_build_input -- sent unconditionally to every model as this app's own overlay, independent of Replicate's per-model schema (fetched live at call time and self-verifying, so not something this static file encodes)",
+              "retrieved_at": "2026-07-21"
+            }
+          }
+        },
+        {
+          "name": "num_outputs",
+          "api_name": "num_outputs",
+          "type": "int",
+          "default": 1,
+          "provenance_cell": {
+            "provenance": "CODE",
+            "source": {
+              "url": null,
+              "ref": "engine/backends/replicate_api.py::_build_input -- sent unconditionally to every model as this app's own overlay, independent of Replicate's per-model schema (fetched live at call time and self-verifying, so not something this static file encodes)",
+              "retrieved_at": "2026-07-21"
+            }
+          }
+        },
+        {
+          "name": "seed",
+          "api_name": "seed",
+          "type": "int",
+          "optional": true,
+          "provenance_cell": {
+            "provenance": "CODE",
+            "source": {
+              "url": null,
+              "ref": "engine/backends/replicate_api.py::_build_input -- sent unconditionally to every model as this app's own overlay, independent of Replicate's per-model schema (fetched live at call time and self-verifying, so not something this static file encodes)",
+              "retrieved_at": "2026-07-21"
+            }
+          }
+        },
+        {
+          "name": "apply_watermark",
+          "api_name": "apply_watermark",
+          "type": "bool",
+          "default": false,
+          "note": "FLUX-family field; sent to every model regardless of whether its schema declares it.",
+          "provenance_cell": {
+            "provenance": "CODE",
+            "source": {
+              "url": null,
+              "ref": "engine/backends/replicate_api.py::_build_input -- sent unconditionally to every model as this app's own overlay, independent of Replicate's per-model schema (fetched live at call time and self-verifying, so not something this static file encodes)",
+              "retrieved_at": "2026-07-21"
+            }
+          }
+        },
+        {
+          "name": "disable_safety_checker",
+          "api_name": "disable_safety_checker",
+          "type": "bool",
+          "default": true,
+          "note": "sent to every model regardless of schema.",
+          "provenance_cell": {
+            "provenance": "CODE",
+            "source": {
+              "url": null,
+              "ref": "engine/backends/replicate_api.py::_build_input -- sent unconditionally to every model as this app's own overlay, independent of Replicate's per-model schema (fetched live at call time and self-verifying, so not something this static file encodes)",
+              "retrieved_at": "2026-07-21"
+            }
+          }
+        },
+        {
+          "name": "safety_tolerance",
+          "api_name": "safety_tolerance",
+          "type": "int",
+          "min": 1,
+          "max": 6,
+          "default": 6,
+          "note": "sent to every model regardless of schema.",
+          "provenance_cell": {
+            "provenance": "CODE",
+            "source": {
+              "url": null,
+              "ref": "engine/backends/replicate_api.py::_build_input -- sent unconditionally to every model as this app's own overlay, independent of Replicate's per-model schema (fetched live at call time and self-verifying, so not something this static file encodes)",
+              "retrieved_at": "2026-07-21"
+            }
+          }
+        }
+      ],
+      "risk_note": "apply_watermark / disable_safety_checker / safety_tolerance are sent UNCONDITIONALLY to every Replicate model, whether or not its own Input schema declares them. Cog-based Replicate models are generally tolerant of unknown extra input keys (ecosystem convention, not hard-documented) -- treated here as LOW-risk/UNVERIFIED, not a confirmed bug."
+    },
+    "fal": {
+      "size_mode": "mixed_per_model (already solved -- do not touch)",
+      "notes": "fal is the ONE provider where per-model param schemas are ALREADY correctly sourced live from fal's own model metadata into engine/fal_models.json (1322 models). Two size families observed: (a) image_size -- an enum PRESET (square_hd/square/portrait_4_3/portrait_16_9/landscape_4_3/landscape_16_9) that fal's own API accepts as EITHER the preset string OR an explicit {width,height} object OR auto -- bridge.py:_build_args already overrides it with {width,height} whenever the UI supplies both, which works correctly for this family; (b) aspect_ratio -- a literal ratio-STRING enum (e.g. nano-banana-2/-pro) whose values already match PRIME's preset naming almost exactly (fal adds auto + 4 extreme ratios 4:1/1:4/8:1/1:8 that gpt-image-2 doesn't have; nano-banana-pro's narrower 10-value set omits 16:10/10:16/1:3/3:1/1:2/2:1 -- for those the app should fall back to width/height override IF that same model also exposes width/height, else nearest-enum-match, else drop to 1:1).",
+      "aspect_presets_image_size_family": {
+        "1:3": {
+          "width": 592,
+          "height": 1776
+        },
+        "1:2": {
+          "width": 720,
+          "height": 1456
+        },
+        "9:16": {
+          "width": 768,
+          "height": 1360
+        },
+        "10:16": {
+          "width": 816,
+          "height": 1296
+        },
+        "2:3": {
+          "width": 832,
+          "height": 1248
+        },
+        "3:4": {
+          "width": 880,
+          "height": 1184
+        },
+        "4:5": {
+          "width": 912,
+          "height": 1152
+        },
+        "3:1": {
+          "width": 1776,
+          "height": 592
+        },
+        "2:1": {
+          "width": 1456,
+          "height": 720
+        },
+        "16:9": {
+          "width": 1360,
+          "height": 768
+        },
+        "16:10": {
+          "width": 1296,
+          "height": 816
+        },
+        "3:2": {
+          "width": 1248,
+          "height": 832
+        },
+        "4:3": {
+          "width": 1184,
+          "height": 880
+        },
+        "5:4": {
+          "width": 1152,
+          "height": 912
+        },
+        "1:1": {
+          "width": 1024,
+          "height": 1024
+        },
+        "Custom": null,
+        "Auto": null
+      },
+      "resolution_strategy_aspect_ratio_family": "pass the colon-form ratio string straight through if present in the model's declared enum; else nearest enum match; else fall back to (a) width/height override if the model also exposes width+height."
+    }
+  },
+  "provenance_legend": {
+    "DOC-RAW": "Raw provider spec text read directly (grepped .yaml/.json), not paraphrased.",
+    "DOC-SUMMARY": "A WebFetch/WebSearch AI-paraphrase of the provider's docs page -- single pass, not independently cross-checked.",
+    "PROBE": "A live HTTP response from this app confirming the field/shape is accepted; proves acceptance, not necessarily the default.",
+    "CODE": "Only ever seen in this app's own source (engine/backends/*.py, engine/service_params.json) -- no external confirmation.",
+    "UNVERIFIED": "None of the above; best-guess or unstated, flagged for a live probe before Phase 2 trusts it."
+  },
+  "provenance_cell_note": "Per-param 'provenance_cell' mechanically transcribed from the Source column in research/2026-07-21_provider-params-matrix.md -- no new research performed for this pass. 'default_provenance' is present only when a param's default value has weaker evidence than its range/enum (e.g. the range is doc-stated but the default is only ever seen in our own code)."
+}
