@@ -100,24 +100,45 @@ def _openapi_props_to_params(schema: dict, comps: dict) -> list:
     return out[:16]
 
 
-def _replicate_input_params(model_id: str) -> list:
-    """Fetch a Replicate model's live OpenAPI Input schema -> UI params[]. [] on any failure."""
+def _replicate_model_fetch(model_id: str) -> dict:
+    """The ONE raw GET /v1/models/{owner}/{name} — feeds both the live Input-param schema
+    (_replicate_input_params) and (P3) the model's own description/cover_image_url. {} on failure."""
     import urllib.request
     tok = os.environ.get("REPLICATE_API_TOKEN")
     if not tok or "/" not in (model_id or ""):
-        return []
+        return {}
     owner, rest = model_id.split("/", 1)
     name = rest.split(":")[0].split("/")[0]  # strip any :version or extra path
     try:
         req = urllib.request.Request(f"https://api.replicate.com/v1/models/{owner}/{name}",
                                      headers={"Authorization": f"Token {tok}"})
-        d = json.loads(urllib.request.urlopen(req, timeout=30).read())
+        return json.loads(urllib.request.urlopen(req, timeout=30).read())
     except Exception:
-        return []
+        return {}
+
+
+def _replicate_input_params(d: dict) -> list:
+    """OpenAPI Input schema properties -> UI params[], from an already-fetched model dict
+    (_replicate_model_fetch). [] if the schema is absent."""
     comps = (((d.get("latest_version") or {}).get("openapi_schema") or {})
              .get("components", {}).get("schemas", {}))
     schema = comps.get("Input") or {}
     return _openapi_props_to_params(schema, comps) if schema.get("properties") else []
+
+
+def _openrouter_model_meta(model_id: str) -> dict:
+    """P3 — OpenRouter's /v1/models list carries per-model descriptions. One small live fetch,
+    no key needed (the endpoint is public). {} on failure or if the id isn't found."""
+    import urllib.request
+    try:
+        d = json.loads(urllib.request.urlopen(
+            urllib.request.Request("https://openrouter.ai/api/v1/models"), timeout=20).read())
+    except Exception:
+        return {}
+    for m in (d.get("data") or []):
+        if m.get("id") == model_id:
+            return {"description": m.get("description")}
+    return {}
 
 
 def _app_version() -> str:
@@ -363,10 +384,20 @@ class Api:
         return records
 
     def model_schema(self, service: str, model_id: str) -> dict:
-        """Live per-model param schema for services that expose one (Replicate). {params:[]} otherwise."""
+        """Live per-model param schema for services that expose one (Replicate); P3 also carries
+        description/cover_image_url where the provider's own catalog exposes them (Replicate,
+        OpenRouter, Novita checkpoints) — the model-info panel's data source. {params:[]} otherwise."""
         try:
             if service == "replicate":
-                return {"params": _replicate_input_params(model_id)}
+                d = _replicate_model_fetch(model_id)
+                return {"params": _replicate_input_params(d),
+                        "description": d.get("description"), "cover_image_url": d.get("cover_image_url")}
+            if service == "openrouter":
+                return {"params": [], **_openrouter_model_meta(model_id)}
+            if service == "novita":
+                from engine.backends import novita_api
+                cover = novita_api.novita_model_covers().get(model_id)
+                return {"params": [], "cover_image_url": cover} if cover else {"params": []}
         except Exception:
             pass
         return {"params": []}
@@ -846,16 +877,42 @@ class Api:
                     return {"label": "balance n/a", "kind": "none"}
                 return {"label": f"${bal:.2f} {c.get('currency', 'USD')}",
                         "kind": "low" if bal < 2 else "ok"}
-            if service == "gemini":
-                return {"label": "free tier · daily quota", "kind": "info"}
+            # P2 (research/2026-07-21_provider-balance-apis.md) — genuinely no $-balance API exists
+            # for these; an honest "portal-only" chip beats a spinner that never resolves.
+            if service == "together":
+                return {"label": "portal-only · together.ai", "kind": "none"}
             if service == "replicate":
-                return {"label": "usage-based · no balance API", "kind": "info"}
-            if service == "huggingface":
-                return {"label": "free / PRO tier", "kind": "info"}
+                return {"label": "portal-only · replicate.com/account/billing", "kind": "none"}
             if service == "openai":
-                return {"label": "usage-based · platform.openai.com/usage", "kind": "info"}
+                return {"label": "portal-only · platform.openai.com/usage", "kind": "none"}
+            if service == "huggingface":
+                return {"label": "portal-only · huggingface.co/settings/billing", "kind": "none"}
             if service == "nvidia":
-                return {"label": "NIM credits · usage-based", "kind": "info"}
+                return {"label": "portal-only · build.nvidia.com", "kind": "none"}
+            # No metered-balance concept applies at all (subscription / free-tier / self-hosted).
+            if service == "gemini":
+                return {"label": "n/a · GCP-invoiced", "kind": "info"}
+            if service == "agnes":
+                return {"label": "n/a · free-tier gateway", "kind": "info"}
+            if service in ("ideogram", "ideogram-web"):
+                return {"label": "n/a · subscription", "kind": "info"}
+            if service == "cliproxy":
+                return {"label": "n/a · self-hosted gateway", "kind": "info"}
+            # P2 — runware's real accountManagement/getDetails balance (research-confirmed live,
+            # same shape dashboards_server.py's media-provider block already uses).
+            if service == "runware":
+                import uuid
+                key = os.environ.get("RUNWARE_API_KEY")
+                if not key:
+                    return {"label": "no key", "kind": "none"}
+                body = [{"taskType": "accountManagement", "operation": "getDetails",
+                         "taskUUID": str(uuid.uuid4())}]
+                req = urllib.request.Request(
+                    "https://api.runware.ai/v1", data=json.dumps(body).encode(),
+                    headers={"Authorization": f"Bearer {key}", "Content-Type": "application/json"})
+                d = json.loads(urllib.request.urlopen(req, timeout=15).read())
+                bal = float(((d.get("data") or [{}])[0] or {}).get("balance") or 0)
+                return {"label": f"${bal:.2f}", "kind": "low" if bal < 2 else "ok"}
             if service == "openrouter":
                 key = os.environ.get("OPENROUTER_API_KEY")
                 if not key:
@@ -879,12 +936,13 @@ class Api:
                 return {"label": f"${bal:.2f}", "kind": "low" if bal < 2 else "ok"}
         except Exception as e:
             return {"label": f"balance unavailable ({type(e).__name__})", "kind": "none"}
-        # Providers without a live balance API — consistent footer label from key presence (no more blanks).
-        _labels = {"together": "usage-based · together.ai", "runware": "usage-based · runware.ai",
-                   "cliproxy": "self-hosted gateway", "agnes": "usage-based · AGNES",
-                   "ideogram": "subscription", "ideogram-api": "usage-based", "civitai": "LoRA source"}
+        if service == "ideogram-api":
+            return {"label": "portal-only · ideogram.ai", "kind": "none"}
+        # Whatever's left (civitai — not a generation service, key-only) — consistent footer label
+        # from key presence (no more blanks).
         has_key = bool(self.keys_status.get(service))
-        return {"label": (_labels.get(service, "usage-based") if has_key else "no key"),
+        return {"label": ("LoRA source" if service == "civitai" and has_key else
+                          "usage-based" if has_key else "no key"),
                 "kind": "info" if has_key else "none"}
 
     def list_models(self, service: str) -> list:
