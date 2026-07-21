@@ -12,6 +12,15 @@ import urllib.request
 
 from PIL import Image
 
+# The real NIM ImageRequest schema (DOC-RAW, research/2026-07-21_provider-params-matrix.md §4) --
+# width AND height are independently constrained to this SAME 10-value enum, not a free range.
+_WH_ENUM = (768, 832, 896, 960, 1024, 1088, 1152, 1216, 1280, 1344)
+
+
+def _snap_wh(v) -> int:
+    v = int(v or 1024)
+    return min(_WH_ENUM, key=lambda e: abs(e - v))
+
 
 def generate(model_id: str, params: dict, progress=None, cancel_event=None) -> list:
     key = os.environ.get("NVIDIA_API_KEY")
@@ -20,18 +29,20 @@ def generate(model_id: str, params: dict, progress=None, cancel_event=None) -> l
     if not model_id:
         return ["NVIDIA Error: model not selected."]
 
+    cfg = float(params.get("guidance_scale", params.get("cfg_scale", 3.5)))
+    steps = int(params.get("num_inference_steps", params.get("steps", 25)))
     body = {
         "prompt": params.get("prompt", ""),
         "mode": "base",
-        "cfg_scale": float(params.get("guidance_scale", params.get("cfg_scale", 3.5))),
-        "width": int(params.get("width", 1024)),
-        "height": int(params.get("height", 1024)),
-        "steps": int(params.get("num_inference_steps", params.get("steps", 25))),
+        "cfg_scale": min(9.0, max(1.01, cfg)),   # real range (1.0, 9.0] exclusive-min — §14 cookbook
+        "width": _snap_wh(params.get("width", 1024)),
+        "height": _snap_wh(params.get("height", 1024)),
+        "steps": min(100, max(5, steps)),        # real range 5-100
     }
     if params.get("seed") is not None:
         body["seed"] = int(params["seed"])
-    if params.get("negative_prompt"):
-        body["negative_prompt"] = params["negative_prompt"]
+    # NEVER send negative_prompt — not in the ImageRequest schema for FLUX.1-dev/SD3.5-large
+    # (§14 cookbook Bug #2); the key must be absent, not null/empty.
 
     if progress:
         progress(f"NVIDIA {model_id} (may cold-start)…")

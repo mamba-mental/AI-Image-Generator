@@ -15,6 +15,8 @@ from io import BytesIO
 
 from PIL import Image
 
+from .openai_api import _size  # cliproxy is a pass-through to the same gpt-image family (§14 cookbook)
+
 _BASE = os.environ.get("CLIPROXY_BASE_URL", "http://192.168.86.191:8317/v1").rstrip("/")
 _API = _BASE + "/images/generations"
 
@@ -48,9 +50,7 @@ def generate(model_id, params, progress=None, cancel_event=None) -> list:
         return ["cliproxy Error: prompt required."]
 
     body = {"model": model_id, "prompt": prompt, "n": int(params.get("num_outputs", 1) or 1)}
-    size = params.get("size")
-    if not size and params.get("width") and params.get("height"):
-        size = f"{params['width']}x{params['height']}"
+    size = _size(params, model_id)  # snap to the 3 legal gpt-image enums before send (§14 Bug #1)
     if size:
         body["size"] = size
     for opt in ("quality", "background", "output_format"):

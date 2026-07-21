@@ -40,6 +40,24 @@ def novita_model_apis() -> list:
     return sorted(MODEL_APIS.keys())
 
 
+def novita_model_covers(limit: int = 100) -> dict:
+    """P3 — {sd_name: cover_url} for the checkpoint catalog's model-info panel. A SEPARATE, small,
+    additive lookup (not a change to `novita_models()`'s dropdown contract, which stays a flat
+    name list everywhere else). {} without a key or on any failure."""
+    import urllib.request
+    key = os.environ.get("NOVITA_API_KEY")
+    if not key:
+        return {}
+    try:
+        u = f"https://api.novita.ai/v3/model?type=checkpoint&pagination.limit={int(limit)}"
+        req = urllib.request.Request(u, headers={"Authorization": f"Bearer {key}"})
+        d = json.loads(urllib.request.urlopen(req, timeout=20).read())
+        return {(m.get("sd_name") or m.get("name")): m.get("cover_url")
+                for m in (d.get("models") or []) if (m.get("sd_name") or m.get("name")) and m.get("cover_url")}
+    except Exception:
+        return {}
+
+
 def _post(url, body, key, timeout):
     req = urllib.request.Request(url, data=json.dumps(body).encode(), method="POST",
                                  headers={"Authorization": f"Bearer {key}", "Content-Type": "application/json"})
@@ -156,7 +174,7 @@ def _build_body(model_id, params):
         "height": int(params.get("height", 1024) or 1024),
         "image_num": int(params.get("num_outputs", 1) or 1),
         "steps": int(params.get("steps", 25) or 25),
-        "guidance_scale": float(params.get("guidance_scale", 7.0) or 7.0),
+        "guidance_scale": max(1.0, float(params.get("guidance_scale", 7.0) or 7.0)),  # real floor is 1, not 0
         "sampler_name": params.get("sampler_name", "Euler a"),
         "seed": int(params.get("seed", -1) or -1),
     }
