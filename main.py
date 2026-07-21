@@ -60,7 +60,13 @@ def main():
     if smoke:
         webview.start(_smoke, (window, api))
     else:
-        webview.start()
+        # Window / taskbar icon (ai-studio-void.ico at project root). icon= lands in pywebview 5.x;
+        # fall back for older builds so a version mismatch never blocks startup.
+        icon = engine_config.resource_path("ai-studio-void.ico")
+        try:
+            webview.start(icon=str(icon))
+        except TypeError:
+            webview.start()
 
 
 if __name__ == "__main__":
