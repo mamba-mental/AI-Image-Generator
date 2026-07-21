@@ -154,9 +154,12 @@ class Api:
                 # community checkpoints). checkNSFW is opt-in → uncensored on open weights.
                 "runware": self.config.get("recent_models_runware", []) or [
                     "runware:100@1", "runware:101@1"],
-                # Novita — catalog model_name strings (NOT urls); async txt2img, NSFW opt-in.
+                # Novita — REAL catalog checkpoint names (from GET /v3/model?type=checkpoint; NOT urls).
+                # Community NSFW-capable photoreal + anime; Novita doesn't force moderation. Browse more
+                # at novita.ai/models. epicrealism confirmed generating 2026-07-20.
                 "novita": self.config.get("recent_models_novita", []) or [
-                    "sd_xl_base_1.0", "realisticVisionV51_v51VAE.safetensors", "dreamshaper_8_93211.safetensors"],
+                    "epicrealism_naturalSinRC1VAE_106430.safetensors", "epicphotogasm_xPlusPlus_135412.safetensors",
+                    "realisticAfmix_realisticAfmix_75178.safetensors", "revAnimated_v122.safetensors"],
                 # E1 — cliproxy image models routable via /v1/images/generations (verified live)
                 "cliproxy": self.config.get("recent_models_cliproxy", []) or [
                     "gpt-image-2", "gpt-image-1.5", "grok-imagine-image"],
