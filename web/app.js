@@ -41,10 +41,10 @@ const state = {
   service: "fal", category: "text-to-image", model: null,
   inputFiles: {}, job: null, gallery: [], selected: null,
   genCount: 0, loras: {}, mediaBase: "", outDirName: "generated_images",
-  view: "session", grid: "m", lbFile: null, lbDir: "", lbTags: [], lbList: null, lbIndex: -1, contentMode: "safe", verifiedOnly: false,
+  view: "session", grid: "m", lbFile: null, lbDir: "", lbTags: [], lbList: null, lbIndex: -1, lbMeta: null, contentMode: "safe", verifiedOnly: false,
   contentGrades: {}, aspectPreset: "Custom", modelMeta: {},
   novitaCovers: {}, openrouterDescriptions: {}, sweepThumbs: {},
-  libRecords: [], libFiltered: [], libraryDirs: [], libFilter: { folder: "", service: "", type: "", q: "", tags: [] },
+  libRecords: [], libFiltered: [], libraryDirs: [], libFilter: { folder: "", service: "", type: "", q: "", tags: [], favoritesOnly: false },
   libTileEls: null,   // Map<rkey, tileEl> for the library grid — built ONCE per record set, never
                        // rebuilt on filter (perf fix, see buildLibTiles/syncLibTileVisibility below)
 };
@@ -965,19 +965,21 @@ $("recipeApplyBtn") && $("recipeApplyBtn").addEventListener("click", () => {
   const r = (state.recipes || []).find(x => String(x.id) === $("recipeSel").value);
   if (r) applyPresetToComposer("Recipe", r);
 });
-$("saveStyleBtn") && $("saveStyleBtn").addEventListener("click", async () => {
+// Factored out of the click handlers so R3 #3's lightbox "save as Style/Recipe from this image"
+// buttons can share the exact same save flow, seeded from a different `source` object.
+async function saveStylePreset(source) {
   const name = prompt("Name this Style:"); if (!name) return;
-  const c = currentComposerState();
-  const r = await api().save_style({ name, negative: c.negative_prompt, prompt_template: "", params: c.params, model: "" });
+  const r = await api().save_style({ name, negative: source.negative_prompt, prompt_template: "", params: source.params, model: "" });
   if (r && r.ok) { await loadPresets(false); $("statusmsg").textContent = `Style "${name}" saved.`; }
-});
-$("saveRecipeBtn") && $("saveRecipeBtn").addEventListener("click", async () => {
+}
+async function saveRecipePreset(source) {
   const name = prompt("Name this Recipe:"); if (!name) return;
-  const c = currentComposerState();
-  const r = await api().save_recipe({ name, provider: c.provider, model: c.model, seed: c.params.seed || "",
-    prompt: c.prompt, negative: c.negative_prompt, params: c.params });
+  const r = await api().save_recipe({ name, provider: source.provider, model: source.model, seed: (source.params || {}).seed || "",
+    prompt: source.prompt, negative: source.negative_prompt, params: source.params });
   if (r && r.ok) { await loadPresets(false); $("statusmsg").textContent = `Recipe "${name}" saved.`; }
-});
+}
+$("saveStyleBtn") && $("saveStyleBtn").addEventListener("click", () => saveStylePreset(currentComposerState()));
+$("saveRecipeBtn") && $("saveRecipeBtn").addEventListener("click", () => saveRecipePreset(currentComposerState()));
 
 // ---- Settings > Presets manager (AC-4.5: list, rename, delete, set-default) ----
 function renderPresetsManager() {
@@ -1115,10 +1117,13 @@ async function openLightbox(file, dir, list) {
   try {
     const [m, t] = await Promise.all([api().read_meta(file), api().get_image_tags(file, state.lbDir)]);
     state.lbTags = (t && t.tags) || [];
+    state.lbMeta = m;   // R3 #3 — source data for "save as Style/Recipe from this image"
     $("lbside").innerHTML = renderMeta(m, file);
     wireTagEditor();
+    syncLbFavStarButton();
   } catch (e) {
     $("lbside").innerHTML = `<div class="lbm-title">Metadata <em>unavailable</em></div>`;
+    state.lbMeta = null;
   }
 }
 function renderMeta(m, file) {
@@ -1186,16 +1191,71 @@ function repaintLbTags() {
 function syncLbTagsToLibRecord() {
   const name = (state.lbFile || "").split(/[\\/]/).pop();
   for (const r of state.libRecords) {
-    if (r.file === name && (!state.lbDir || r.dir === state.lbDir)) r.tags = state.lbTags.slice();
+    if (r.file === name && (!state.lbDir || r.dir === state.lbDir)) { r.tags = state.lbTags.slice(); refreshTileFavStar(r); }
   }
   if (state.view === "library") applyLibFilter();
 }
-function closeLightbox() { $("lightbox").hidden = true; state.lbFile = null; state.lbDir = ""; state.lbTags = []; $("lbmedia").innerHTML = ""; }
+
+/* ---------- R3 #3 — favorites (just the "favorite" tag, riding the existing tag store) ---------- */
+function applyFavStarState(star, isFav) {
+  star.classList.toggle("on", isFav);
+  star.textContent = isFav ? "★" : "☆";
+  star.style.color = isFav ? "#ffd54a" : "#fff";
+  star.title = isFav ? "remove favorite" : "mark as favorite";
+}
+// Refreshes the already-built library tile's star (tiles are built ONCE per R3 #1 — never
+// rebuilt on a tag change, so a direct DOM update is how this stays in sync).
+function refreshTileFavStar(r) {
+  const el = state.libTileEls && state.libTileEls.get(libKey(r));
+  const star = el && el.querySelector("[data-fav]");
+  if (star) applyFavStarState(star, (r.tags || []).includes("favorite"));
+}
+// Tile-star toggle: works even when the lightbox isn't open for this image. Mirrors addLbTag/
+// removeLbTag's bridge calls but targets an arbitrary (file, dir) instead of the open lightbox —
+// and if that SAME image happens to be open in the lightbox right now, keeps it in sync too.
+async function toggleTileFavorite(r) {
+  const has = (r.tags || []).includes("favorite");
+  try {
+    const res = await (has ? api().remove_tag(r.file, "favorite", r.dir) : api().add_tag(r.file, "favorite", r.dir));
+    if (!res || !res.ok) return;
+    r.tags = res.tags;
+    refreshTileFavStar(r);
+    if (state.libFilter.favoritesOnly) applyLibFilter();
+    if (state.lbFile && state.lbFile.split(/[\\/]/).pop() === r.file.split(/[\\/]/).pop() && (state.lbDir || "") === (r.dir || "")) {
+      state.lbTags = res.tags.slice();
+      repaintLbTags();
+      syncLbFavStarButton();
+    }
+  } catch (e) {}
+}
+function syncLbFavStarButton() {
+  const btn = $("lbfav"); if (!btn) return;
+  const isFav = (state.lbTags || []).includes("favorite");
+  btn.classList.toggle("on", isFav);
+  btn.textContent = isFav ? "★ favorited" : "☆ favorite";
+}
+function closeLightbox() { $("lightbox").hidden = true; state.lbFile = null; state.lbDir = ""; state.lbTags = []; state.lbMeta = null; $("lbmedia").innerHTML = ""; }
 $("lbclose").addEventListener("click", closeLightbox);
 $("lightbox").addEventListener("click", e => { if (e.target.id === "lightbox") closeLightbox(); });
 $("lbedit").addEventListener("click", () => { if (state.lbFile) api().open_in_editor(state.lbFile); });
 $("lbfolder").addEventListener("click", () => api().open_output_folder());
 $("lbsave").addEventListener("click", () => { if (state.lbFile) api().save_as(state.lbFile); });
+// R3 #3 — lightbox favorite star: same "favorite" tag, via the existing addLbTag/removeLbTag path.
+$("lbfav") && $("lbfav").addEventListener("click", async () => {
+  const has = (state.lbTags || []).includes("favorite");
+  await (has ? removeLbTag("favorite") : addLbTag("favorite"));
+  syncLbFavStarButton();
+});
+// R3 #3 — "save as Style/Recipe from this image" (prefills from state.lbMeta — the metadata this
+// lightbox already fetched — instead of the live composer). Same underlying save flow as
+// saveStyleBtn/saveRecipeBtn below, factored out so both surfaces share one implementation.
+function presetSourceFromLightboxImage() {
+  const m = state.lbMeta || {};
+  const params = Object.assign({}, m.params || {});
+  return { prompt: m.prompt || "", negative_prompt: params.negative_prompt || "", model: m.model || "", provider: m.service || "", params };
+}
+$("lbsavestyle") && $("lbsavestyle").addEventListener("click", () => saveStylePreset(presetSourceFromLightboxImage()));
+$("lbsaverecipe") && $("lbsaverecipe").addEventListener("click", () => saveRecipePreset(presetSourceFromLightboxImage()));
 // #3 — img->prompt: detect the original prompt or analyze the image, then seed the prompt box
 $("lbanalyze").addEventListener("click", async () => {
   if (!state.lbFile) return;
@@ -1334,10 +1394,12 @@ function applyLibFilter() {
   const svc = $("libsvc") ? $("libsvc").value : "";
   const type = $("libtype") ? $("libtype").value : "";
   const activeTags = state.libFilter.tags || [];
+  const favOnly = !!state.libFilter.favoritesOnly;   // R3 #3 — favorites filter chip
   state.libFiltered = state.libRecords.filter(r =>
     (!folder || r.dir === folder) &&
     (!svc || (r.service || "") === svc) &&
     (!type || (r.type || "image") === type) &&
+    (!favOnly || (r.tags || []).includes("favorite")) &&
     (!q || `${r.prompt || ""} ${r.model || ""} ${r.file}`.toLowerCase().includes(q)) &&
     activeTags.every(t => (r.tags || []).includes(t)));           // AC-8.3 — multi-tag = AND
   const cnt = $("libcount");
@@ -1354,10 +1416,14 @@ function renderLibTagChips() {
   for (const r of state.libFiltered) for (const t of (r.tags || [])) freq.set(t, (freq.get(t) || 0) + 1);
   const chips = [...freq.entries()].sort((a, b) => b[1] - a[1] || a[0].localeCompare(b[0])).slice(0, 40);
   const active = state.libFilter.tags || [];
-  box.innerHTML = chips.length
-    ? chips.map(([t, n]) => `<button class="tagchip filterchip ${active.includes(t) ? "on" : ""}" data-tag="${escapeHtml(t)}">${escapeHtml(t)} <em>${n}</em></button>`).join("")
-      + (active.length ? `<button class="tagchip clearchip" id="libtagsclear">clear tags ✕</button>` : "")
-    : `<span class="tagchip-empty">no tags in view</span>`;
+  const favOn = !!state.libFilter.favoritesOnly;   // R3 #3 — dedicated chip, same tagchip look, no new CSS
+  box.innerHTML =
+    `<button class="tagchip filterchip favfilter ${favOn ? "on" : ""}" id="libfavfilter" title="show only favorites">${favOn ? "★" : "☆"} favorites</button>`
+    + (chips.length
+      ? chips.map(([t, n]) => `<button class="tagchip filterchip ${active.includes(t) ? "on" : ""}" data-tag="${escapeHtml(t)}">${escapeHtml(t)} <em>${n}</em></button>`).join("")
+        + (active.length ? `<button class="tagchip clearchip" id="libtagsclear">clear tags ✕</button>` : "")
+      : `<span class="tagchip-empty">no tags in view</span>`);
+  $("libfavfilter").addEventListener("click", () => { state.libFilter.favoritesOnly = !state.libFilter.favoritesOnly; applyLibFilter(); });
   box.querySelectorAll("[data-tag]").forEach(b => b.addEventListener("click", () => {
     const t = b.dataset.tag;
     const i = state.libFilter.tags.indexOf(t);
@@ -1398,8 +1464,18 @@ function buildLibTile(r) {
     <div class="wmeta"><b>${escapeHtml(r.service || r.file.split(".").pop())}</b><span data-open="1">open folder</span></div>
     ${r.prompt ? `<div class="wprompt" title="${escapeHtml(r.prompt)}">${escapeHtml(r.prompt.slice(0, 140))}</div>` : ""}`;
   el.querySelector("[data-open]").addEventListener("click", (e) => { e.stopPropagation(); api().open_output_folder(); });
+  // R3 #3 — favorite star: always-visible overlay (unlike .wmeta, which is hover-only), so a
+  // favorited tile is spottable while scrolling. Inline-styled — app.css is Agent 2's file
+  // (see BATCH-TRACKER-R3.md for the flagged follow-up).
+  const star = document.createElement("button");
+  star.className = "favstar"; star.dataset.fav = "1";
+  star.style.cssText = "position:absolute;top:6px;right:6px;z-index:2;border:none;border-radius:50%;"
+    + "width:24px;height:24px;background:rgba(0,0,0,.55);font-size:13px;cursor:pointer;line-height:1;";
+  applyFavStarState(star, (r.tags || []).includes("favorite"));
+  star.addEventListener("click", e => { e.stopPropagation(); toggleTileFavorite(r); });
+  el.prepend(star);
   el.addEventListener("click", e => {
-    if (e.target.closest("[data-open]")) return;
+    if (e.target.closest("[data-open]") || e.target.closest("[data-fav]")) return;
     openLightbox(r.file, r.dir, state.libFiltered);   // #7 lightbox — nav list = current filtered/displayed order
   });
   return el;
