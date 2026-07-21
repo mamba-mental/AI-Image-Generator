@@ -60,6 +60,14 @@ def _api(token, path, method="GET", payload=None):
     return json.loads(urllib.request.urlopen(req, timeout=120).read())
 
 
+def balance() -> dict:
+    """No $-balance concept — this backend spends PRIME's Ideogram Plus **subscription**
+    via the logged-in web session (priority-credit allotment, not a prepaid metered
+    wallet). See module docstring for why this is deliberately separate from the
+    `ideogram-api` prepaid-balance backend."""
+    return {"label": "n/a · subscription (ideogram.ai)", "kind": "info"}
+
+
 def _download_image(response_id):
     url = f"{_BASE}/assets/image/balanced/response/{response_id}@2k"
     req = urllib.request.Request(url, headers=_WEB)

@@ -22,6 +22,14 @@ def _snap_wh(v) -> int:
     return min(_WH_ENUM, key=lambda e: abs(e - v))
 
 
+def balance() -> dict:
+    """No $-balance API exists on integrate.api.nvidia.com or ai.api.nvidia.com — probed
+    2026-07-21 (research/2026-07-21_provider-balance-apis.md): /v1/models 200s (key valid)
+    but no credits/balance field or endpoint anywhere. Credits are tracked only at
+    build.nvidia.com. Portal-only by design, not an engineering gap."""
+    return {"label": "portal-only · build.nvidia.com", "kind": "none"}
+
+
 def generate(model_id: str, params: dict, progress=None, cancel_event=None) -> list:
     key = os.environ.get("NVIDIA_API_KEY")
     if not key:

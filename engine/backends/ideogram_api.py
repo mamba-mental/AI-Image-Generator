@@ -52,6 +52,18 @@ def _speed(model_id: str) -> str:
     return "DEFAULT"
 
 
+def balance() -> dict:
+    """No $-balance API on Ideogram's public REST — prepaid balance is dashboard-only
+    (ideogram.ai billing page). SEPARATELY: the configured `ideogram_api_key` is currently
+    REJECTED — live-probed 2026-07-21 with the exact multipart shape this module sends,
+    HTTP 401 "Access denied. Please verify your API Token is valid." (previously a 402
+    valid-key-empty-balance per project history — the key was rotated/revoked since).
+    Flagged for PRIME to reissue; this backend isn't in the app's dropdown (see
+    engine/backends/__init__.py — `ideogram` routes to the working ideogram_web_api
+    subscription path instead)."""
+    return {"label": "portal-only · key rejected (401) — reissue", "kind": "none"}
+
+
 def generate(model_id, params, progress=None, cancel_event=None) -> list:
     key = os.environ.get("IDEOGRAM_API_KEY")
     if not key:

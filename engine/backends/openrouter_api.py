@@ -94,6 +94,27 @@ def _size_fields(params: dict) -> dict:
     return f
 
 
+def balance() -> dict:
+    """Real $-balance via GET /v1/credits (total_credits - total_usage) — live-verified
+    2026-07-21, HTTP 200, computes a genuine remaining-$ figure. Preferred over /v1/key
+    (also live/200 but `limit` is null for this key -> only reports raw usage, no $-left).
+    Reads the CURRENTLY-active pooled key (env, mirrored by keypool on rotation)."""
+    key = os.environ.get("OPENROUTER_API_KEY")
+    if not key:
+        return {"label": "no key", "kind": "none"}
+    req = urllib.request.Request("https://openrouter.ai/api/v1/credits",
+                                 headers={"Authorization": f"Bearer {key}"})
+    try:
+        d = json.loads(urllib.request.urlopen(req, timeout=15).read()).get("data", {})
+    except Exception as e:
+        return {"label": f"balance unavailable ({type(e).__name__})", "kind": "none"}
+    total, used = d.get("total_credits"), d.get("total_usage")
+    if total is None:
+        return {"label": f"${used or 0:.2f} used · no cap", "kind": "info"}
+    left = max(0.0, float(total) - float(used or 0))
+    return {"label": f"${left:.2f} left", "kind": "low" if left < 2 else "ok"}
+
+
 def generate(model_id, params, progress=None, cancel_event=None) -> list:
     key = os.environ.get("OPENROUTER_API_KEY")
     if not key:

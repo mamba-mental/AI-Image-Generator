@@ -8,6 +8,21 @@ import traceback
 import replicate
 
 
+def balance() -> dict:
+    """No $-balance API exists on Replicate. Live-probed 2026-07-21: GET /v1/account
+    returns only {type, username, name, avatar_url, github_url} — no credit/spend field.
+    /v1/account/billing, /v1/billing, /v1/account/spend, /v1/account/usage all 404.
+    Confirmed by Replicate's own docs (replicate.com/docs/topics/billing): balance is
+    dashboard-only, no read API. Portal-only by design, not an engineering gap.
+
+    Gotcha for any future live-key probe of api.replicate.com: it sits behind Cloudflare
+    bot-protection. A plain urllib request with the default User-Agent gets blocked with
+    a Cloudflare "error code: 1010" HTTP 403 that LOOKS like a rejected key but isn't —
+    send a browser User-Agent (see bridge.py's `together`/`civitai` probes for the
+    pattern) or the key will false-negative as invalid."""
+    return {"label": "portal-only · replicate.com/account/billing", "kind": "none"}
+
+
 def _build_input(params: dict, model_id: str = "") -> dict:
     input_params = {
         "prompt": params.get("prompt", ""),
