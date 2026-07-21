@@ -27,6 +27,18 @@ def _load_service_params() -> dict:
     return {}
 
 
+def _load_novita_model_apis() -> list:
+    from engine.backends import novita_api
+    return novita_api.novita_model_apis()
+
+
+# The dropdown-visible services (mirrors SVC_LABELS/state.services in app.js) — get_state() and
+# _accessible_models() share this ONE list so Ask-AI can never ground on a service PRIME can't
+# actually pick (civitai/ideogram-api are key-only, not generation services in the dropdown).
+SERVICES = ["fal", "openai", "nvidia", "replicate", "huggingface", "gemini",
+            "openrouter", "together", "runware", "novita", "cliproxy", "ideogram", "agnes"]
+
+
 def _load_content_grades() -> dict:
     """Spec B §3 — the NSFW sweep's evidence, wired into per-model content grading for EVERY
     provider (not just fal). `engine/nsfw_capability.json` v2 carries the empirical evidence rows
@@ -146,10 +158,49 @@ class Api:
 
     # ---- state ----
 
+    def _recent_models_map(self) -> dict:
+        """The per-service recent/seed model list (config override, else the labelled offline
+        seed) — shared by get_state() (dropdown) and _accessible_models() (Ask-AI grounding), so
+        the two can never drift apart."""
+        return {
+            "replicate": self.config.get("recent_models_replicate", []),
+            "huggingface": self.config.get("recent_models_hf", []),
+            "gemini": self.config.get("recent_models_gemini", []),
+            "fal": self.config.get("recent_models_fal", []),
+            "openai": self.config.get("recent_models_openai", []),
+            "nvidia": self.config.get("recent_models_nvidia", []),
+            # #11 — seed OpenRouter's image-output models (verified via openrouter.ai/api/v1/models)
+            "openrouter": self.config.get("recent_models_openrouter", []) or [
+                "google/gemini-3-pro-image", "google/gemini-3.1-flash-image",
+                "google/gemini-2.5-flash-image", "openai/gpt-5-image"],
+            # E3 — Together.ai serverless image models (verified live on /v1/images/generations)
+            "together": self.config.get("recent_models_together", []) or [
+                "black-forest-labs/FLUX.1-schnell", "black-forest-labs/FLUX.1-dev",
+                "black-forest-labs/FLUX.1-dev-lora", "black-forest-labs/FLUX.1.1-pro"],
+            # Runware — AIR model ids (runware:<id>@<ver> base, or civitai:<id>@<ver> for NSFW
+            # community checkpoints). checkNSFW is opt-in → uncensored on open weights.
+            "runware": self.config.get("recent_models_runware", []) or [
+                "runware:100@1", "runware:101@1"],
+            # Novita — REAL catalog checkpoint names (from GET /v3/model?type=checkpoint; NOT urls).
+            # Community NSFW-capable photoreal + anime; Novita doesn't force moderation. Browse more
+            # at novita.ai/models. epicrealism confirmed generating 2026-07-20.
+            "novita": self.config.get("recent_models_novita", []) or [
+                "epicrealism_naturalSinRC1VAE_106430.safetensors", "epicphotogasm_xPlusPlus_135412.safetensors",
+                "realisticAfmix_realisticAfmix_75178.safetensors", "revAnimated_v122.safetensors"],
+            # E1 — cliproxy image models routable via /v1/images/generations (verified live)
+            "cliproxy": self.config.get("recent_models_cliproxy", []) or [
+                "gpt-image-2", "gpt-image-1.5", "grok-imagine-image"],
+            # Ideogram = Plus subscription via web session; model auto-selected server-side
+            "ideogram": self.config.get("recent_models_ideogram", []) or ["auto"],
+            # AGNES-AI (Sapiens) — image via /v1/images/generations; video via async /v1/videos
+            # (create → poll GET /agnesapi?video_id). All verified live 2026-07-20.
+            "agnes": self.config.get("recent_models_agnes", []) or [
+                "agnes-image-2.1-flash", "agnes-image-2.0-flash", "agnes-video-v2.0"],
+        }
+
     def get_state(self) -> dict:
         return {
-            "services": ["fal", "openai", "nvidia", "replicate", "huggingface", "gemini",
-                         "openrouter", "together", "runware", "novita", "cliproxy", "ideogram", "agnes"],
+            "services": SERVICES,
             "active_service": self.config.get("service", "fal"),
             "config": {k: v for k, v in self.config.items()
                        if k not in ("replicate_api_key", "huggingface_token",
@@ -157,41 +208,11 @@ class Api:
             "fal_models": _load_fal_models(),
             "service_params": _load_service_params(),
             "content_grades": _load_content_grades(),  # Spec B §3 — sweep evidence, every provider
-            "recent_models": {
-                "replicate": self.config.get("recent_models_replicate", []),
-                "huggingface": self.config.get("recent_models_hf", []),
-                "gemini": self.config.get("recent_models_gemini", []),
-                "fal": self.config.get("recent_models_fal", []),
-                "openai": self.config.get("recent_models_openai", []),
-                "nvidia": self.config.get("recent_models_nvidia", []),
-                # #11 — seed OpenRouter's image-output models (verified via openrouter.ai/api/v1/models)
-                "openrouter": self.config.get("recent_models_openrouter", []) or [
-                    "google/gemini-3-pro-image", "google/gemini-3.1-flash-image",
-                    "google/gemini-2.5-flash-image", "openai/gpt-5-image"],
-                # E3 — Together.ai serverless image models (verified live on /v1/images/generations)
-                "together": self.config.get("recent_models_together", []) or [
-                    "black-forest-labs/FLUX.1-schnell", "black-forest-labs/FLUX.1-dev",
-                    "black-forest-labs/FLUX.1-dev-lora", "black-forest-labs/FLUX.1.1-pro"],
-                # Runware — AIR model ids (runware:<id>@<ver> base, or civitai:<id>@<ver> for NSFW
-                # community checkpoints). checkNSFW is opt-in → uncensored on open weights.
-                "runware": self.config.get("recent_models_runware", []) or [
-                    "runware:100@1", "runware:101@1"],
-                # Novita — REAL catalog checkpoint names (from GET /v3/model?type=checkpoint; NOT urls).
-                # Community NSFW-capable photoreal + anime; Novita doesn't force moderation. Browse more
-                # at novita.ai/models. epicrealism confirmed generating 2026-07-20.
-                "novita": self.config.get("recent_models_novita", []) or [
-                    "epicrealism_naturalSinRC1VAE_106430.safetensors", "epicphotogasm_xPlusPlus_135412.safetensors",
-                    "realisticAfmix_realisticAfmix_75178.safetensors", "revAnimated_v122.safetensors"],
-                # E1 — cliproxy image models routable via /v1/images/generations (verified live)
-                "cliproxy": self.config.get("recent_models_cliproxy", []) or [
-                    "gpt-image-2", "gpt-image-1.5", "grok-imagine-image"],
-                # Ideogram = Plus subscription via web session; model auto-selected server-side
-                "ideogram": self.config.get("recent_models_ideogram", []) or ["auto"],
-                # AGNES-AI (Sapiens) — image via /v1/images/generations; video via async /v1/videos
-                # (create → poll GET /agnesapi?video_id). All verified live 2026-07-20.
-                "agnes": self.config.get("recent_models_agnes", []) or [
-                    "agnes-image-2.1-flash", "agnes-image-2.0-flash", "agnes-video-v2.0"],
-            },
+            "recent_models": self._recent_models_map(),
+            # E2 — Novita's modern "Model APIs" (Seedream/Qwen-Image/Z-Image-Turbo). No list
+            # endpoint exists for these (Spec B AC-1.7) → the sanctioned offline seed from
+            # engine/backends/novita_api.MODEL_APIS, surfaced as its own dropdown group.
+            "novita_model_apis": _load_novita_model_apis(),
             "recent_prompts": self.config.get("recent_prompts", []),
             "loras": {s: m.get_loras() for s, m in self.lora_managers.items()},
             "keys_status": self.keys_status,
@@ -211,6 +232,72 @@ class Api:
         """#13 — how many keys are pooled per service (for the settings UI)."""
         from engine import keypool
         return {s: keypool.size(s) for s in engine_config.KEY_FIELDS}
+
+    def _accessible_models(self) -> list:
+        """§4 AC-4.2 — every model across providers PRIME can ACTUALLY reach (a resolved key),
+        server-side mirror of app.js's accessibleModels(). Shares the exact sources get_state()
+        feeds the dropdown (fal catalog, per-service recent/seed list, Novita's Model-APIs seed)
+        so suggest_model() can never ground an answer in something behind a missing key."""
+        from engine.backends import novita_api
+        recent = self._recent_models_map()
+        out = []
+        for svc in SERVICES:
+            if not self.keys_status.get(svc):
+                continue
+            if svc == "fal":
+                models = [{"id": m["id"], "label": m.get("label", m["id"])}
+                          for m in _load_fal_models() if m.get("category") == "text-to-image"]
+            elif svc == "novita":
+                models = [{"id": mid, "label": mid} for mid in (recent.get(svc) or [])] + \
+                         [{"id": mid, "label": mid} for mid in novita_api.novita_model_apis()]
+            else:
+                models = [{"id": mid, "label": mid} for mid in (recent.get(svc) or [])]
+            out.extend({"id": m["id"], "label": m["label"], "service": svc} for m in models)
+        return out
+
+    def suggest_model(self, query: str) -> dict:
+        """§4 AC-4.2/4.3 — the Ask-AI model reply. Grounds the answer ONLY in models PRIME can
+        actually reach (_accessible_models — keyed providers only) plus their content grade and
+        the active Content Mode, via a compact system prompt to cliproxy's chat/completions.
+        The reply is hard-filtered afterward so an id outside the accessible set can never render
+        — a guard against hallucination, not a courtesy (AC-4.2)."""
+        import urllib.error
+        import urllib.request
+        query = (query or "").strip()
+        if not query:
+            return {"ok": False, "error": "empty query"}
+        accessible = self._accessible_models()
+        if not accessible:
+            return {"ok": False, "error": "no accessible models — add a provider key in Settings first"}
+        key = (os.environ.get("CLIPROXY_API_KEY") or "").strip().strip("'\"")  # wrapping-quote bug guard
+        if not key:
+            return {"ok": False, "error": "cliproxy unreachable — CLIPROXY_API_KEY not configured"}
+        base = os.environ.get("CLIPROXY_BASE_URL", "http://192.168.86.191:8317/v1").rstrip("/")
+        grades = _load_content_grades().get("models", {})
+        mode = self.config.get("ui_content_mode", "safe")
+        lines = []
+        for m in accessible[:400]:  # keep the prompt bounded even with fal's ~1300-row catalog in scope
+            gid = f"{m['service']}:{m['id']}"
+            lines.append(f"{gid} (grade={grades.get(gid, {}).get('grade', 'untested')})")
+        system = (
+            "You are the model picker for an image/video generation app. Recommend ONLY from the "
+            "ACCESSIBLE MODELS list below (service:id) — never invent or suggest an id that isn't "
+            f"listed. Active content mode: {mode}. Reply with up to 3 picks, one per line: "
+            "`model id · provider · one-line why`.\n\nACCESSIBLE MODELS:\n" + "\n".join(lines)
+        )
+        body = {"model": os.environ.get("MODEL_SUGGEST_MODEL", "gpt-5.5"),
+                "messages": [{"role": "system", "content": system}, {"role": "user", "content": query}],
+                "max_tokens": 400}
+        req = urllib.request.Request(
+            base + "/chat/completions", data=json.dumps(body).encode(),
+            headers={"Authorization": f"Bearer {key}", "Content-Type": "application/json"})
+        try:
+            d = json.loads(urllib.request.urlopen(req, timeout=30).read())
+            text = d["choices"][0]["message"]["content"]
+        except Exception as e:
+            return {"ok": False, "error": f"cliproxy unreachable ({type(e).__name__})"}
+        picks = [m for m in accessible if m["id"] in text][:3]  # AC-4.2 hard guard — accessible-only
+        return {"ok": True, "text": text, "picks": picks}
 
     def _all_library_dirs(self) -> list:
         """Every configured library folder (enabled AND disabled). De-duped, order preserved.
