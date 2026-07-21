@@ -52,14 +52,15 @@ chk("AC-1 no _path leaks into records", all("_path" not in r for r in recs))
 chk("AC-7 basename de-dup (img1.webp once)", [r["file"] for r in recs].count("img1.webp") == 1)
 chk("AC-7 every dir is a scanned base", all(r["dir"] in (str(dirA), str(dirB)) for r in recs))
 
-# AC-2 — versioned index, returns records, backward-compat rescan
+# AC-2 — SQLite Library Index (ADR 0001): returns records, warm reload is stable, DB created
 out1 = api.list_library(8000)
 chk("AC-2 list_library returns records", bool(out1) and isinstance(out1[0], dict) and "file" in out1[0])
-idx = json.loads(idxfile.read_text(encoding="utf-8"))
-chk("AC-2 index version==2 + record files", idx.get("version") == 2 and isinstance(idx.get("files"), list) and isinstance(idx["files"][0], dict))
-idxfile.write_text(json.dumps({"dirs": [str(dirA), str(dirB)], "files": ["old-basename"], "count": 1}), encoding="utf-8")
-out2 = api.list_library(8000)
-chk("AC-2 v1 (no-version) cache triggers rescan", bool(out2) and isinstance(out2[0], dict) and "dir" in out2[0])
+out1b = api.list_library(8000)  # warm reload — pure DB read, same set, no re-crawl
+chk("AC-2 warm reload returns same set", {r["file"] for r in out1b} == {r["file"] for r in out1})
+chk("AC-2 records carry dir + folded sidecar fields", isinstance(out1[0].get("dir"), str)
+    and any(r.get("service") for r in out1))
+dbfile = Path(os.path.dirname(idxfile)) / "library.db"
+chk("AC-2 SQLite index DB created (replaces JSON index)", dbfile.exists())
 
 # AC-4 — folder enable/disable
 chk("AC-4 both dirs enabled initially", set(api._library_dirs()) == {str(dirA), str(dirB)})
