@@ -28,6 +28,21 @@ chk("replicate/fal stay ABSENT from service_params.json (preserves the pre-P1 LE
     "replicate" not in sp and "fal" not in sp)
 chk("agnes keeps its pre-existing by_id_contains.video block (draft promotion didn't drop it)",
     "video" in sp["agnes"].get("by_id_contains", {}) and len(sp["agnes"]["by_id_contains"]["video"]) >= 8)
+# Coordination note (params-research added per-cell provenance post-dispatch): the file DOES carry
+# provenance_cell/default_provenance metadata on param objects -- the param-reading path (mirrored
+# here, matches web/app.js paramControl()/renderParams()) must ignore unknown keys gracefully.
+_used_keys = {"name", "api_name", "type", "values", "default", "min", "max", "step", "optional", "description"}
+_has_provenance = any("provenance_cell" in p for svc in sp.values() for p in svc.get("default", []))
+chk("promoted file carries provenance_cell metadata (post-dispatch update landed)", _has_provenance)
+for _svc, _block in sp.items():
+    for _p in _block.get("default", []):
+        extra = set(_p.keys()) - _used_keys
+        # every extra key must be metadata-only (provenance_cell/default_provenance/bug/note/unverified/
+        # omit_for_permissive/always_send_explicit/min_exclusive) -- never something the UI param
+        # renderer would need but doesn't recognize.
+        assert extra <= {"provenance_cell", "default_provenance", "bug", "note", "unverified",
+                          "omit_for_permissive", "always_send_explicit", "min_exclusive", "max_length"}, (_svc, _p["name"], extra)
+chk("every extra/provenance key on every param is metadata the renderer safely ignores (no silent schema break)", True)
 chk("openrouter's default is an empty (not null) array — matches the matrix's 'no size field on this path' finding",
     sp["openrouter"]["default"] == [])
 

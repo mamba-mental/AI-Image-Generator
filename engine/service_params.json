@@ -1,6 +1,6 @@
 {
   "version": 1,
-  "promoted_from": "service_params.draft.json (Agent B, Phase 2 P1)",
+  "promoted_from": "service_params.draft.json (Agent B, Phase 2 P1, re-promoted post provenance update)",
   "promoted_at": "2026-07-21",
   "note": "DRAFT -- Batch B research deliverable. Same shape as fal_models.json params[] plus a new aspect_presets{} block per service (PRIME's 16-preset ideogram-style model: Portrait 1:3/1:2/9:16/10:16/2:3/3:4/4:5, Landscape 3:1/2:1/16:9/16:10/3:2/4:3/5:4, plus 1:1/Custom/Auto). Field order within params[] is uniform: size -> steps -> guidance -> sampler -> seed -> negative -> outputs, exactly where a service supports each stage. NOT yet wired into bridge.py/modelsFor() -- Phase 2 (per BATCH-TRACKER.md P1) applies this after refine-to-spec review.",
   "provenance_legend": {
@@ -10,6 +10,7 @@
     "CODE": "Only ever seen in this app's own source (engine/backends/*.py, engine/service_params.json) -- no external confirmation.",
     "UNVERIFIED": "None of the above; best-guess or unstated, flagged for a live probe before Phase 2 trusts it."
   },
+  "provenance_cell_note": "Per-param 'provenance_cell' mechanically transcribed from the Source column in research/2026-07-21_provider-params-matrix.md -- no new research performed for this pass. 'default_provenance' is present only when a param's default value has weaker evidence than its range/enum (e.g. the range is doc-stated but the default is only ever seen in our own code).",
   "services": {
     "openai": {
       "size_mode": "enum_wh_string",
