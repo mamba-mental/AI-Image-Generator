@@ -18,6 +18,12 @@ _API = "https://api.together.xyz/v1/images/generations"
 _UA = "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120 Safari/537.36"
 
 
+def _supports_lora(model_id: str) -> bool:
+    """Together accepts image_loras only on FLUX.1-dev-lora and FLUX.2-dev (research §Together)."""
+    m = (model_id or "").lower()
+    return "dev-lora" in m or "flux.2-dev" in m or "flux-2-dev" in m
+
+
 def _parse(d: dict) -> list:
     out = []
     for item in (d.get("data") or []):
@@ -52,6 +58,10 @@ def generate(model_id, params, progress=None, cancel_event=None) -> list:
         v = params.get(k)
         if v not in (None, ""):
             body[k] = v
+    # LoRA (Phase 4) — Together image_loras:[{path,scale}] (max 2), only on FLUX.1-dev-lora / FLUX.2-dev
+    loras = [lo for lo in (params.get("enabled_loras") or []) if lo.get("enabled")]
+    if loras and _supports_lora(model_id):
+        body["image_loras"] = [{"path": lo["url"], "scale": float(lo.get("scale", 1.0))} for lo in loras[:2]]
     if progress:
         progress(f"Submitting to Together: {model_id}")
     req = urllib.request.Request(

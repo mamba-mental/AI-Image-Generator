@@ -502,8 +502,15 @@ $("nsfwinfo").addEventListener("click", () => {
 $("nsfwpanelclose").addEventListener("click", () => { $("nsfwpanel").hidden = true; });
 $("nsfwpanel").addEventListener("click", e => { if (e.target.id === "nsfwpanel") $("nsfwpanel").hidden = true; });
 
+const LORA_SERVICES = ["huggingface", "replicate", "fal", "together", "runware", "novita"];
+function falModelSupportsLora(id) {
+  const m = (id || "").toLowerCase();
+  return ["flux-lora", "flux-general", "lora-gallery", "/lora"].some(p => m.includes(p));
+}
 function renderLoras() {
-  const svc = state.service === "huggingface" ? "huggingface" : state.service === "replicate" ? "replicate" : null;
+  let svc = LORA_SERVICES.includes(state.service) ? state.service : null;
+  // fal accepts LoRAs only on its LoRA endpoints — hide the panel for base fal models
+  if (svc === "fal" && !falModelSupportsLora(state.model)) svc = null;
   $("lorawrap").style.display = svc ? "" : "none";
   if (!svc) return;
   const loras = state.loras[svc] || [];
@@ -514,7 +521,13 @@ function renderLoras() {
       <span class="name" title="${l.url}">${l.url.split("/").pop()}</span>
       <input type="range" data-ls="${i}" min="0" max="1.5" step="0.05" value="${l.scale}">
       <button class="x" data-lx="${i}">✕</button>
-    </div>`).join("");
+    </div>`).join("") + `
+    <div class="lora-add">
+      <input id="loraurl" placeholder="LoRA URL / HF repo / civitai:id@ver" spellcheck="false">
+      <button id="loraaddbtn" title="Add this LoRA">add</button>
+      <button id="loracivbtn" title="Search CivitAI LoRAs">🔍 Civitai</button>
+    </div>
+    <div class="civ-search" id="civsearch" hidden></div>`;
   $("loras").querySelectorAll("[data-li]").forEach(el => el.addEventListener("change", async () => {
     state.loras[svc] = await api().lora_set(svc, +el.dataset.li, { enabled: el.checked }); renderLoras();
   }));
@@ -524,6 +537,47 @@ function renderLoras() {
   $("loras").querySelectorAll("[data-lx]").forEach(el => el.addEventListener("click", async () => {
     state.loras[svc] = await api().lora_remove(svc, +el.dataset.lx); renderLoras();
   }));
+  $("loraaddbtn").addEventListener("click", async () => {
+    const u = $("loraurl").value.trim(); if (!u) return;
+    state.loras[svc] = await api().lora_add(svc, u); renderLoras();
+  });
+  $("loracivbtn").addEventListener("click", () => {
+    const box = $("civsearch"); box.hidden = !box.hidden;
+    if (!box.hidden) renderCivitai(svc);
+  });
+}
+
+/* ---------- CivitAI LoRA browse-and-add (Phase 4) ---------- */
+async function renderCivitai(svc) {
+  const box = $("civsearch");
+  box.innerHTML = `
+    <div class="civ-bar">
+      <input id="civq" placeholder="search LoRAs… (e.g. pony, realistic, anime)" spellcheck="false">
+      <button id="civgo">search</button>
+    </div>
+    <div class="civ-results" id="civresults"><div class="civ-hint">Search CivitAI for a LoRA to add to ${SVC_LABELS[svc] || svc}.</div></div>`;
+  const run = async () => {
+    $("civresults").innerHTML = `<div class="civ-hint">searching…</div>`;
+    let res; try { res = await api().civitai_search($("civq").value.trim(), ""); } catch (e) { res = { ok: false, error: String(e) }; }
+    if (!res.ok) { $("civresults").innerHTML = `<div class="civ-hint">error: ${escapeHtml(res.error || "search failed")}</div>`; return; }
+    if (!res.items.length) { $("civresults").innerHTML = `<div class="civ-hint">no results</div>`; return; }
+    $("civresults").innerHTML = res.items.map(it => `
+      <div class="civ-card">
+        ${it.thumb ? `<img src="${it.thumb}" loading="lazy" alt="">` : `<div class="civ-noimg">no preview</div>`}
+        <div class="civ-meta"><b title="${escapeHtml(it.name || "")}">${escapeHtml(it.name || "")}</b>
+          <span>${escapeHtml(it.baseModel || "")}${it.nsfw ? " · NSFW" : ""}</span></div>
+        <button class="civ-add" data-mid="${it.modelId}" data-vid="${it.versionId}">+ add</button>
+      </div>`).join("");
+    $("civresults").querySelectorAll(".civ-add").forEach(b => b.addEventListener("click", async () => {
+      b.disabled = true; b.textContent = "…";
+      const r = await api().civitai_add_lora(svc, +b.dataset.mid, +b.dataset.vid);
+      if (r && r.ok && r.loras) { state.loras[svc] = r.loras; renderLoras(); }
+      else { b.textContent = "✕"; b.title = (r && r.error) || "add failed"; }
+    }));
+  };
+  $("civgo").addEventListener("click", run);
+  $("civq").addEventListener("keydown", e => { if (e.key === "Enter") run(); });
+  $("civq").focus();
 }
 
 /* ---------- gallery ---------- */

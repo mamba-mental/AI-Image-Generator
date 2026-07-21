@@ -31,6 +31,7 @@ KEY_FIELDS = {
     "together": ("together_api_key", "TOGETHER_API_KEY"),
     "runware": ("runware_api_key", "RUNWARE_API_KEY"),                          # uncensored open-weight host + CivitAI
     "novita": ("novita_api_key", "NOVITA_API_KEY"),                            # async txt2img, NSFW opt-in
+    "civitai": ("civitai_api_key", "CIVITAI_API_KEY"),                          # LoRA browse-and-add (not a gen backend)
     "cliproxy": ("cliproxy_api_key", "CLIPROXY_API_KEY"),
     "ideogram": ("ideogram_web_refresh_token", "IDEOGRAM_WEB_REFRESH_TOKEN"),  # subscription (web session)
     "ideogram-api": ("ideogram_api_key", "IDEOGRAM_API_KEY"),                   # paid public API (not in dropdown)

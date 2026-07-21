@@ -115,12 +115,13 @@ class Api:
         for _libdir in self._library_dirs():  # LIBRARY view browses every configured archive
             if os.path.isdir(_libdir):
                 mediaserver.add_root(_libdir)
-        self.lora_managers = {
-            "huggingface": LoRAManager("huggingface"),
-            "replicate": LoRAManager("replicate"),
-        }
-        self.lora_managers["huggingface"].load_from_config(self.config.get("recent_loras_hf", []))
-        self.lora_managers["replicate"].load_from_config(self.config.get("recent_loras_replicate", []))
+        # LoRA-capable services (each backend translates {url,scale} to its own request shape).
+        self._lora_cfg = {"huggingface": "recent_loras_hf", "replicate": "recent_loras_replicate",
+                          "fal": "recent_loras_fal", "together": "recent_loras_together",
+                          "runware": "recent_loras_runware", "novita": "recent_loras_novita"}
+        self.lora_managers = {s: LoRAManager(s) for s in self._lora_cfg}
+        for _s, _k in self._lora_cfg.items():
+            self.lora_managers[_s].load_from_config(self.config.get(_k, []))
 
     # ---- state ----
 
@@ -167,10 +168,7 @@ class Api:
                     "agnes-image-2.1-flash", "agnes-image-2.0-flash", "agnes-video-v2.0"],
             },
             "recent_prompts": self.config.get("recent_prompts", []),
-            "loras": {
-                "huggingface": self.lora_managers["huggingface"].get_loras(),
-                "replicate": self.lora_managers["replicate"].get_loras(),
-            },
+            "loras": {s: m.get_loras() for s, m in self.lora_managers.items()},
             "keys_status": self.keys_status,
             "key_pools": self._key_pools(),
             "media_base": self.media_base,
@@ -539,6 +537,59 @@ class Api:
             self._persist()
         return self.lora_list(service)
 
+    def civitai_search(self, query: str = "", base_model: str = "", limit: int = 24) -> dict:
+        """Browse CivitAI LoRAs (public REST API; CIVITAI_API_KEY optional for higher limits).
+        Returns {ok, items:[{modelId, versionId, name, baseModel, nsfw, thumb, downloadUrl, air}]}."""
+        import urllib.parse
+        import urllib.request
+        q = {"types": "LORA", "limit": max(1, min(int(limit or 24), 50)),
+             "nsfw": "true", "sort": "Most Downloaded"}
+        if query:
+            q["query"] = query
+        if base_model:
+            q["baseModels"] = base_model
+        url = "https://civitai.com/api/v1/models?" + urllib.parse.urlencode(q)
+        headers = {"User-Agent": "Mozilla/5.0"}
+        key = os.environ.get("CIVITAI_API_KEY")
+        if key:
+            headers["Authorization"] = f"Bearer {key}"
+        try:
+            req = urllib.request.Request(url, headers=headers)
+            d = json.loads(urllib.request.urlopen(req, timeout=30).read())
+        except Exception as e:
+            return {"ok": False, "error": str(e)[:200], "items": []}
+        items = []
+        for m in d.get("items", []):
+            vers = m.get("modelVersions") or []
+            if not vers:
+                continue
+            v = vers[0]
+            thumb = next((img.get("url") for img in (v.get("images") or []) if img.get("url")), "")
+            items.append({
+                "modelId": m.get("id"), "versionId": v.get("id"), "name": m.get("name"),
+                "baseModel": v.get("baseModel"), "nsfw": bool(m.get("nsfw")), "thumb": thumb,
+                "downloadUrl": f"https://civitai.com/api/download/models/{v.get('id')}",
+                "air": f"civitai:{m.get('id')}@{v.get('id')}",
+            })
+        return {"ok": True, "items": items}
+
+    def civitai_ref_for(self, service: str, model_id, version_id) -> str:
+        """Convert a CivitAI model/version into the reference form the given provider accepts
+        (research §Civitai): Runware = AIR `civitai:<id>@<ver>`; everyone else = direct download URL
+        (Replicate accepts CivitAI URLs natively; fal/Together need a .safetensors/download URL)."""
+        if service == "runware":
+            return f"civitai:{model_id}@{version_id}"
+        return f"https://civitai.com/api/download/models/{version_id}"
+
+    def civitai_add_lora(self, service: str, model_id, version_id) -> dict:
+        """One-click add a CivitAI LoRA to the active provider's LoRA manager, in that provider's
+        correct reference form. Novita uses its own catalog (not CivitAI) — flagged, not added."""
+        if service == "novita":
+            return {"ok": False, "error": "Novita uses its own LoRA catalog (model_name), not CivitAI URLs.",
+                    "loras": self.lora_list(service)}
+        ref = self.civitai_ref_for(service, model_id, version_id)
+        return {"ok": True, "loras": self.lora_add(service, ref), "ref": ref}
+
     def lora_remove(self, service: str, index: int) -> list:
         mgr = self.lora_managers.get(service)
         if mgr:
@@ -684,6 +735,6 @@ class Api:
     # ---- internal ----
 
     def _persist(self):
-        self.config["recent_loras_hf"] = self.lora_managers["huggingface"].get_loras()
-        self.config["recent_loras_replicate"] = self.lora_managers["replicate"].get_loras()
+        for _s, _k in getattr(self, "_lora_cfg", {}).items():
+            self.config[_k] = self.lora_managers[_s].get_loras()
         engine_config.save(self.config)

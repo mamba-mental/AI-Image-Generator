@@ -43,10 +43,12 @@ def _call_once(client, model_id: str, params: dict):
     }
     if "seed" in api_params:
         inference_params["seed"] = api_params["seed"]
-    if api_params.get("enabled_loras"):
-        first = api_params["enabled_loras"][0]
-        inference_params["lora_weights"] = [first["url"]]
-        inference_params["lora_scale"] = first["scale"]
+    # LoRA (Phase 4) — stack all enabled weights; HF hosted inference honors a single scale
+    # (real multi-adapter weighting needs local diffusers set_adapters — out of scope here).
+    _loras = [lo for lo in (api_params.get("enabled_loras") or []) if lo.get("enabled")]
+    if _loras:
+        inference_params["lora_weights"] = [lo["url"] for lo in _loras]
+        inference_params["lora_scale"] = float(_loras[0].get("scale", 1.0))
     if api_params.get("image"):
         try:
             inference_params["image"] = Image.open(api_params["image"])

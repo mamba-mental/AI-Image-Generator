@@ -8,7 +8,7 @@ import traceback
 import replicate
 
 
-def _build_input(params: dict) -> dict:
+def _build_input(params: dict, model_id: str = "") -> dict:
     input_params = {
         "prompt": params.get("prompt", ""),
         "width": params.get("width"),
@@ -30,12 +30,22 @@ def _build_input(params: dict) -> dict:
         input_params["image"] = params["image"]
     if params.get("seed"):
         input_params["seed"] = params["seed"]
-    if params.get("enabled_loras"):
-        first = params["enabled_loras"][0]
-        input_params["lora"] = first["url"]
-        input_params["lora_scale"] = first["scale"]
-        if len(params["enabled_loras"]) > 1:
-            print("Warning: multiple Replicate LoRAs enabled; API supports one — using the first.")
+    # LoRA (Phase 4) — Replicate's param names differ PER MODEL (research §Replicate):
+    #   *flux-dev-multi-lora* -> hf_loras:[str] + lora_scales:[num]  (up to 20, real multi-LoRA)
+    #   flux-dev-lora / others -> lora_weights + extra_lora (+ *_scale), max 2
+    loras = [lo for lo in (params.get("enabled_loras") or []) if lo.get("enabled")]
+    if loras:
+        if "multi-lora" in (model_id or "").lower():
+            input_params["hf_loras"] = [lo["url"] for lo in loras]
+            input_params["lora_scales"] = [float(lo.get("scale", 1.0)) for lo in loras]
+        else:
+            input_params["lora_weights"] = loras[0]["url"]
+            input_params["lora_scale"] = float(loras[0].get("scale", 1.0))
+            if len(loras) > 1:
+                input_params["extra_lora"] = loras[1]["url"]
+                input_params["extra_lora_scale"] = float(loras[1].get("scale", 1.0))
+            if len(loras) > 2:
+                print(f"Warning: Replicate flux-dev-lora supports 2 LoRAs; {len(loras)} enabled — using the first 2.")
     return {k: v for k, v in input_params.items() if v is not None}
 
 
@@ -45,7 +55,7 @@ def generate(model_id: str, params: dict, progress=None, cancel_event=None) -> l
     if not model_id:
         return ["Replicate Error: Model not selected."]
 
-    input_params = _build_input(params)
+    input_params = _build_input(params, model_id)
     if progress:
         progress(f"Calling Replicate: {model_id}")
     try:

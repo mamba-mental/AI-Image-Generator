@@ -63,7 +63,22 @@ def _build_args(entry: dict, params: dict) -> dict:
     # Safety params (enable_safety_checker / safety_tolerance / enable_output_safety_checker / raw)
     # arrive in `args` from the UI Content Mode (applyContentMode) per request — no static env override.
 
+    # LoRA (Phase 4): enabled_loras (stripped from raw passthrough via _ENGINE_ONLY_KEYS) ->
+    # fal's documented loras:[{path,scale}], but ONLY on LoRA-capable endpoints — sending it to a
+    # base model (flux/dev, flux/schnell) 422s. path = HF repo-id or a .safetensors URL.
+    loras = [lo for lo in (params.get("enabled_loras") or []) if lo.get("enabled")]
+    if loras and _fal_supports_lora(entry.get("id", "")):
+        args["loras"] = [{"path": lo["url"], "scale": float(lo.get("scale", 1.0))} for lo in loras]
+
     return args
+
+
+_LORA_ID_PATTERNS = ("flux-lora", "flux-general", "lora-gallery", "/lora")
+
+def _fal_supports_lora(model_id: str) -> bool:
+    """fal accepts loras:[] only on its LoRA endpoints (flux-lora / flux-general / *-lora-gallery /
+    flux-2/lora). Everything else rejects it, so the UI/backend must not attach LoRAs there."""
+    return any(p in (model_id or "").lower() for p in _LORA_ID_PATTERNS)
 
 
 def _extract_outputs(result: dict, output_kind: str = "image") -> list:
