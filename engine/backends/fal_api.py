@@ -61,7 +61,13 @@ def _build_args(entry: dict, params: dict) -> dict:
         args.setdefault("text", args.pop("prompt"))
 
     # Safety params (enable_safety_checker / safety_tolerance / enable_output_safety_checker / raw)
-    # arrive in `args` from the UI Content Mode (applyContentMode) per request — no static env override.
+    # arrive in `args` from the UI Content Mode (applyContentMode) per request — the UI value always wins.
+    # NSFW backstop (batch-D #1): FLUX_DISABLE_SAFETY=true flips fal permissive BY DEFAULT for programmatic
+    # callers, only where a model declares the param and neither the UI nor Content Mode already set it.
+    if os.environ.get("FLUX_DISABLE_SAFETY", "").lower() in ("1", "true", "yes"):
+        _declared = {p.get("name") for p in entry.get("params", [])}
+        if "enable_safety_checker" in _declared and "enable_safety_checker" not in args:
+            args["enable_safety_checker"] = False
 
     # LoRA (Phase 4): enabled_loras (stripped from raw passthrough via _ENGINE_ONLY_KEYS) ->
     # fal's documented loras:[{path,scale}], but ONLY on LoRA-capable endpoints — sending it to a

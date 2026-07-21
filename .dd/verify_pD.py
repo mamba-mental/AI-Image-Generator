@@ -70,7 +70,7 @@ sc = _json.load(open(side, encoding="utf-8"))
 check("9.1 sidecar written with dims/bytes/ts",
       os.path.exists(side) and sc["width"] == 128 and sc["height"] == 96 and sc["bytes"] > 0 and "ts" in sc)
 import types  # noqa: E402
-stub = types.SimpleNamespace(config={"output_directory": tmp})
+stub = types.SimpleNamespace(config={"output_directory": tmp}, _library_dirs=lambda: [])
 rm = bridge.Api.read_meta.__get__(stub, bridge.Api)
 check("9.2 read_meta prefers sidecar", rm("generated_20260713_000000.png").get("source") == "sidecar")
 img2 = os.path.join(tmp, "nosidecar.png"); Image.new("RGB", (8, 8), (0, 0, 0)).save(img2)
