@@ -421,6 +421,27 @@ async function refreshBalance() {
   } catch (e) {
     el.textContent = "";
   }
+  refreshAllBalances();   // R3 #6-frontend — footer strip: every provider, not just the active one
+}
+
+// R3 #6-frontend — every provider's balance at once, not just the active service. get_balance()
+// already dispatches to each backend's real/portal-only/n-a logic (bridge.py::_BALANCE_BACKENDS);
+// this just fans that out over every configured service in parallel and renders one chip each.
+// Reuses the existing bal-ok/bal-low/bal-info/bal-none color classes — no new CSS.
+let _balanceAllInFlight = false;
+async function refreshAllBalances() {
+  const el = $("balanceall"); if (!el || _balanceAllInFlight) return;
+  _balanceAllInFlight = true;
+  try {
+    const results = await Promise.all(state.services.map(async s => {
+      try { return [s, await api().get_balance(s)]; } catch (e) { return [s, { label: "—", kind: "none" }]; }
+    }));
+    el.innerHTML = results.map(([s, b]) =>
+      `<span class="bal-${b.kind || "none"}">${escapeHtml(SVC_LABELS[s] || s)}: ${escapeHtml(b.label)}</span>`
+    ).join(" · ");
+  } finally {
+    _balanceAllInFlight = false;
+  }
 }
 // E2 — <option> list for the model <select>, wrapping contiguous same-`group` runs in an
 // <optgroup> (Novita's "Checkpoints" / "Model APIs"). No-op passthrough for ungrouped models.

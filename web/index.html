@@ -173,6 +173,10 @@
   <div class="pbar" id="pbar"><div></div></div>
   <span class="sp"></span>
   <span id="balance" title="credit / quota for the active service"></span>
+  <!-- R3 #6-frontend: every provider's balance, not just the active one. Contained to the
+       existing 34px footer row via inline overflow (no app.css change — see BATCH-TRACKER-R3.md
+       for a suggested polish pass: a dedicated wrap row would show all of these with no scroll). -->
+  <span id="balanceall" style="display:flex;gap:10px;overflow-x:auto;white-space:nowrap;max-width:34vw" title="every provider's credit / quota"></span>
   <span id="sessioninfo">v2.0</span>
 </footer>
 

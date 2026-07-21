@@ -8,8 +8,17 @@ from pathlib import Path
 
 from engine import config as engine_config
 from engine import history, mediaserver
+from engine.backends import cliproxy_api, ideogram_api, ideogram_web_api, nvidia_api, openrouter_api, replicate_api
 from engine.jobs import REGISTRY
 from loramanager import LoRAManager
+
+# R3 #6-frontend — services whose real/portal-only balance now lives in the backend module itself
+# (engine/backends/*_api.py::balance(), same {"label","kind"} shape as this file's own returns).
+# get_balance() dispatches here FIRST so a backend's balance logic has exactly one home.
+_BALANCE_BACKENDS = {
+    "nvidia": nvidia_api, "openrouter": openrouter_api, "replicate": replicate_api,
+    "cliproxy": cliproxy_api, "ideogram": ideogram_web_api, "ideogram-api": ideogram_api,
+}
 
 
 def _load_fal_models() -> list:
@@ -923,6 +932,12 @@ class Api:
     def get_balance(self, service: str) -> dict:
         """Credit/quota status for the footer. Only fal exposes a real balance
         (via FAL_KEY_ADMIN); the rest are usage-based or free-tier. Key never returned."""
+        backend = _BALANCE_BACKENDS.get(service)
+        if backend is not None:
+            try:
+                return backend.balance()
+            except Exception as e:
+                return {"label": f"balance unavailable ({type(e).__name__})", "kind": "none"}
         import urllib.request
         try:
             if service == "fal":
@@ -943,23 +958,15 @@ class Api:
             # for these; an honest "portal-only" chip beats a spinner that never resolves.
             if service == "together":
                 return {"label": "portal-only · together.ai", "kind": "none"}
-            if service == "replicate":
-                return {"label": "portal-only · replicate.com/account/billing", "kind": "none"}
             if service == "openai":
                 return {"label": "portal-only · platform.openai.com/usage", "kind": "none"}
             if service == "huggingface":
                 return {"label": "portal-only · huggingface.co/settings/billing", "kind": "none"}
-            if service == "nvidia":
-                return {"label": "portal-only · build.nvidia.com", "kind": "none"}
             # No metered-balance concept applies at all (subscription / free-tier / self-hosted).
             if service == "gemini":
                 return {"label": "n/a · GCP-invoiced", "kind": "info"}
             if service == "agnes":
                 return {"label": "n/a · free-tier gateway", "kind": "info"}
-            if service in ("ideogram", "ideogram-web"):
-                return {"label": "n/a · subscription", "kind": "info"}
-            if service == "cliproxy":
-                return {"label": "n/a · self-hosted gateway", "kind": "info"}
             # P2 — runware's real accountManagement/getDetails balance (research-confirmed live,
             # same shape dashboards_server.py's media-provider block already uses).
             if service == "runware":
@@ -975,18 +982,6 @@ class Api:
                 d = json.loads(urllib.request.urlopen(req, timeout=15).read())
                 bal = float(((d.get("data") or [{}])[0] or {}).get("balance") or 0)
                 return {"label": f"${bal:.2f}", "kind": "low" if bal < 2 else "ok"}
-            if service == "openrouter":
-                key = os.environ.get("OPENROUTER_API_KEY")
-                if not key:
-                    return {"label": "no key", "kind": "none"}
-                req = urllib.request.Request("https://openrouter.ai/api/v1/key",
-                                             headers={"Authorization": f"Bearer {key}"})
-                d = json.loads(urllib.request.urlopen(req, timeout=15).read()).get("data", {})
-                usage, limit = d.get("usage"), d.get("limit")
-                if limit is not None:
-                    left = max(0.0, float(limit) - float(usage or 0))
-                    return {"label": f"${left:.2f} left", "kind": "low" if left < 2 else "ok"}
-                return {"label": f"${usage or 0:.2f} used · no cap", "kind": "info"}
             if service == "novita":
                 key = os.environ.get("NOVITA_API_KEY")
                 if not key:
@@ -998,8 +993,6 @@ class Api:
                 return {"label": f"${bal:.2f}", "kind": "low" if bal < 2 else "ok"}
         except Exception as e:
             return {"label": f"balance unavailable ({type(e).__name__})", "kind": "none"}
-        if service == "ideogram-api":
-            return {"label": "portal-only · ideogram.ai", "kind": "none"}
         # Whatever's left (civitai — not a generation service, key-only) — consistent footer label
         # from key presence (no more blanks).
         has_key = bool(self.keys_status.get(service))
