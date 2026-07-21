@@ -10,7 +10,10 @@ from . import history, keypool, logbuf, save
 from .backends import BACKENDS
 
 _RATE_LIMIT_MARKERS = ("401", "403", "429", "rate limit", "rate-limit",
-                       "quota", "exhaust", "insufficient", "too many requests")
+                       "quota", "exhaust", "insufficient", "too many requests",
+                       "authorization failed", "unauthorized")  # hf_api's friendly wrapper
+                       # drops the raw HTTP code, so "401" alone never matches an HF auth
+                       # failure — without this, HF's 6-key pool never rotates on a bad key.
 
 
 def _looks_rate_limited(results) -> bool:
