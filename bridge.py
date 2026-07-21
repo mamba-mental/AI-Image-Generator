@@ -127,7 +127,7 @@ class Api:
     def get_state(self) -> dict:
         return {
             "services": ["fal", "openai", "nvidia", "replicate", "huggingface", "gemini",
-                         "openrouter", "together", "cliproxy", "ideogram", "agnes"],
+                         "openrouter", "together", "runware", "novita", "cliproxy", "ideogram", "agnes"],
             "active_service": self.config.get("service", "fal"),
             "config": {k: v for k, v in self.config.items()
                        if k not in ("replicate_api_key", "huggingface_token",
@@ -147,7 +147,15 @@ class Api:
                     "google/gemini-2.5-flash-image", "openai/gpt-5-image"],
                 # E3 — Together.ai serverless image models (verified live on /v1/images/generations)
                 "together": self.config.get("recent_models_together", []) or [
-                    "black-forest-labs/FLUX.1.1-pro", "black-forest-labs/FLUX.1-schnell"],
+                    "black-forest-labs/FLUX.1-schnell", "black-forest-labs/FLUX.1-dev",
+                    "black-forest-labs/FLUX.1-dev-lora", "black-forest-labs/FLUX.1.1-pro"],
+                # Runware — AIR model ids (runware:<id>@<ver> base, or civitai:<id>@<ver> for NSFW
+                # community checkpoints). checkNSFW is opt-in → uncensored on open weights.
+                "runware": self.config.get("recent_models_runware", []) or [
+                    "runware:100@1", "runware:101@1"],
+                # Novita — catalog model_name strings (NOT urls); async txt2img, NSFW opt-in.
+                "novita": self.config.get("recent_models_novita", []) or [
+                    "sd_xl_base_1.0", "realisticVisionV51_v51VAE.safetensors", "dreamshaper_8_93211.safetensors"],
                 # E1 — cliproxy image models routable via /v1/images/generations (verified live)
                 "cliproxy": self.config.get("recent_models_cliproxy", []) or [
                     "gpt-image-2", "gpt-image-1.5", "grok-imagine-image"],

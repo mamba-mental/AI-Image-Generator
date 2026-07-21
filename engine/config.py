@@ -29,6 +29,8 @@ KEY_FIELDS = {
     "nvidia": ("nvidia_api_key", "NVIDIA_API_KEY"),
     "openrouter": ("openrouter_api_key", "OPENROUTER_API_KEY"),
     "together": ("together_api_key", "TOGETHER_API_KEY"),
+    "runware": ("runware_api_key", "RUNWARE_API_KEY"),                          # uncensored open-weight host + CivitAI
+    "novita": ("novita_api_key", "NOVITA_API_KEY"),                            # async txt2img, NSFW opt-in
     "cliproxy": ("cliproxy_api_key", "CLIPROXY_API_KEY"),
     "ideogram": ("ideogram_web_refresh_token", "IDEOGRAM_WEB_REFRESH_TOKEN"),  # subscription (web session)
     "ideogram-api": ("ideogram_api_key", "IDEOGRAM_API_KEY"),                   # paid public API (not in dropdown)

@@ -24,7 +24,7 @@ function catList() {
 }
 const INPUT_KINDS = { needs_input_image: "image", needs_input_video: "video",
                       needs_input_audio: "audio", needs_input_mesh: "mesh" };
-const SVC_LABELS = { fal: "Fal", openai: "OpenAI", nvidia: "NVIDIA", replicate: "Replicate", huggingface: "HF", gemini: "Gemini", openrouter: "OpenRouter", together: "Together", cliproxy: "CLIProxy", ideogram: "Ideogram", "ideogram-web": "Ideogram (Sub)" };
+const SVC_LABELS = { fal: "Fal", openai: "OpenAI", nvidia: "NVIDIA", replicate: "Replicate", huggingface: "HF", gemini: "Gemini", openrouter: "OpenRouter", together: "Together", runware: "Runware", novita: "Novita", cliproxy: "CLIProxy", ideogram: "Ideogram", "ideogram-web": "Ideogram (Sub)" };
 
 // legacy param set for replicate / hf / gemini (ported from the CTk panel)
 const LEGACY_PARAMS = [

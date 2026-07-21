@@ -57,5 +57,16 @@ chk("content_capability=permissive -> relaxable", isRelaxable({ id: "z", params:
 chk("content_capability=upstream_moderated -> NOT relaxable", isRelaxable({ id: "fal-ai/nano-banana", params: [], content_capability: "upstream_moderated" }, "fal") === false);
 chk("all 4 modes exist", ["safe", "editorial", "fashion", "nsfw"].every((k) => CONTENT_MODES[k]));
 
+// Phase 3 — per-provider disable-safety polarity (research §Providers)
+const bare = { id: "x", params: [] };
+chk("together NSFW -> disable_safety_checker=true", applyContentMode({}, bare, "nsfw", "together").disable_safety_checker === true);
+chk("together safe -> disable_safety_checker=false", applyContentMode({}, bare, "safe", "together").disable_safety_checker === false);
+chk("runware NSFW -> checkNSFW=false (allow)", applyContentMode({}, bare, "nsfw", "runware").checkNSFW === false);
+chk("runware safe -> checkNSFW=true (moderate)", applyContentMode({}, bare, "safe", "runware").checkNSFW === true);
+chk("novita NSFW -> enable_nsfw_detection=false (allow)", applyContentMode({}, bare, "nsfw", "novita").enable_nsfw_detection === false);
+chk("novita safe -> enable_nsfw_detection=true (moderate)", applyContentMode({}, bare, "safe", "novita").enable_nsfw_detection === true);
+chk("runware is relaxable", isRelaxable(bare, "runware") === true);
+chk("novita is relaxable", isRelaxable(bare, "novita") === true);
+
 console.log(`\n${fail ? "FAILED " + fail : "ALL PASS"} (${pass} passed)`);
 process.exit(fail ? 1 : 0);

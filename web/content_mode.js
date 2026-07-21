@@ -14,8 +14,16 @@
     fashion: "Editorial permissiveness, plus surfaces virtual try-on and fashion models first.",
     nsfw: "Shows models whose content filter can be set fully permissive (at max). “Verified” models were confirmed to actually produce NSFW; the rest expose the toggle and are likely-capable but untested (use “Verified only” to narrow). Upstream-moderated providers are excluded — they refuse regardless of the toggle.",
   };
-  // non-fal services whose backend accepts a single permissive flag (per-service research §4)
-  const SERVICE_SAFETY = { replicate: "disable_safety_checker", together: "disable_safety_checker" };
+  // non-fal services whose backend accepts a permissive flag (per-provider research §4).
+  // { param, allow } — `allow` is the value that PERMITS NSFW; polarity differs per provider:
+  //   together/replicate disable_safety_checker=true allows; runware checkNSFW=false allows;
+  //   novita enable_nsfw_detection=false allows. Safe mode sends the opposite (moderating) value.
+  const SERVICE_SAFETY = {
+    replicate: { param: "disable_safety_checker", allow: true },
+    together:  { param: "disable_safety_checker", allow: true },
+    runware:   { param: "checkNSFW", allow: false },
+    novita:    { param: "enable_nsfw_detection", allow: false },
+  };
 
   function modelMaxTolerance(model) {
     const p = ((model && model.params) || []).find(x => x.name === "safety_tolerance");
@@ -52,8 +60,8 @@
       out.safety_tolerance = String(Math.min(want, max));  // clamp to the model's own enum max
     }
     if (n.has("raw") && prof.raw) out.raw = true;
-    const svcFlag = SERVICE_SAFETY[service];  // non-fal single-flag services (replicate/together)
-    if (svcFlag) out[svcFlag] = mode !== "safe";
+    const svc = SERVICE_SAFETY[service];  // non-fal single-flag services (polarity per provider)
+    if (svc) out[svc.param] = (mode !== "safe") ? svc.allow : !svc.allow;
     return out;
   }
 

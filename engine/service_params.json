@@ -51,6 +51,31 @@
         { "name": "seed", "type": "int", "optional": true }
       ]
     },
+    "runware": {
+      "default": [
+        { "name": "width", "type": "int", "min": 128, "max": 2048, "default": 1024, "step": 64 },
+        { "name": "height", "type": "int", "min": 128, "max": 2048, "default": 1024, "step": 64 },
+        { "name": "steps", "type": "int", "min": 1, "max": 100, "default": 25, "description": "Denoising steps." },
+        { "name": "guidance_scale", "type": "float", "min": 0, "max": 30, "default": 7, "description": "CFGScale — prompt adherence." },
+        { "name": "num_outputs", "type": "int", "min": 1, "max": 4, "default": 1, "description": "numberResults." },
+        { "name": "checkNSFW", "type": "bool", "default": false, "description": "Runware safety is opt-in; Content Mode sets this. false = uncensored." },
+        { "name": "negative_prompt", "type": "string", "optional": true },
+        { "name": "seed", "type": "int", "optional": true }
+      ]
+    },
+    "novita": {
+      "default": [
+        { "name": "width", "type": "int", "min": 128, "max": 2048, "default": 1024, "step": 64 },
+        { "name": "height", "type": "int", "min": 128, "max": 2048, "default": 1024, "step": 64 },
+        { "name": "steps", "type": "int", "min": 1, "max": 100, "default": 25 },
+        { "name": "guidance_scale", "type": "float", "min": 0, "max": 30, "default": 7, "description": "CFG — prompt adherence." },
+        { "name": "num_outputs", "type": "int", "min": 1, "max": 8, "default": 1, "description": "image_num." },
+        { "name": "sampler_name", "type": "enum", "values": ["Euler a", "Euler", "DPM++ 2M Karras", "DPM++ SDE Karras", "DDIM"], "default": "Euler a" },
+        { "name": "enable_nsfw_detection", "type": "bool", "default": false, "description": "Opt-in NSFW filter; Content Mode sets this. false = uncensored." },
+        { "name": "negative_prompt", "type": "string", "optional": true },
+        { "name": "seed", "type": "int", "optional": true }
+      ]
+    },
     "huggingface": {
       "default": [
         { "name": "negative_prompt", "type": "string", "optional": true, "description": "What to exclude (SDXL/SD family)." },
