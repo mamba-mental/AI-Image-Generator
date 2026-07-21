@@ -41,8 +41,9 @@ const state = {
   service: "fal", category: "text-to-image", model: null,
   inputFiles: {}, job: null, gallery: [], selected: null,
   genCount: 0, loras: {}, mediaBase: "", outDirName: "generated_images",
-  view: "session", grid: "m", lbFile: null, contentMode: "safe", verifiedOnly: false,
-  libRecords: [], libFiltered: [], libraryDirs: [], libFilter: { folder: "", service: "", type: "", q: "" },
+  view: "session", grid: "m", lbFile: null, lbDir: "", lbTags: [], contentMode: "safe", verifiedOnly: false,
+  contentGrades: {},
+  libRecords: [], libFiltered: [], libraryDirs: [], libFilter: { folder: "", service: "", type: "", q: "", tags: [] },
 };
 
 /* ---------- bridge helpers ---------- */
@@ -55,6 +56,7 @@ async function boot() {
   state.keyPools = s.key_pools || {};
   state.falModels = s.fal_models;
   state.serviceParams = s.service_params || {};
+  state.contentGrades = s.content_grades || {};  // Spec B §3 sweep evidence — every provider
   state.recentModels = s.recent_models;
   state.loras = s.loras || {};
   state.mediaBase = s.media_base || "";
@@ -95,6 +97,7 @@ async function boot() {
   renderService();
   render();
   refreshBalance();
+  await loadPresets(true);   // Presets (#4) — load + apply any launch defaults (AC-4.2)
 }
 
 /* ---------- pickers (layout + theme) ---------- */
@@ -251,6 +254,28 @@ async function maybeFetchNovitaModels() {
   } catch (e) { /* keep the seeded fallback */ }
   finally { state._novitaFetching = false; }
 }
+// Live catalogs for the OpenAI-compatible providers (issue #1 — dropdowns stop being guesses).
+// One-shot per service on success; retries while empty (e.g. before a key is set); on failure the
+// labelled offline seeds stay. Novita has its own shape → delegates above.
+const CATALOG_SVCS = ["together", "agnes", "nvidia", "openai", "openrouter"];
+async function maybeFetchLiveModels() {
+  const svc = state.service;
+  if (svc === "novita") return maybeFetchNovitaModels();
+  if (!CATALOG_SVCS.includes(svc)) return;
+  state._catFetched = state._catFetched || {};
+  state._catFetching = state._catFetching || {};
+  if (state._catFetched[svc] || state._catFetching[svc]) return;
+  state._catFetching[svc] = true;
+  try {
+    const r = await api().provider_models(svc, 300);
+    if (r && r.live && r.models && r.models.length) {
+      state._catFetched[svc] = true;
+      state.recentModels[svc] = r.models;
+      render();
+    }
+  } catch (e) { /* keep the seeded fallback */ }
+  finally { state._catFetching[svc] = false; }
+}
 function pickServiceParams(service, id, category) {
   if (state.modelSchemas[id]) return state.modelSchemas[id];
   const sp = state.serviceParams[service];
@@ -266,9 +291,15 @@ function modelsFor(service, category) {
     ? state.falModels.filter(m => m.category === category)
     : (state.recentModels[service] || []).map(id => ({ id, label: id, category: "text-to-image", params: pickServiceParams(service, id, category) }));
   const prof = CONTENT_MODES[state.contentMode] || CONTENT_MODES.safe;
-  if (prof.filter) {  // Editorial/Fashion/NSFW: filter fal by graded content_capability; non-fal stay visible unless "verified only"
-    const pred = state.verifiedOnly ? isVerified : isRelaxable;
-    models = models.filter(m => service === "fal" ? pred(m, service) : !state.verifiedOnly);
+  if (prof.filter) {  // Editorial/Fashion/NSFW: evidence-graded per model, for EVERY provider (Spec B AC-3.1/3.2)
+    const grades = state.contentGrades;
+    models = models.filter(m => gradeInfo(m, service, grades).state !== "excluded");  // rule-excluded hidden always
+    if (state.verifiedOnly) {
+      models = models.filter(m => isVerifiedGraded(m, service, grades));              // "Verified only" narrows cross-provider
+    } else if (service === "fal") {
+      models = models.filter(m => isRelaxable(m, service));                          // fal keeps its richer legacy heuristic too
+    }
+    // non-fal, not verified-only: untested models still shown-with-caveat (AC-3.2 default)
   }
   if (prof.fashionFirst) {
     models = models.slice().sort((a, b) => (isFashionModel(b) ? 1 : 0) - (isFashionModel(a) ? 1 : 0));
@@ -280,6 +311,36 @@ function currentModel() {
   return models.find(m => m.id === state.model)
       || models.find(m => m.id === state.lastUsed[state.service])
       || models[0] || null;
+}
+
+/* ---------- §4 model suggestion box (issue: "which model?") ---------- */
+// Every model across the providers you can ACTUALLY access (keyed), from the loaded catalogs.
+// Grows as you visit providers (each one-shot-fetches its live list). Never suggests a model
+// behind a provider you have no key for.
+function accessibleModels() {
+  const out = [];
+  for (const svc of state.services) {
+    if (!state.keys[svc]) continue;               // only providers with a key = actually reachable
+    const list = svc === "fal"
+      ? state.falModels.filter(m => m.category === "text-to-image")
+      : (state.recentModels[svc] || []).map(id => ({ id, label: id }));
+    for (const m of list) out.push({ id: m.id, label: m.label || m.id, service: svc });
+  }
+  return out;
+}
+function renderModelSuggest() {
+  const box = $("modelsuggest");
+  if (!box) return;
+  const q = (($("modelquery") && $("modelquery").value) || "").trim().toLowerCase();
+  if (!q) { box.innerHTML = ""; return; }
+  const toks = q.split(/\s+/).filter(Boolean);
+  const hits = accessibleModels().filter(m => {
+    const hay = (m.service + " " + m.id + " " + m.label).toLowerCase();
+    return toks.every(t => hay.includes(t));
+  }).slice(0, 10);
+  box.innerHTML = hits.length
+    ? hits.map(m => `<button class="msuggest-chip" data-svc="${m.service}" data-id="${encodeURIComponent(m.id)}"><b>${m.label}</b><span>${m.service}</span></button>`).join("")
+    : `<div class="msuggest-empty">no accessible model matches — try another word (or add that provider's key)</div>`;
 }
 
 /* ---------- renderers ---------- */
@@ -313,7 +374,8 @@ function render() {
   const cur = currentModel();
   state.model = cur ? cur.id : null;
   if (cur) maybeFetchSchema(state.service, cur.id);  // live per-model schema for replicate (re-renders when it lands)
-  maybeFetchNovitaModels();  // live Novita checkpoint catalog into the dropdown (one-shot)
+  maybeFetchLiveModels();  // live catalog into the dropdown (novita + openai-compat providers, one-shot)
+  renderModelSuggest();    // keep the §4 suggestion results fresh as catalogs load
   $("model").innerHTML = models.map(m =>
     `<option value="${m.id}" ${cur && m.id === cur.id ? "selected" : ""}>${m.label}${m.price ? " — " + m.price : ""}</option>`).join("");
   $("pricenote").textContent = cur && cur.price ? cur.price : "";
@@ -492,10 +554,13 @@ function renderContentMode() {
   const vo = $("verifiedonly"); if (vo) vo.checked = state.verifiedOnly;
   const cc = $("cmodecount");
   if (cc) {
-    if (prof.filter && state.service === "fal") {
-      const all = state.falModels.filter(m => m.category === state.category);
-      const shown = all.filter(m => isRelaxable(m, "fal")).length;
-      const verified = all.filter(m => isVerified(m, "fal")).length;
+    if (prof.filter) {
+      const svc = state.service;
+      const all = svc === "fal"
+        ? state.falModels.filter(m => m.category === state.category)
+        : (state.recentModels[svc] || []).map(id => ({ id }));
+      const verified = all.filter(m => isVerifiedGraded(m, svc, state.contentGrades)).length;
+      const shown = modelsFor(svc, state.category).length;
       cc.textContent = `${verified} verified · ${shown} shown`;
     } else cc.textContent = "";
   }
@@ -611,6 +676,153 @@ async function renderCivitai(svc) {
   $("civq").focus();
 }
 
+/* ---------- Presets: Style / Recipe (Spec C #4) ---------- */
+// render() calls renderPresetSelects() so the dropdowns stay in sync with the composer.
+async function loadPresets(applyDefaults) {
+  try { state.styles = await api().list_styles(); } catch (e) { state.styles = []; }
+  try { state.recipes = await api().list_recipes(); } catch (e) { state.recipes = []; }
+  renderPresetSelects();
+  if (applyDefaults) {
+    const s = state.styles.find(x => x.is_default);
+    const r = state.recipes.find(x => x.is_default);
+    if (s) applyPresetToComposer("Style", s);
+    if (r) applyPresetToComposer("Recipe", r);
+  }
+}
+function renderPresetSelects() {
+  const ss = $("styleSel"), rs = $("recipeSel");
+  if (ss) ss.innerHTML = `<option value="">— no style —</option>` +
+    (state.styles || []).map(s => `<option value="${s.id}">${escapeHtml(s.name)}${s.is_default ? " ★" : ""}</option>`).join("");
+  if (rs) rs.innerHTML = `<option value="">— no recipe —</option>` +
+    (state.recipes || []).map(r => `<option value="${r.id}">${escapeHtml(r.name)}${r.is_default ? " ★" : ""}</option>`).join("");
+}
+function currentComposerState() {
+  const cur = currentModel();
+  const params = collectParams(cur);
+  delete params.negative_prompt;   // tracked separately below — collectParams folds it in for generate()
+  return {
+    prompt: $("prompt").value, negative_prompt: $("negprompt").value,
+    model: state.model, provider: state.service, params,
+    _appliedStyleId: state._appliedStyleId, _appliedStyleUpdated: state._appliedStyleUpdated,
+    _appliedRecipeId: state._appliedRecipeId, _appliedRecipeUpdated: state._appliedRecipeUpdated,
+  };
+}
+function setComposerParam(name, val) {
+  const el = $("params").querySelector(`[data-p="${name}"]`);
+  if (!el) return;
+  if (el.type === "checkbox") el.checked = !!val; else el.value = String(val);
+  const vs = $("params").querySelector(`[data-v="${name}"]`); if (vs) vs.textContent = String(val);
+}
+function applyComposerPatch(next) {
+  const modelChanged = next.model && next.model !== state.model;
+  if (modelChanged) state.model = next.model;
+  if (modelChanged) render();   // repaint category/params for the new model FIRST — then set values
+  $("prompt").value = next.prompt || "";
+  if ($("negwrap").style.display !== "none") $("negprompt").value = next.negative_prompt || "";
+  Object.entries(next.params || {}).forEach(([k, v]) => setComposerParam(k, v));
+  state._appliedStyleId = next._appliedStyleId; state._appliedStyleUpdated = next._appliedStyleUpdated;
+  state._appliedRecipeId = next._appliedRecipeId; state._appliedRecipeUpdated = next._appliedRecipeUpdated;
+}
+// AC-4.3 preview/diff + confirm gate. ponytail: native confirm() IS a preview+confirm gate —
+// upgrade to a styled modal if PRIME wants richer visuals later.
+function applyPresetToComposer(kind, preset) {
+  const composer = currentComposerState();
+  const opts = { targetProvider: state.service, targetParamNames: currentParamNames() };
+  const { diffs, warnings } = previewApply(kind, preset, composer, opts);
+  if (!diffs.length) { $("statusmsg").textContent = `${preset.name}: already applied — no changes.`; return; }
+  const lines = diffs.map(d => `${d.field}: ${d.before || "(empty)"} → ${d.after}`).join("\n");
+  const warn = warnings.length ? `\n\n⚠ ${warnings.join("\n⚠ ")}` : "";
+  if (!confirm(`Apply ${kind} "${preset.name}"?\n\n${lines}${warn}`)) return;
+  applyComposerPatch(applyPreset(kind, preset, composer, opts));
+  $("statusmsg").textContent = `${kind} "${preset.name}" applied.`;
+}
+function currentParamNames() {
+  const cur = currentModel();
+  return ((cur && cur.params) || []).map(p => p.name);
+}
+$("styleApplyBtn") && $("styleApplyBtn").addEventListener("click", () => {
+  const s = (state.styles || []).find(x => String(x.id) === $("styleSel").value);
+  if (s) applyPresetToComposer("Style", s);
+});
+$("recipeApplyBtn") && $("recipeApplyBtn").addEventListener("click", () => {
+  const r = (state.recipes || []).find(x => String(x.id) === $("recipeSel").value);
+  if (r) applyPresetToComposer("Recipe", r);
+});
+$("saveStyleBtn") && $("saveStyleBtn").addEventListener("click", async () => {
+  const name = prompt("Name this Style:"); if (!name) return;
+  const c = currentComposerState();
+  const r = await api().save_style({ name, negative: c.negative_prompt, prompt_template: "", params: c.params, model: "" });
+  if (r && r.ok) { await loadPresets(false); $("statusmsg").textContent = `Style "${name}" saved.`; }
+});
+$("saveRecipeBtn") && $("saveRecipeBtn").addEventListener("click", async () => {
+  const name = prompt("Name this Recipe:"); if (!name) return;
+  const c = currentComposerState();
+  const r = await api().save_recipe({ name, provider: c.provider, model: c.model, seed: c.params.seed || "",
+    prompt: c.prompt, negative: c.negative_prompt, params: c.params });
+  if (r && r.ok) { await loadPresets(false); $("statusmsg").textContent = `Recipe "${name}" saved.`; }
+});
+
+// ---- Settings > Presets manager (AC-4.5: list, rename, delete, set-default) ----
+function renderPresetsManager() {
+  const renderTable = (containerId, table, items) => {
+    const box = $(containerId); if (!box) return;
+    box.innerHTML = items.length ? items.map(p => `
+      <div class="presetrow" data-id="${p.id}">
+        <span class="preset-name ${p.is_default ? "isdefault" : ""}">${escapeHtml(p.name)}${p.is_default ? " ★ default" : ""}</span>
+        <button data-act="default" title="set as default (applied on launch)">${p.is_default ? "default" : "set default"}</button>
+        <button data-act="rename">rename</button>
+        <button data-act="delete">delete</button>
+      </div>`).join("") : `<div class="preset-empty">no ${table} saved yet</div>`;
+    box.querySelectorAll(".presetrow").forEach(row => {
+      const id = +row.dataset.id;
+      const item = items.find(p => p.id === id);
+      row.querySelector('[data-act="default"]').addEventListener("click", async () => {
+        await (table === "styles" ? api().set_default_style(id) : api().set_default_recipe(id));
+        await loadPresets(false); renderPresetsManager();
+      });
+      row.querySelector('[data-act="rename"]').addEventListener("click", async () => {
+        const name = prompt("Rename to:", item.name); if (!name) return;
+        await (table === "styles" ? api().rename_style(id, name) : api().rename_recipe(id, name));
+        await loadPresets(false); renderPresetsManager();
+      });
+      row.querySelector('[data-act="delete"]').addEventListener("click", async () => {
+        if (!confirm(`Delete "${item.name}"? This can't be undone.`)) return;
+        await (table === "styles" ? api().delete_style(id) : api().delete_recipe(id));
+        await loadPresets(false); renderPresetsManager();
+      });
+    });
+  };
+  renderTable("stylesmanager", "styles", state.styles || []);
+  renderTable("recipesmanager", "recipes", state.recipes || []);
+}
+
+// ---- Settings > Vision auto-tagging status + manual backfill trigger (AC-8.7) ----
+async function renderVisionTagStatus() {
+  const el = $("visiontagstatus"), note = $("visiontagnote"), btn = $("visiontagbackfill");
+  if (!el) return;
+  try {
+    const s = await api().vision_tagging_status();
+    el.textContent = s.configured ? `configured — ${s.endpoint}` : "not configured (off by default)";
+    el.className = "pref-note " + (s.configured ? "vt-on" : "vt-off");
+    if (btn) btn.disabled = !s.configured;
+  } catch (e) { el.textContent = "unavailable"; }
+  if (btn && !btn._wired) {
+    btn._wired = true;
+    btn.addEventListener("click", async () => {
+      btn.disabled = true; btn.textContent = "queuing…";
+      try {
+        const r = await api().start_vision_tag_backfill(200);
+        note.textContent = r.ok ? `queued ${r.queued} image(s) — tagging runs in the background.` : (r.error || "failed to start");
+      } catch (e) { note.textContent = "failed to start"; }
+      btn.disabled = false; btn.textContent = "Backfill untagged now";
+    });
+  }
+}
+$("settingsbtn").addEventListener("click", () => {
+  renderPresetsManager();
+  renderVisionTagStatus();
+});
+
 /* ---------- gallery ---------- */
 // WebView2 blocks file:// sub-resources from a file:// page — serve via the
 // localhost media server instead (basename resolves against the output dir).
@@ -669,15 +881,18 @@ function renderGallery() {
     api().open_output_folder()));
 }
 
-/* ---------- #7 lightbox + #9 metadata overlay ---------- */
-async function openLightbox(file) {
+/* ---------- #7 lightbox + #9 metadata overlay + Spec C #8 manual tags ---------- */
+async function openLightbox(file, dir) {
   state.lbFile = file;
+  state.lbDir = dir || "";
   $("lbmedia").innerHTML = mediaTag(file);          // reuse the media renderer (img/video/audio)
   $("lbside").innerHTML = `<div class="lbm-title">Metadata <em>loading…</em></div>`;
   $("lightbox").hidden = false;
   try {
-    const m = await api().read_meta(file);
+    const [m, t] = await Promise.all([api().read_meta(file), api().get_image_tags(file, state.lbDir)]);
+    state.lbTags = (t && t.tags) || [];
     $("lbside").innerHTML = renderMeta(m, file);
+    wireTagEditor();
   } catch (e) {
     $("lbside").innerHTML = `<div class="lbm-title">Metadata <em>unavailable</em></div>`;
   }
@@ -699,9 +914,59 @@ function renderMeta(m, file) {
   let html = `<div class="lbm-title">Metadata <em>${m.source || ""}</em></div>${rows.join("")}`;
   if (m.prompt) html += `<div class="lbm-block"><span>prompt</span><div>${escapeHtml(m.prompt)}</div></div>`;
   if (pstr) html += `<div class="lbm-block"><span>params</span><div>${escapeHtml(pstr)}</div></div>`;
+  html += renderTagEditor();
   return html;
 }
-function closeLightbox() { $("lightbox").hidden = true; state.lbFile = null; $("lbmedia").innerHTML = ""; }
+// #8 — manual tags from the lightbox (AC-8.2). Renders as its own block so a tag add/remove can
+// re-paint JUST this block instead of reloading the whole metadata panel.
+function renderTagEditor() {
+  const chips = (state.lbTags || []).map(t =>
+    `<span class="tagchip lbtag" data-t="${escapeHtml(t)}">${escapeHtml(t)} <button class="tagchip-x" data-rm="${escapeHtml(t)}" title="remove tag">✕</button></span>`).join("");
+  return `<div class="lbm-block lbtags-block" id="lbtagsblock">
+    <span>tags</span>
+    <div class="tagrow" id="lbtagrow">${chips || '<span class="tagchip-empty">no tags yet</span>'}</div>
+    <div class="tagadd"><input id="lbtaginput" type="text" placeholder="add a tag, enter to save" spellcheck="false"><button id="lbtagaddbtn">add</button></div>
+  </div>`;
+}
+function wireTagEditor() {
+  const box = $("lbtagsblock"); if (!box) return;
+  box.querySelectorAll("[data-rm]").forEach(b => b.addEventListener("click", async e => {
+    e.stopPropagation();
+    await removeLbTag(b.dataset.rm);
+  }));
+  const input = $("lbtaginput"), btn = $("lbtagaddbtn");
+  const submit = async () => { const v = (input.value || "").trim(); if (!v) return; input.value = ""; await addLbTag(v); };
+  if (btn) btn.addEventListener("click", submit);
+  if (input) input.addEventListener("keydown", e => { if (e.key === "Enter") submit(); });
+}
+async function addLbTag(tag) {
+  if (!state.lbFile) return;
+  try {
+    const r = await api().add_tag(state.lbFile, tag, state.lbDir);
+    if (r && r.ok) { state.lbTags = r.tags; syncLbTagsToLibRecord(); repaintLbTags(); }
+  } catch (e) {}
+}
+async function removeLbTag(tag) {
+  if (!state.lbFile) return;
+  try {
+    const r = await api().remove_tag(state.lbFile, tag, state.lbDir);
+    if (r && r.ok) { state.lbTags = r.tags; syncLbTagsToLibRecord(); repaintLbTags(); }
+  } catch (e) {}
+}
+function repaintLbTags() {
+  const box = $("lbtagsblock"); if (!box) return;
+  box.outerHTML = renderTagEditor();
+  wireTagEditor();
+}
+// Keep the Library view's in-memory record (and its tag chips) fresh without a full refetch.
+function syncLbTagsToLibRecord() {
+  const name = (state.lbFile || "").split(/[\\/]/).pop();
+  for (const r of state.libRecords) {
+    if (r.file === name && (!state.lbDir || r.dir === state.lbDir)) r.tags = state.lbTags.slice();
+  }
+  if (state.view === "library") applyLibFilter();
+}
+function closeLightbox() { $("lightbox").hidden = true; state.lbFile = null; state.lbDir = ""; state.lbTags = []; $("lbmedia").innerHTML = ""; }
 $("lbclose").addEventListener("click", closeLightbox);
 $("lightbox").addEventListener("click", e => { if (e.target.id === "lightbox") closeLightbox(); });
 $("lbedit").addEventListener("click", () => { if (state.lbFile) api().open_in_editor(state.lbFile); });
@@ -773,6 +1038,7 @@ async function renderLibrary() {
       <select id="libsvc" title="Filter by where it was generated"><option value="">all sources</option></select>
       <select id="libtype" title="Filter by media type"><option value="">all types</option><option value="image">images</option><option value="video">video</option></select>
     </div>
+    <div class="libtags" id="libtags"></div>
     <div class="libfolders" id="libfolders"></div>
     <div class="wmason" id="libmason"><div class="emptystate">loading…</div></div>`;
   $("librefresh").addEventListener("click", async () => {
@@ -823,14 +1089,38 @@ function applyLibFilter() {
   const folder = $("libfolder") ? $("libfolder").value : "";
   const svc = $("libsvc") ? $("libsvc").value : "";
   const type = $("libtype") ? $("libtype").value : "";
+  const activeTags = state.libFilter.tags || [];
   state.libFiltered = state.libRecords.filter(r =>
     (!folder || r.dir === folder) &&
     (!svc || (r.service || "") === svc) &&
     (!type || (r.type || "image") === type) &&
-    (!q || `${r.prompt || ""} ${r.model || ""} ${r.file}`.toLowerCase().includes(q)));
+    (!q || `${r.prompt || ""} ${r.model || ""} ${r.file}`.toLowerCase().includes(q)) &&
+    activeTags.every(t => (r.tags || []).includes(t)));           // AC-8.3 — multi-tag = AND
   const cnt = $("libcount");
   if (cnt) cnt.textContent = `${state.libFiltered.length} of ${state.libRecords.length} files`;
+  renderLibTagChips();
   renderLibTiles();
+}
+
+// AC-8.3 — chips derived from the distinct tags in the CURRENT filtered result set ("in view" =
+// current query results, not the whole DB), capped at 40, sorted by frequency.
+function renderLibTagChips() {
+  const box = $("libtags"); if (!box) return;
+  const freq = new Map();
+  for (const r of state.libFiltered) for (const t of (r.tags || [])) freq.set(t, (freq.get(t) || 0) + 1);
+  const chips = [...freq.entries()].sort((a, b) => b[1] - a[1] || a[0].localeCompare(b[0])).slice(0, 40);
+  const active = state.libFilter.tags || [];
+  box.innerHTML = chips.length
+    ? chips.map(([t, n]) => `<button class="tagchip filterchip ${active.includes(t) ? "on" : ""}" data-tag="${escapeHtml(t)}">${escapeHtml(t)} <em>${n}</em></button>`).join("")
+      + (active.length ? `<button class="tagchip clearchip" id="libtagsclear">clear tags ✕</button>` : "")
+    : `<span class="tagchip-empty">no tags in view</span>`;
+  box.querySelectorAll("[data-tag]").forEach(b => b.addEventListener("click", () => {
+    const t = b.dataset.tag;
+    const i = state.libFilter.tags.indexOf(t);
+    if (i === -1) state.libFilter.tags.push(t); else state.libFilter.tags.splice(i, 1);
+    applyLibFilter();
+  }));
+  const clr = $("libtagsclear"); if (clr) clr.addEventListener("click", () => { state.libFilter.tags = []; applyLibFilter(); });
 }
 
 function renderLibTiles() {
@@ -849,7 +1139,7 @@ function renderLibTiles() {
   }));
   mason.querySelectorAll(".wtile").forEach(t => t.addEventListener("click", e => {
     if (e.target.closest("[data-open]")) return;
-    openLightbox(recs[+t.dataset.wi].file);   // #7 lightbox from library too
+    openLightbox(recs[+t.dataset.wi].file, recs[+t.dataset.wi].dir);   // #7 lightbox from library too — dir disambiguates dup basenames
   }));
 }
 
@@ -1070,6 +1360,16 @@ $("cats").addEventListener("click", e => {
   state.category = b.dataset.c; state.model = null; render();
 });
 $("model").addEventListener("change", () => { state.model = $("model").value; render(); });
+// §4 suggestion box: instant filter as you type + click-to-apply (sets provider + model)
+$("modelquery") && $("modelquery").addEventListener("input", renderModelSuggest);
+$("modelsuggest") && $("modelsuggest").addEventListener("click", e => {
+  const btn = e.target.closest(".msuggest-chip"); if (!btn) return;
+  const svc = btn.dataset.svc, id = decodeURIComponent(btn.dataset.id);
+  if (svc !== state.service) { state.service = svc; state.inputFiles = {}; renderService(); refreshBalance(); }
+  state.model = id;
+  $("modelquery").value = "";
+  render();
+});
 
 /* ---------- boot ---------- */
 function tryBoot() {

@@ -2,7 +2,8 @@
    Exercises the SHIPPED web/content_mode.js against real catalog models. Node: `node scripts/verify_content_mode.js` */
 const fs = require("fs");
 const path = require("path");
-const { applyContentMode, isRelaxable, CONTENT_MODES, modelMaxTolerance } =
+const { applyContentMode, isRelaxable, CONTENT_MODES, modelMaxTolerance,
+        gradeInfo, isVerifiedGraded, isExcludedGraded } =
   require(path.join(__dirname, "..", "web", "content_mode.js"));
 
 const cat = JSON.parse(fs.readFileSync(path.join(__dirname, "..", "engine", "fal_models.json"), "utf8"));
@@ -67,6 +68,27 @@ chk("novita NSFW -> enable_nsfw_detection=false (allow)", applyContentMode({}, b
 chk("novita safe -> enable_nsfw_detection=true (moderate)", applyContentMode({}, bare, "safe", "novita").enable_nsfw_detection === true);
 chk("runware is relaxable", isRelaxable(bare, "runware") === true);
 chk("novita is relaxable", isRelaxable(bare, "novita") === true);
+
+// Spec B §3 — evidence-graded per-model content grading, EVERY provider
+const grades = {
+  models: {
+    "together:verified-model": { grade: "verified", nsfw_votes: "3/3" },
+    "novita:tested-negative": { grade: "refused", nsfw_votes: "0/3" },
+  },
+  exclusion_rules: [{ id_pattern: "kontext", reason: "BFL-proprietary", policy_source_url: "https://docs.bfl.ai/" }],
+};
+chk("gradeInfo: excluded-by-rule wins over evidence",
+  gradeInfo({ id: "fal-ai/flux-pro/kontext" }, "fal", grades).state === "excluded");
+chk("isExcludedGraded true for a rule match", isExcludedGraded({ id: "x/kontext/y" }, "fal", grades) === true);
+chk("gradeInfo: verified from evidence (non-fal)",
+  gradeInfo({ id: "verified-model" }, "together", grades).state === "verified");
+chk("isVerifiedGraded true for that evidence row", isVerifiedGraded({ id: "verified-model" }, "together", grades) === true);
+chk("gradeInfo: tested-but-not-confirmed -> untested (never assumed permissive, AC-3.1)",
+  gradeInfo({ id: "tested-negative" }, "novita", grades).state === "untested");
+chk("gradeInfo: zero evidence -> untested",
+  gradeInfo({ id: "never-swept" }, "runware", grades).state === "untested");
+chk("gradeInfo: same id on a DIFFERENT (unswept) provider is untested, not verified",
+  gradeInfo({ id: "verified-model" }, "novita", grades).state === "untested");
 
 console.log(`\n${fail ? "FAILED " + fail : "ALL PASS"} (${pass} passed)`);
 process.exit(fail ? 1 : 0);

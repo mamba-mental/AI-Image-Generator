@@ -1,0 +1,30 @@
+{
+  "_note": "Known-impossible models excluded from the NSFW sweep BY RULE, not by spend (Spec B AC-2.5). Each entry = {id_pattern (regex, case-insensitive), reason, policy_source_url}. verify_nsfw_v2 asserts (i) no matched model enters the queue AND (ii) every exclusion cites a policy_source_url. Patterns match against the model id.",
+  "exclusions": [
+    {
+      "id_pattern": "kontext",
+      "reason": "BFL-proprietary FLUX Kontext — provider-enforced content policy with no permissive override; nudity is blocked upstream regardless of client flags.",
+      "policy_source_url": "https://docs.bfl.ai/"
+    },
+    {
+      "id_pattern": "(^|/)(gemini|imagen)|google/",
+      "reason": "Google-backed image model — SynthID + non-overridable safety filters; art-nude refused by policy.",
+      "policy_source_url": "https://ai.google.dev/responsible"
+    },
+    {
+      "id_pattern": "gpt-image|dall-?e|(^|/)openai/",
+      "reason": "OpenAI-backed image model — content moderation is server-side and non-overridable.",
+      "policy_source_url": "https://platform.openai.com/docs/guides/images"
+    },
+    {
+      "id_pattern": "detector|upscal|remove.?background|eraser|inpaint|rerank|embedding|whisper|tts|stt|synthetic-video-detector",
+      "reason": "Not a text-to-image generation model (utility/analysis endpoint) — out of scope for a capability sweep.",
+      "policy_source_url": "https://novita.ai/models"
+    },
+    {
+      "id_pattern": "(^|[-/])video([-/]|$)|-video-|agnes-video|/veo|(^|/)kling|seedance|/ltx(v|-|/)|hailuo|minimax-video",
+      "reason": "Video-generation model — Spec B scopes the NSFW sweep to IMAGE models; video-NSFW testing is an explicit follow-up non-goal.",
+      "policy_source_url": "docs/specs/B-truth-about-models.md#non-goals"
+    }
+  ]
+}

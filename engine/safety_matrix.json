@@ -1,0 +1,23 @@
+{
+  "_note": "Most-permissive safety config per provider (Spec B AC-2.2). Values are the documented API maximum-permissiveness; a provider that ignores a param is noted. fal is per-model (its params vary by model — the sweep reads the model schema via permissive_params()).",
+  "fal": {
+    "_mode": "per-model-schema",
+    "enable_safety_checker": false,
+    "enable_output_safety_checker": false,
+    "safety_tolerance": "max",
+    "_note": "resolved per model from its param schema (permissive_params); not all fal models expose all three."
+  },
+  "together": {
+    "disable_safety_checker": true
+  },
+  "runware": {
+    "checkNSFW": false
+  },
+  "novita": {
+    "enable_nsfw_detection": false,
+    "_note": "Novita applies its own moderation server-side on some models regardless; the flag is best-effort."
+  },
+  "agnes": {
+    "_note": "AGNES exposes no documented safety-override param; sent with defaults. A refusal here is provider policy, recorded as such."
+  }
+}

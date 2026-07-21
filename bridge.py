@@ -27,6 +27,26 @@ def _load_service_params() -> dict:
     return {}
 
 
+def _load_content_grades() -> dict:
+    """Spec B §3 — the NSFW sweep's evidence, wired into per-model content grading for EVERY
+    provider (not just fal). `engine/nsfw_capability.json` v2 carries the empirical evidence rows
+    (keyed "provider:model" -> {grade,...}, grade in verified/refused/unclear/sfw) plus a resolved
+    `excluded` snapshot; `engine/nsfw_exclusions.json` carries the REGEX exclusion RULES so a model
+    added to a catalog after the last sweep is still graded `excluded` live (AC-2.5/AC-3.1) without
+    waiting for a re-sweep. AC-3.1: a model with no evidence and no exclusion match is `untested`
+    — the JS side never assumes permissive without one of these two sources."""
+    cap_path = engine_config.resource_path("engine/nsfw_capability.json")
+    exc_path = engine_config.resource_path("engine/nsfw_exclusions.json")
+    cap = json.loads(cap_path.read_text(encoding="utf-8")) if cap_path.exists() else {}
+    exc = json.loads(exc_path.read_text(encoding="utf-8")) if exc_path.exists() else {}
+    return {
+        "version": cap.get("version"),
+        "generated_at": cap.get("generated_at"),
+        "models": cap.get("models", {}),               # "provider:model" -> evidence row (grade,...)
+        "exclusion_rules": exc.get("exclusions", []),   # [{id_pattern, reason, policy_source_url}]
+    }
+
+
 def _openapi_props_to_params(schema: dict, comps: dict) -> list:
     """OpenAPI Input schema properties -> UI params[] (name/type/values/default/min/max/description)."""
     props = schema.get("properties", {})
@@ -115,6 +135,7 @@ class Api:
         for _libdir in self._library_dirs():  # LIBRARY view browses every configured archive
             if os.path.isdir(_libdir):
                 mediaserver.add_root(_libdir)
+        self._ensure_output_registered()  # #6 — generations land in a scanned folder from boot
         # LoRA-capable services (each backend translates {url,scale} to its own request shape).
         self._lora_cfg = {"huggingface": "recent_loras_hf", "replicate": "recent_loras_replicate",
                           "fal": "recent_loras_fal", "together": "recent_loras_together",
@@ -135,6 +156,7 @@ class Api:
                                     "gemini_api_key", "fal_api_key")},
             "fal_models": _load_fal_models(),
             "service_params": _load_service_params(),
+            "content_grades": _load_content_grades(),  # Spec B §3 — sweep evidence, every provider
             "recent_models": {
                 "replicate": self.config.get("recent_models_replicate", []),
                 "huggingface": self.config.get("recent_models_hf", []),
@@ -282,7 +304,114 @@ class Api:
         except Exception:
             return []
 
+    # OpenAI-compatible catalog endpoints (same URLs the key-validator uses) → live model lists,
+    # so these providers' dropdowns stop being hardcoded guesses (issue #1). Novita has its own
+    # method above (non-OpenAI shape); runware/ideogram expose no list API → offline seeds (AC-1.7).
+    _CATALOG = {
+        "together": ("https://api.together.xyz/v1/models",
+                     lambda k: {"Authorization": f"Bearer {k}", "User-Agent": "Mozilla/5.0"}),
+        "agnes": ("https://apihub.agnes-ai.com/v1/models", lambda k: {"Authorization": f"Bearer {k}"}),
+        "nvidia": ("https://integrate.api.nvidia.com/v1/models", lambda k: {"Authorization": f"Bearer {k}"}),
+        "openai": ("https://api.openai.com/v1/models", lambda k: {"Authorization": f"Bearer {k}"}),
+        "openrouter": ("https://openrouter.ai/api/v1/models", lambda k: {"Authorization": f"Bearer {k}"}),
+    }
+    # id substrings that hint an image/video model (used only to PREFER image models, never to hide —
+    # if the filter finds nothing we return the full live list rather than guess it empty).
+    _IMG_HINTS = ("flux", "image", "imagen", "sd", "stable", "dall", "kontext", "qwen-image",
+                  "seedream", "playground", "recraft", "ideogram", "sana", "pixart", "kolors",
+                  "wan", "hunyuan", "ltx", "video", "veo", "kling", "hidream", "nano-banana")
+
+    def provider_models(self, service: str, limit: int = 300) -> dict:
+        """Live model catalog for an OpenAI-compatible provider (issue #1 — no more guessed lists).
+        Returns {ok, live, models:[ids], filtered:bool, note}. Empty models + a note when there's no
+        key or the fetch fails, so the frontend can fall back to its labelled offline seeds."""
+        import urllib.request
+        spec = self._CATALOG.get(service)
+        if not spec:
+            return {"ok": False, "live": False, "models": [], "note": "no live catalog (uses offline seeds)"}
+        field = engine_config.KEY_FIELDS.get(service)
+        key = os.environ.get(field[1]) if field else None
+        if not key:
+            return {"ok": False, "live": False, "models": [], "note": "no key set"}
+        url, hdr = spec
+        try:
+            req = urllib.request.Request(url, headers=hdr(key))
+            d = json.loads(urllib.request.urlopen(req, timeout=20).read())
+            data = d.get("data") if isinstance(d, dict) else d   # together returns a bare array
+            ids, typed_img = [], []
+            for m in (data or []):
+                if isinstance(m, dict):
+                    mid = m.get("id") or m.get("name")
+                    if (m.get("type") or "").lower() in ("image", "video"):
+                        typed_img.append(mid)
+                else:
+                    mid = m
+                if mid and mid not in ids:
+                    ids.append(mid)
+            # prefer provider-declared image/video types; else id-hint filter; else the full list
+            if typed_img:
+                models, filtered = typed_img, True
+            else:
+                hinted = [i for i in ids if any(h in i.lower() for h in self._IMG_HINTS)]
+                models, filtered = (hinted, True) if hinted else (ids, False)
+            return {"ok": True, "live": True, "models": models[:int(limit)], "filtered": filtered,
+                    "note": f"{len(models)} live model(s)" + ("" if filtered else " — unfiltered")}
+        except Exception as e:
+            return {"ok": False, "live": False, "models": [],
+                    "note": f"catalog fetch failed ({type(e).__name__})"}
+
+    # LoRA-capable services that accept an ARBITRARY HF .safetensors URL (novita = own-catalog
+    # only, runware = CivitAI AIRs — both excluded by design, not oversight).
+    _LORA_URL_SVCS = ("fal", "together", "replicate", "huggingface")
+
+    def import_lora(self, ref: str, scale: float = 0.8) -> dict:
+        """Convert a HuggingFace LoRA repo/URL into the artifact every URL-capable provider needs,
+        and register it in their LoRA pickers in one shot (PRIME's personal LoRAs importer).
+
+        Accepts: 'user/repo', a huggingface.co repo URL, or a direct .safetensors URL.
+        Resolves the repo's weight file via the HF API, then add_lora()s it into fal/together/
+        replicate/hf managers ({url, scale, enabled} — each backend translates to its own shape).
+        """
+        import re as _re
+        import urllib.request
+        ref = (ref or "").strip()
+        if not ref:
+            return {"ok": False, "error": "empty ref"}
+        url = None
+        if ref.lower().endswith((".safetensors", ".bin")) and ref.startswith("http"):
+            url = ref
+        else:
+            m = _re.search(r"(?:huggingface\.co/)?([\w.-]+/[\w.-]+)", ref)
+            if not m:
+                return {"ok": False, "error": "unrecognized ref — pass user/repo or a URL"}
+            repo = m.group(1)
+            try:
+                d = json.loads(urllib.request.urlopen(
+                    f"https://huggingface.co/api/models/{repo}", timeout=20).read())
+                weights = [s["rfilename"] for s in d.get("siblings", [])
+                           if s["rfilename"].endswith(".safetensors")]
+                if not weights:
+                    return {"ok": False, "error": f"no .safetensors in {repo}"}
+                url = f"https://huggingface.co/{repo}/resolve/main/{weights[0]}"
+            except Exception as e:
+                return {"ok": False, "error": f"HF lookup failed: {type(e).__name__}"}
+        added = []
+        for svc in self._LORA_URL_SVCS:
+            mgr = self.lora_managers.get(svc)
+            if mgr and mgr.add_lora(url, scale=scale):
+                added.append(svc)
+        self._persist()  # serializes every manager back to config (get_loras) + saves
+        return {"ok": True, "url": url, "added_to": added,
+                "note": "novita (own catalog) + runware (CivitAI AIRs) can't take HF URLs"}
+
     def set_config(self, patch: dict) -> dict:
+        # #6 AC-6.3 — a drive/share root or non-writable output dir is rejected BEFORE it's applied,
+        # so `output_directory` can never be set to `I:\` (the NAS root) again.
+        if "output_directory" in patch:
+            from engine import save
+            ok, msg = save.validate_output_root(patch["output_directory"])
+            if not ok:
+                return {"ok": False, "error": msg}
         for k, v in dict(patch).items():
             if k == "parameters" and isinstance(v, dict):
                 self.config.setdefault("parameters", {}).update(v)
@@ -290,6 +419,7 @@ class Api:
                 self.config[k] = v
         if "output_directory" in patch:
             mediaserver.set_dir(self.config["output_directory"])
+            self._ensure_output_registered()   # keep the new output's generated/ folder scanned
         self._persist()
         return {"ok": True}
 
@@ -368,38 +498,201 @@ class Api:
         files.sort(key=lambda f: f.stat().st_mtime, reverse=True)
         return [{"file": f.name} for f in files[:int(limit)]]
 
-    def list_library(self, limit: int = 8000, refresh: bool = False) -> list:
-        """LIBRARY view source. Returns de-duped basenames across every configured archive.
+    def _index(self):
+        """The SQLite Library Index (ADR 0001), lazily opened once per Api. Replaces the old flat
+        JSON cache: metadata is stored as columns, folders are indexed independently and keyed by a
+        change signature, so a warm open is a pure local-DB read and a folder toggle is a flag flip
+        — never a NAS re-crawl. Colocated with the old index dir; migrates the legacy JSON once."""
+        idx = getattr(self, "_lib_idx", None)
+        if idx is None:
+            from engine.library_index import LibraryIndex
+            db = os.path.join(os.path.dirname(self._library_index_path()), "library.db")
+            idx = LibraryIndex(db)
+            idx.migrate_from_json(self._library_index_path())  # one-time import → instant first open
+            self._lib_idx = idx
+        return idx
 
-        The archives live on the NAS; a live recursive crawl of ~5k files on every app open is
-        why the grid used to redraw slowly. So the file list is cached to a LOCAL json index
-        (`.cache/library_index.json`) and served from there instantly. The crawl only runs when
-        the index is missing, the archive set changed, or `refresh=True` (the ↻ button)."""
-        bases = [d for d in self._library_dirs() if os.path.isdir(d)] or [self.config["output_directory"]]
-        idx = self._library_index_path()
-        if not refresh:
-            try:
-                if os.path.exists(idx):
-                    with open(idx, encoding="utf-8") as f:
-                        data = json.load(f)
-                    if (data.get("version") == self._LIB_INDEX_VERSION
-                            and data.get("dirs") == bases and isinstance(data.get("files"), list)):
-                        return data["files"][:int(limit)]
-            except Exception:
-                pass  # bad/absent/old-version index → fall through to a fresh scan
-        records = self._scan_library(bases)
+    def _ensure_output_registered(self) -> None:
+        """Guarantee the output `generated/` root is in the Library scan set so fresh generations are
+        findable (#6, AC-6.2). Idempotent — the common case is a cheap membership check."""
+        from engine import save
+        root = save.generated_root(self.config.get("output_directory", ""))
+        if not root or root in self._all_library_dirs():
+            return
         try:
-            os.makedirs(os.path.dirname(idx), exist_ok=True)
-            with open(idx, "w", encoding="utf-8") as f:
-                json.dump({"version": self._LIB_INDEX_VERSION, "dirs": bases,
-                           "files": records, "count": len(records)}, f)
+            os.makedirs(root, exist_ok=True)
+        except OSError:
+            return
+        dirs = self.config.get("library_directories")
+        base = list(dirs) if isinstance(dirs, list) else self._all_library_dirs()
+        self.config["library_directories"] = base + [root]
+        try:
+            mediaserver.add_root(root)
         except Exception:
             pass
-        return records[:int(limit)]
+        self._persist()
+
+    def refresh_generated(self) -> dict:
+        """Re-index ONLY the current output month-folder so a just-saved image is findable
+        immediately, without re-crawling the whole NAS (#6, AC-6.2). Called by the UI after a job."""
+        from engine import save
+        month = save.month_dir(self.config.get("output_directory", ""))
+        if month and os.path.isdir(month):
+            try:
+                self._index().index_folder(month)
+            except Exception:
+                pass
+        return {"ok": True}
+
+    def list_library(self, limit: int = 8000, refresh: bool = False) -> list:
+        """LIBRARY view source. Returns de-duped basenames across every enabled archive.
+
+        Backed by the SQLite Library Index (`.cache/library.db`, ADR 0001). A warm call is a single
+        local-DB query with ZERO NAS access — the ~5k-file crawl only runs on first index of a
+        folder, or on an explicit `refresh=True` (the ↻ button) for folders whose signature changed.
+        Toggling a folder never re-crawls (it changes which bases are queried)."""
+        bases = [d for d in self._library_dirs() if os.path.isdir(d)] or [self.config["output_directory"]]
+        idx = self._index()
+        if refresh:
+            idx.refresh(bases, force=True)      # explicit ↻ — re-sign + re-index changed folders
+        else:
+            idx.ensure_indexed(bases)           # first-run only; already-indexed folders = pure DB read
+        return idx.list_images(bases, int(limit))
 
     def refresh_library(self, limit: int = 8000) -> list:
-        """Force a fresh NAS crawl + rebuild the cached index (for the Library ↻ refresh button)."""
+        """Force a re-index of changed folders + return the fresh list (the Library ↻ refresh button)."""
         return self.list_library(limit=limit, refresh=True)
+
+    # ---- tags (Spec C #8) ---------------------------------------------------------
+
+    def _resolve_full(self, file: str, dir: str = "") -> str:
+        """Resolve a (file, dir) pair from the JS side into ONE absolute path — `dir`
+        disambiguates duplicate basenames across library folders (list_library de-dupes by name
+        for DISPLAY only; the DB/tag identity is the full path). Falls back to the legacy
+        basename-only `_resolve()` when dir is empty (session-gallery tiles already carry an
+        absolute path in `file`)."""
+        if dir:
+            cand = os.path.join(dir, os.path.basename(file or ""))
+            if os.path.exists(cand):
+                return cand
+        return self._resolve(file)
+
+    def _sidecar_meta_for_embed(self, path: str) -> dict:
+        """The generation metadata to mirror into the embedded copy on a tag edit (AC-8.6) —
+        reuses read_meta's sidecar lookup so the embed carries the real provider/model/seed/
+        prompt/negative/params, not just the tag list."""
+        m = self.read_meta(os.path.basename(path))
+        params = m.get("params") or {}
+        return {"provider": m.get("service"), "model": m.get("model"), "seed": m.get("seed"),
+                "prompt": m.get("prompt"), "negative": params.get("negative_prompt"), "params": params}
+
+    def _reembed_tags(self, path: str, tags: list) -> None:
+        """Mirror a manual tag edit into the file's durable embedded copy (AC-8.2/8.6). Never
+        blocks: on failure the DB row (already updated) stays the source of truth."""
+        try:
+            from engine import embed_meta
+            meta = self._sidecar_meta_for_embed(path)
+            meta["tags"] = tags
+            embed_meta.write_embedded_meta(path, meta)
+        except Exception as e:
+            print(f"tag embed failed for {path}: {e}")
+
+    def get_image_tags(self, file: str, dir: str = "") -> dict:
+        path = self._resolve_full(file, dir)
+        if not path or not os.path.exists(path):
+            return {"tags": []}
+        return {"tags": self._index().get_tags(path)}
+
+    def add_tag(self, file: str, tag: str, dir: str = "") -> dict:
+        tag = (tag or "").strip()
+        path = self._resolve_full(file, dir)
+        if not tag or not path or not os.path.exists(path):
+            return {"ok": False, "error": "empty tag or file not found"}
+        idx = self._index()
+        ext = Path(path).suffix.lower()
+        idx.ensure_row(path, os.path.dirname(path), os.path.basename(path),
+                       "video" if ext in (".mp4", ".webm", ".mov") else "image")
+        tags = idx.add_tag(path, tag)
+        self._reembed_tags(path, tags)
+        return {"ok": True, "tags": tags}
+
+    def remove_tag(self, file: str, tag: str, dir: str = "") -> dict:
+        path = self._resolve_full(file, dir)
+        if not path or not os.path.exists(path):
+            return {"ok": False, "error": "file not found"}
+        tags = self._index().remove_tag(path, tag)
+        self._reembed_tags(path, tags)
+        return {"ok": True, "tags": tags}
+
+    # ---- vision auto-tagging (AC-8.7) ----------------------------------------------
+
+    def vision_tagging_status(self) -> dict:
+        from engine import vision_tagging
+        return {"configured": vision_tagging.is_configured(), "endpoint": vision_tagging.base_url_label()}
+
+    def start_vision_tag_backfill(self, limit: int = 200) -> dict:
+        """Kicks off a non-blocking background batch over the untagged backlog (AC-8.7). Off
+        unless a vision endpoint resolves; never blocks the caller (returns immediately, the
+        batch runs on its own daemon thread)."""
+        from engine import vision_tagging
+        if not vision_tagging.is_configured():
+            return {"ok": False, "error": "no vision endpoint configured"}
+        bases = [d for d in self._library_dirs() if os.path.isdir(d)] or [self.config["output_directory"]]
+        idx = self._index()
+        paths = idx.untagged_paths(bases, limit=int(limit))
+        if not paths:
+            return {"ok": True, "queued": 0}
+        import threading
+        threading.Thread(target=vision_tagging.batch_tag, args=(paths, idx), daemon=True).start()
+        return {"ok": True, "queued": len(paths)}
+
+    # ---- presets: Style / Recipe (Spec C #4) ----------------------------------------
+    # Two distinct objects, never conflated (CONTEXT.md glossary): a Style is reusable/prompt-
+    # optional; a Recipe reproduces ONE exact image and is provider-pinned. Both live in
+    # library.db (same store as the index, AC-4.1/4.5) via LibraryIndex's styles/recipes tables.
+
+    def save_style(self, data: dict) -> dict:
+        pid = self._index().save_preset("styles", data or {})
+        return {"ok": True, "id": pid}
+
+    def save_recipe(self, data: dict) -> dict:
+        pid = self._index().save_preset("recipes", data or {})
+        return {"ok": True, "id": pid}
+
+    def list_styles(self) -> list:
+        return self._index().list_presets("styles")
+
+    def list_recipes(self) -> list:
+        return self._index().list_presets("recipes")
+
+    def rename_style(self, preset_id: int, name: str) -> dict:
+        self._index().rename_preset("styles", int(preset_id), name)
+        return {"ok": True}
+
+    def rename_recipe(self, preset_id: int, name: str) -> dict:
+        self._index().rename_preset("recipes", int(preset_id), name)
+        return {"ok": True}
+
+    def delete_style(self, preset_id: int) -> dict:
+        self._index().delete_preset("styles", int(preset_id))
+        return {"ok": True}
+
+    def delete_recipe(self, preset_id: int) -> dict:
+        self._index().delete_preset("recipes", int(preset_id))
+        return {"ok": True}
+
+    def set_default_style(self, preset_id: int) -> dict:
+        self._index().set_default_preset("styles", int(preset_id))
+        return {"ok": True}
+
+    def set_default_recipe(self, preset_id: int) -> dict:
+        self._index().set_default_preset("recipes", int(preset_id))
+        return {"ok": True}
+
+    def get_default_presets(self) -> dict:
+        """Applied on launch (AC-4.2) — boot() reads this once and applies each default that exists."""
+        idx = self._index()
+        return {"style": idx.get_default_preset("styles"), "recipe": idx.get_default_preset("recipes")}
 
     def list_library_dirs(self) -> list:
         """Every configured library folder + its state, for the folder-toggle UI.
@@ -422,6 +715,10 @@ class Api:
             disabled.add(path)
             mediaserver.remove_root(path)
         self.config["library_directories_disabled"] = sorted(disabled)
+        try:
+            self._index().set_folder_enabled(path, enabled)  # keep the index flag in sync (pure DB flip)
+        except Exception:
+            pass
         self._persist()
         return {"ok": True, "dirs": self.list_library_dirs()}
 

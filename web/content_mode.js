@@ -65,8 +65,34 @@
     return out;
   }
 
+  // --- Spec B §3 — per-model content grading from empirical sweep evidence, EVERY provider ---
+  // (AC-3.1/3.2). `grades` = bridge get_state().content_grades: {models, exclusion_rules}.
+  // States: "excluded" (rule match — hidden in every relaxed mode) · "verified" (>=2/3 NSFW
+  // renders, §2.4) · "untested" (no evidence OR evidence that never confirmed NSFW — AC-3.1 caps
+  // inference: no non-excluded, non-verified model is ever assumed permissive).
+  function _matchExclusionRule(id, rules) {
+    const s = String(id || "");
+    for (const r of (rules || [])) {
+      try { if (new RegExp(r.id_pattern, "i").test(s)) return r; } catch (e) { /* bad pattern — skip */ }
+    }
+    return null;
+  }
+  function gradeInfo(model, service, grades) {
+    const id = model && model.id;
+    const rule = _matchExclusionRule(id, grades && grades.exclusion_rules);
+    if (rule) return { state: "excluded", reason: rule.reason, policy_source_url: rule.policy_source_url };
+    const ev = grades && grades.models && grades.models[`${service}:${id}`];
+    if (ev && ev.grade === "verified")
+      return { state: "verified", grade: ev.grade, tested_at: ev.tested_at, votes: ev.nsfw_votes };
+    if (ev) return { state: "untested", grade: ev.grade, tested_at: ev.tested_at, votes: ev.nsfw_votes };  // tested, not confirmed
+    return { state: "untested", grade: null };  // no evidence at all
+  }
+  function isVerifiedGraded(model, service, grades) { return gradeInfo(model, service, grades).state === "verified"; }
+  function isExcludedGraded(model, service, grades) { return gradeInfo(model, service, grades).state === "excluded"; }
+
   const API = { CONTENT_MODES, CONTENT_MODE_HELP, SERVICE_SAFETY, modelMaxTolerance,
-                contentCapability, isRelaxable, isVerified, isFashionModel, applyContentMode };
+                contentCapability, isRelaxable, isVerified, isFashionModel, applyContentMode,
+                gradeInfo, isVerifiedGraded, isExcludedGraded };
   if (typeof module !== "undefined" && module.exports) module.exports = API;  // node (verify script)
   else Object.assign(root, API);                                             // browser globals for app.js
 })(typeof window !== "undefined" ? window : this);

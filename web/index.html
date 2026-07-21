@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <title>AI Studio Void</title>
 <link rel="stylesheet" href="tokens.css">
-<link rel="stylesheet" href="app.css?v=12">
+<link rel="stylesheet" href="app.css?v=15">
 </head>
 <body>
 <header>
@@ -52,7 +52,15 @@
         </select></div>
         <div class="pref-note">Pre-fills width/height when the selected model exposes them.</div>
       </div>
+      <div class="pref-row">
+        <label>Vision auto-tagging <span class="phelp" title="Semantic content tags (subject/setting/style/palette/composition/content-level) via a vision-capable model, routed through cliproxy at $0 marginal. Off unless an endpoint is configured; never blocks save/open.">&#9432;</span></label>
+        <div class="pref-in"><span id="visiontagstatus" class="pref-note">checking…</span><button id="visiontagbackfill">Backfill untagged now</button></div>
+        <div class="pref-note" id="visiontagnote"></div>
+      </div>
     </div>
+    <h2 class="prefs-h">Presets — Styles &amp; Recipes <span class="phelp" title="Style = reusable, prompt-optional. Recipe = reproduce ONE exact image, provider-pinned. List, rename, delete, set-default here (AC-4.5).">&#9432;</span></h2>
+    <div id="stylesmanager" class="presetmanager"></div>
+    <div id="recipesmanager" class="presetmanager"></div>
   </div>
 </div>
 
@@ -62,6 +70,11 @@
     <div class="sec">
       <div class="lbl">Service</div>
       <select id="svc"></select>
+    </div>
+    <div class="sec" id="msuggestwrap">
+      <div class="lbl">Which model? <span class="phelp" title="Type what you want — instantly filters the models you can actually access, across your keyed providers. Click a match to load it.">✨ suggest</span></div>
+      <input type="text" id="modelquery" class="msuggest-input" placeholder='e.g. "uncensored photoreal" · "fast flux" · "kontext"' autocomplete="off">
+      <div id="modelsuggest" class="msuggest"></div>
     </div>
     <div class="sec">
       <div class="lbl">Category · Model <em id="pricenote"></em></div>
@@ -103,6 +116,12 @@
     <div class="sec" id="lorawrap" style="display:none">
       <div class="lbl">LoRAs <em id="loracount"></em></div>
       <div id="loras"></div>
+    </div>
+    <div class="sec" id="presetswrap">
+      <div class="lbl">Presets <span class="phelp" title="Style = reusable, prompt-optional (negative + optional {prompt} template + param defaults). Recipe = reproduce ONE exact image (prompt+seed+model+provider), provider-pinned. Manage all of them in ⚙ Settings.">&#9432;</span></div>
+      <div class="preset-row"><select id="styleSel"><option value="">— no style —</option></select><button id="styleApplyBtn">Apply</button></div>
+      <div class="preset-row"><select id="recipeSel"><option value="">— no recipe —</option></select><button id="recipeApplyBtn">Apply</button></div>
+      <div class="preset-save-row"><button id="saveStyleBtn">💾 Save as Style</button><button id="saveRecipeBtn">💾 Save as Recipe</button></div>
     </div>
   </div>
   <div class="gen-wrap">
@@ -181,7 +200,8 @@
   </div>
 </div>
 
-<script src="content_mode.js?v=3"></script>
-<script src="app.js?v=16"></script>
+<script src="content_mode.js?v=4"></script>
+<script src="presets.js?v=1"></script>
+<script src="app.js?v=21"></script>
 </body>
 </html>
