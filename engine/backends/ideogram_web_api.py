@@ -35,6 +35,22 @@ _WEB = {"Origin": _BASE, "Referer": _BASE + "/", "User-Agent": _UA}
 _POLL_TIMEOUT_S = 180
 
 
+def _retry_wait(headers, fallback):
+    """Seconds to wait before a 429 retry: server header if present, else exp `fallback`. Capped 1–30s."""
+    for h in ("Retry-After", "X-RateLimit-Reset", "x-ratelimit-reset"):
+        v = headers.get(h) if headers else None
+        if not v:
+            continue
+        try:
+            n = float(v)
+        except (TypeError, ValueError):
+            continue
+        if n > 1e6:  # absolute epoch reset -> delta from now
+            n = n - time.time()
+        return max(1.0, min(n, 30.0))
+    return max(1.0, min(fallback, 30.0))
+
+
 def _auth_fields():
     c = _config.load()
     return (c.get("ideogram_web_refresh_token"), c.get("ideogram_web_api_key"),
@@ -120,13 +136,25 @@ def generate(model_id, params, progress=None, cancel_event=None) -> list:
     }
     if progress:
         progress("submitting to Ideogram (subscription)…")
-    try:
-        sub = _api(token, "/api/images/sample", "POST", payload)
-    except urllib.error.HTTPError as e:
-        detail = e.read()[:200].decode("utf-8", "replace")
-        return [f"ideogram-web Error: submit HTTP {e.code} — {detail}"]
-    except Exception as e:
-        return [f"ideogram-web Error: submit {type(e).__name__}: {e}"]
+    # 429 backoff: a rate-limited submit created NO generation, so retrying is spend-safe (won't
+    # double-charge the subscription). Poll-loop 429s are already tolerated by its except: continue.
+    sub = None
+    for attempt in range(6):
+        if cancel_event is not None and cancel_event.is_set():
+            return ["ideogram-web Error: cancelled."]
+        try:
+            sub = _api(token, "/api/images/sample", "POST", payload)
+            break
+        except urllib.error.HTTPError as e:
+            if e.code == 429 and attempt < 5:
+                if progress:
+                    progress("Ideogram rate-limited (429) — backing off…")
+                time.sleep(_retry_wait(e.headers, 2 ** (attempt + 1)))
+                continue
+            detail = e.read()[:200].decode("utf-8", "replace")
+            return [f"ideogram-web Error: submit HTTP {e.code} — {detail}"]
+        except Exception as e:
+            return [f"ideogram-web Error: submit {type(e).__name__}: {e}"]
     request_id = sub.get("request_id")
     if not request_id:
         return [f"ideogram-web Error: no request_id in response (keys: {list(sub.keys())})"]

@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <title>Omni-Image</title>
 <link rel="stylesheet" href="tokens.css">
-<link rel="stylesheet" href="app.css?v=19">
+<link rel="stylesheet" href="app.css?v=20">
 </head>
 <body>
 <header>
@@ -35,8 +35,12 @@
       <button id="settingsclose">✕</button>
     </div>
     <p class="modal-sub">Keys resolve from your environment by default. Add or override one here, then Validate to live-check it against the provider. Stored in <code>%APPDATA%\AI Studio Void\config.json</code> — never committed.</p>
-    <div id="keyrows"></div>
-    <h2 class="prefs-h">Preferences</h2>
+    <h2 class="prefs-h settingscollapse" data-target="setfold-keys" data-key="omni_set_keys_collapsed"><span class="setcaret">▾</span>API Keys</h2>
+    <div class="settingsfold" id="setfold-keys">
+      <div id="keyrows"></div>
+    </div>
+    <h2 class="prefs-h settingscollapse" data-target="setfold-prefs" data-key="omni_set_prefs_collapsed"><span class="setcaret">▾</span>Preferences</h2>
+    <div class="settingsfold" id="setfold-prefs">
     <div class="prefs">
       <div class="pref-row">
         <label for="pref-outdir">Save / output folder</label>
@@ -58,10 +62,14 @@
         <div class="pref-note" id="visiontagnote"></div>
       </div>
     </div>
-    <h2 class="prefs-h">Presets — Styles &amp; Recipes <span class="phelp" title="Style = reusable, prompt-optional. Recipe = reproduce ONE exact image, provider-pinned. List, rename, delete, set-default here (AC-4.5).">&#9432;</span></h2>
-    <div id="stylesmanager" class="presetmanager"></div>
-    <div id="recipesmanager" class="presetmanager"></div>
-    <h2 class="prefs-h">Tags <span class="phelp" title="Every tag in the library. Rename a tag TO an already-existing tag name to merge the two (tags are a set per image, so the collapse is automatic). Delete removes a tag from every image that carries it. 'Add a tag + rescan' runs a targeted 12-worker vision pass, asking a plain yes/no question per image, and tags every match. Sorted by frequency; a captioned library can carry tens of thousands of one-off caption tags, so only the top ones render — search to find any other.">&#9432;</span></h2>
+    </div>
+    <h2 class="prefs-h settingscollapse" data-target="setfold-presets" data-key="omni_set_presets_collapsed"><span class="setcaret">▾</span>Presets — Styles &amp; Recipes <span class="phelp" title="Style = reusable, prompt-optional. Recipe = reproduce ONE exact image, provider-pinned. List, rename, delete, set-default here (AC-4.5).">&#9432;</span></h2>
+    <div class="settingsfold" id="setfold-presets">
+      <div id="stylesmanager" class="presetmanager"></div>
+      <div id="recipesmanager" class="presetmanager"></div>
+    </div>
+    <h2 class="prefs-h settingscollapse" data-target="setfold-tags" data-key="omni_set_tags_collapsed"><span class="setcaret">▾</span>Tags <span class="phelp" title="Every tag in the library. Rename a tag TO an already-existing tag name to merge the two (tags are a set per image, so the collapse is automatic). Delete removes a tag from every image that carries it. 'Add a tag + rescan' runs a targeted 12-worker vision pass, asking a plain yes/no question per image, and tags every match. Sorted by frequency; a captioned library can carry tens of thousands of one-off caption tags, so only the top ones render — search to find any other.">&#9432;</span></h2>
+    <div class="settingsfold" id="setfold-tags">
     <div class="pref-in"><input id="tagsearch" type="text" placeholder="search tags…" spellcheck="false"></div>
     <div id="tagsmanager" class="presetmanager"></div>
     <div class="pref-note" id="tagscountnote"></div>
@@ -73,6 +81,7 @@
         <button id="tagrescanbtn">Rescan library</button>
       </div>
       <div class="pref-note" id="tagrescannote"></div>
+    </div>
     </div>
   </div>
 </div>
@@ -120,6 +129,10 @@
       </div>
       <label class="cmode-verified" id="verifiedwrap" style="display:none"><input type="checkbox" id="verifiedonly"> Verified only <span class="cmode-count" id="cmodecount"></span></label>
       <div class="nsfw-note" id="nsfwnote"></div>
+      <div class="nsfw-links">
+        <button type="button" id="nsfwrefbtn" title="open the NSFW model reference page in your browser">NSFW model reference ↗</button>
+        <button type="button" id="nsfwsweepbtn" title="run the NSFW sweep with a prompt (dry-run — no spend)">↻ Run sweep with a prompt…</button>
+      </div>
     </div>
     <div class="sec" id="inputimgwrap" style="display:none">
       <div class="lbl">Input Image</div>
@@ -228,6 +241,6 @@
 
 <script src="content_mode.js?v=4"></script>
 <script src="presets.js?v=1"></script>
-<script src="app.js?v=28"></script>
+<script src="app.js?v=32"></script>
 </body>
 </html>

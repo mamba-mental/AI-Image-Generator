@@ -12,13 +12,33 @@ supported aspect ratio. Key from IDEOGRAM_API_KEY (env / credential store).
 Ref: https://developer.ideogram.ai/api-reference/api-reference/generate-v3
 """
 import os
+import time
 
 import requests
 
 _API = "https://api.ideogram.ai/v1/ideogram-v3/generate"
 
+
+def _retry_wait(headers, fallback):
+    """Seconds to wait before a 429 retry: server header if present, else exp `fallback`. Capped 1–30s."""
+    for h in ("Retry-After", "X-RateLimit-Reset", "x-ratelimit-reset"):
+        v = headers.get(h) if headers else None
+        if not v:
+            continue
+        try:
+            n = float(v)
+        except (TypeError, ValueError):
+            continue
+        if n > 1e6:  # absolute epoch reset -> delta from now
+            n = n - time.time()
+        return max(1.0, min(n, 30.0))
+    return max(1.0, min(fallback, 30.0))
+
 # model_id suffix -> Ideogram rendering_speed. QUALITY is slowest/best, TURBO fastest/cheapest.
 _SPEEDS = {"turbo": "TURBO", "default": "DEFAULT", "quality": "QUALITY", "flash": "FLASH"}
+
+# Ideogram v3 style_type enum — an out-of-set value hard-400s. Clamp to AUTO if unknown.
+_STYLE_TYPES = {"AUTO", "GENERAL", "REALISTIC", "DESIGN", "FICTION"}
 
 # Ideogram v3 accepts a fixed set of aspect ratios (WxH form). Map an arbitrary
 # width:height to the closest supported ratio so the generic size panel just works.
@@ -72,10 +92,13 @@ def generate(model_id, params, progress=None, cancel_event=None) -> list:
     if not prompt:
         return ["ideogram Error: prompt required."]
 
+    style_type = (params.get("style_type") or "AUTO").upper()
+    if style_type not in _STYLE_TYPES:
+        style_type = "AUTO"
     files = {
         "prompt": (None, prompt),
         "rendering_speed": (None, _speed(model_id)),
-        "style_type": (None, (params.get("style_type") or "AUTO").upper()),
+        "style_type": (None, style_type),
         "num_images": (None, str(int(params.get("num_outputs", 1) or 1))),
     }
     resolution = (params.get("resolution") or "").strip()
@@ -97,10 +120,20 @@ def generate(model_id, params, progress=None, cancel_event=None) -> list:
 
     if progress:
         progress(f"Submitting to Ideogram ({_speed(model_id)})…")
-    try:
-        r = requests.post(_API, files=files, headers={"Api-Key": key}, timeout=180)
-    except Exception as e:
-        return [f"ideogram Error: {type(e).__name__}: {e}"]
+    # 429 backoff: fields are plain (None, str) tuples (no consumed file streams), so re-POST is safe.
+    for attempt in range(6):
+        if cancel_event is not None and cancel_event.is_set():
+            return ["ideogram Error: cancelled."]
+        try:
+            r = requests.post(_API, files=files, headers={"Api-Key": key}, timeout=180)
+        except Exception as e:
+            return [f"ideogram Error: {type(e).__name__}: {e}"]
+        if r.status_code == 429 and attempt < 5:
+            if progress:
+                progress("Ideogram rate-limited (429) — backing off…")
+            time.sleep(_retry_wait(r.headers, 2 ** (attempt + 1)))
+            continue
+        break
     if r.status_code == 401:
         return ["ideogram Error: HTTP 401 — key rejected (check IDEOGRAM_API_KEY)."]
     if r.status_code >= 400:

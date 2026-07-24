@@ -44,6 +44,7 @@ const state = {
   view: "session", grid: "m", lbFile: null, lbDir: "", lbTags: [], lbList: null, lbIndex: -1, lbMeta: null, contentMode: "safe", verifiedOnly: false,
   contentGrades: {}, aspectPreset: "Custom", modelMeta: {},
   novitaCovers: {}, openrouterDescriptions: {}, sweepThumbs: {},
+  nsfwFavs: new Set(),  // A5 — NSFW-page favorites ("provider::model", lowercased); ★ + top-of-group in the model picker
   libRecords: [], libFiltered: [], libraryDirs: [], libFilter: { folder: "", service: "", type: "", q: "", tags: [], favoritesOnly: false },
   libTileEls: null,   // Map<rkey, tileEl> for the library grid — built ONCE per record set, never
                        // rebuilt on filter (perf fix, see buildLibTiles/syncLibTileVisibility below)
@@ -103,6 +104,7 @@ async function boot() {
   render();
   refreshBalance();
   await loadPresets(true);   // Presets (#4) — load + apply any launch defaults (AC-4.2)
+  loadNsfwFavs();            // A5 — NSFW-page favorites → ★ + top-of-group in the model picker (fire-and-forget)
 }
 
 /* ---------- pickers (layout + theme) ---------- */
@@ -232,7 +234,7 @@ $("pref-size") && $("pref-size").addEventListener("change", async e => {
   state.defaultSize = e.target.value;
   await api().set_config({ default_image_size: e.target.value });
 });
-$("settingsbtn").addEventListener("click", () => { renderKeyRows(); renderPrefs(); $("settings").hidden = false; });
+$("settingsbtn").addEventListener("click", () => { renderKeyRows(); renderPrefs(); wireSettingsCollapse(); $("settings").hidden = false; });
 $("settingsclose").addEventListener("click", () => { $("settings").hidden = true; });
 $("settings").addEventListener("click", e => { if (e.target.id === "settings") $("settings").hidden = true; });
 
@@ -271,7 +273,7 @@ async function maybeFetchNovitaModels() {
 // Live catalogs for the OpenAI-compatible providers (issue #1 — dropdowns stop being guesses).
 // One-shot per service on success; retries while empty (e.g. before a key is set); on failure the
 // labelled offline seeds stay. Novita has its own shape → delegates above.
-const CATALOG_SVCS = ["together", "agnes", "nvidia", "openai", "openrouter"];
+const CATALOG_SVCS = ["together", "agnes", "nvidia", "openai", "openrouter", "cliproxy", "replicate", "gemini"];
 // Card-grid metadata one-shots (finish of the gap-report card grid): novita cover images +
 // openrouter descriptions load once per session when their service first renders.
 async function maybeFetchCardMeta() {
@@ -443,9 +445,38 @@ async function refreshAllBalances() {
     _balanceAllInFlight = false;
   }
 }
+// A5 — a model is an NSFW-page favorite when "<service>::<model-id>" (lowercased) is in the set
+// pulled from the NSFW reference page's server store (state.nsfwFavs, loaded by loadNsfwFavs).
+// canonical favorite key: lowercase + strip fal's redundant `fal-ai/` model prefix so the NSFW
+// page's mixed key shapes (fal::fal-ai/flux-1/krea AND fal::bytedance/...) both match the app's
+// fal ids (all `fal-ai/`-prefixed). Applied to BOTH the stored set (loadNsfwFavs) and the lookup.
+function _normFavKey(k) { return String(k).toLowerCase().replace("::fal-ai/", "::"); }
+function isNsfwFav(m) {
+  return !!(m && state.nsfwFavs && state.nsfwFavs.size
+    && state.nsfwFavs.has(_normFavKey(state.service + "::" + m.id)));
+}
 // E2 — <option> list for the model <select>, wrapping contiguous same-`group` runs in an
 // <optgroup> (Novita's "Checkpoints" / "Model APIs"). No-op passthrough for ungrouped models.
+// A5 — a favorited model gets a ★ prefix and floats to the top of ITS optgroup. ponytail: a stable
+// per-group partition (favorites first, everything else in original order), NOT a full [group,!fav,
+// name] sort — that keeps group order + within-group provider order intact and avoids alphabetically
+// reshuffling the whole catalog. Only runs when favorites exist, so zero change to the no-fav path.
 function renderModelOptions(models, cur) {
+  if (state.nsfwFavs && state.nsfwFavs.size) {
+    const order = [], byGroup = new Map();
+    for (const m of models) {
+      const g = m.group || "";
+      if (!byGroup.has(g)) { byGroup.set(g, []); order.push(g); }
+      byGroup.get(g).push(m);
+    }
+    const reordered = [];
+    for (const g of order) {
+      const items = byGroup.get(g);
+      for (const m of items) if (isNsfwFav(m)) reordered.push(m);
+      for (const m of items) if (!isNsfwFav(m)) reordered.push(m);
+    }
+    models = reordered;
+  }
   let html = "", curGroup = undefined, open = false;
   for (const m of models) {
     if (m.group !== curGroup) {
@@ -454,10 +485,20 @@ function renderModelOptions(models, cur) {
       if (open) html += `<optgroup label="${escapeHtml(m.group)}">`;
       curGroup = m.group;
     }
-    html += `<option value="${m.id}" ${cur && m.id === cur.id ? "selected" : ""}>${m.label}${m.price ? " — " + m.price : ""}</option>`;
+    const star = isNsfwFav(m) ? "★ " : "";
+    html += `<option value="${m.id}" ${cur && m.id === cur.id ? "selected" : ""}>${star}${m.label}${m.price ? " — " + m.price : ""}</option>`;
   }
   if (open) html += `</optgroup>`;
   return html;
+}
+// A5 — pull the NSFW-page favorites once (server store, cross-origin-safe via the bridge) and
+// re-render so the ★ + top-of-group ordering appear. Called at boot + after visiting the NSFW page.
+async function loadNsfwFavs() {
+  try {
+    const favs = await api().nsfw_favorites();
+    state.nsfwFavs = new Set((favs || []).map(_normFavKey));
+  } catch (e) { state.nsfwFavs = state.nsfwFavs || new Set(); return; }
+  if (state.services && state.services.length) render();  // reflect stars/order in the live dropdown
 }
 
 /* ---------- P1 — aspect-preset dropdown (research/2026-07-21_provider-params-matrix.md §15) ----------
@@ -788,6 +829,33 @@ $("nsfwinfo").addEventListener("click", () => {
 $("nsfwpanelclose").addEventListener("click", () => { $("nsfwpanel").hidden = true; });
 $("nsfwpanel").addEventListener("click", e => { if (e.target.id === "nsfwpanel") $("nsfwpanel").hidden = true; });
 
+// A4 — open the NSFW model reference page (served at :31960) + refresh favorites (the user may
+// have just starred models there, which drives the ★ + top-of-group ordering in the picker).
+$("nsfwrefbtn") && $("nsfwrefbtn").addEventListener("click", () => {
+  try { api().open_nsfw_reference(); } catch (e) {}
+  loadNsfwFavs();
+});
+// B2 — kick the shared NSFW sweep core with a prompt. Defaults to a dry-run (no spend) — PRIME
+// confirms before any real spend. Progress streams back via the sweep_progress/sweep_done events.
+$("nsfwsweepbtn") && $("nsfwsweepbtn").addEventListener("click", async () => {
+  const p = (prompt("Prompt to sweep with:", ($("prompt").value || "").trim()) || "").trim();
+  if (!p) return;
+  const t = (prompt("Which test suite — 1 (fal gallery) or 2 (multi-provider)?", "1") || "").trim();
+  const test = t === "2" ? 2 : 1;
+  const btn = $("nsfwsweepbtn"), orig = btn.textContent;
+  btn.disabled = true; btn.textContent = "starting sweep…";
+  try {
+    const r = await api().run_nsfw_sweep(p, test, true);   // dry-run — never spends
+    $("statusmsg").textContent = (r && r.ok)
+      ? `NSFW sweep started (dry-run, test ${test}) — progress in status / Logs…`
+      : `sweep failed: ${(r && r.error) || "unknown error"}`;
+  } catch (e) {
+    $("statusmsg").textContent = "sweep failed: " + e;
+  } finally {
+    btn.disabled = false; btn.textContent = orig;
+  }
+});
+
 const LORA_SERVICES = ["huggingface", "replicate", "fal", "together", "runware", "novita"];
 function falModelSupportsLora(id) {
   const m = (id || "").toLowerCase();
@@ -812,8 +880,10 @@ function renderLoras() {
       <input id="loraurl" placeholder="LoRA URL / HF repo / civitai:id@ver" spellcheck="false">
       <button id="loraaddbtn" title="Add this LoRA">add</button>
       <button id="loracivbtn" title="Search CivitAI LoRAs">🔍 Civitai</button>
+      <button id="lorahfbtn" title="Search HuggingFace LoRAs">🔍 HF</button>
     </div>
     <div class="civ-search" id="civsearch" hidden></div>
+    <div class="civ-search" id="hfsearch" hidden></div>
     <div class="lora-import">
       <input id="loraimportref" placeholder="import to ALL providers — HF repo (user/repo) or .safetensors URL" spellcheck="false">
       <input id="loraimportscale" type="number" step="0.05" min="0" max="1.5" value="0.8" title="scale">
@@ -835,6 +905,10 @@ function renderLoras() {
   $("loracivbtn").addEventListener("click", () => {
     const box = $("civsearch"); box.hidden = !box.hidden;
     if (!box.hidden) renderCivitai(svc);
+  });
+  $("lorahfbtn").addEventListener("click", () => {
+    const box = $("hfsearch"); box.hidden = !box.hidden;
+    if (!box.hidden) renderHFLora(svc);
   });
   // E3 — one paste fans out to every URL-capable provider (bridge.import_lora), not just `svc`.
   $("loraimportbtn").addEventListener("click", async () => {
@@ -891,6 +965,45 @@ async function renderCivitai(svc) {
   $("civgo").addEventListener("click", run);
   $("civq").addEventListener("keydown", e => { if (e.key === "Enter") run(); });
   $("civq").focus();
+}
+
+/* ---------- HuggingFace LoRA browse-and-import (reuses .civ-* styles) ---------- */
+// "+ add" fans out to every URL-capable provider via import_lora (fal/together/replicate/hf),
+// mirroring the ⇉ import-to-all button — HF repos aren't provider-specific like CivitAI AIRs.
+async function renderHFLora(svc) {
+  const box = $("hfsearch");
+  box.innerHTML = `
+    <div class="civ-bar">
+      <input id="hfq" placeholder="search HF LoRAs… (e.g. anime, flux, realism)" spellcheck="false">
+      <button id="hfgo">search</button>
+    </div>
+    <div class="civ-results" id="hfresults"><div class="civ-hint">Search HuggingFace for a LoRA to import to all URL-capable providers.</div></div>`;
+  const run = async () => {
+    $("hfresults").innerHTML = `<div class="civ-hint">searching…</div>`;
+    let res; try { res = await api().hf_lora_search($("hfq").value.trim()); } catch (e) { res = { ok: false, error: String(e) }; }
+    if (!res.ok) { $("hfresults").innerHTML = `<div class="civ-hint">error: ${escapeHtml(res.error || "search failed")}</div>`; return; }
+    if (!res.items.length) { $("hfresults").innerHTML = `<div class="civ-hint">no results</div>`; return; }
+    $("hfresults").innerHTML = res.items.map(it => `
+      <div class="civ-card">
+        <div class="civ-noimg">HF</div>
+        <div class="civ-meta"><b title="${escapeHtml(it.repo || "")}">${escapeHtml(it.name || "")}</b>
+          <span>${escapeHtml(it.repo || "")} · ${(it.downloads || 0).toLocaleString()}↓</span></div>
+        <button class="civ-add" data-ref="${escapeHtml(it.ref || "")}">+ add</button>
+      </div>`).join("");
+    $("hfresults").querySelectorAll(".civ-add").forEach(b => b.addEventListener("click", async () => {
+      b.disabled = true; b.textContent = "…";
+      const scale = parseFloat($("loraimportscale").value) || 0.8;
+      const r = await api().import_lora(b.dataset.ref, scale);
+      if (r && r.ok) {
+        for (const s of (r.added_to || [])) state.loras[s] = await api().lora_list(s);
+        $("statusmsg").textContent = `LoRA added to: ${(r.added_to || []).join(", ") || "none"}`;
+        renderLoras();
+      } else { b.textContent = "✕"; b.title = (r && r.error) || "add failed"; }
+    }));
+  };
+  $("hfgo").addEventListener("click", run);
+  $("hfq").addEventListener("keydown", e => { if (e.key === "Enter") run(); });
+  $("hfq").focus();
 }
 
 /* ---------- Presets: Style / Recipe (Spec C #4) ---------- */
@@ -1089,7 +1202,12 @@ $("tagsearch") && $("tagsearch").addEventListener("input", renderTagsManagerList
 // Bulk tag ops (rename/delete/rescan) happen at the DB level, bypassing the per-image sync a
 // single add_tag/remove_tag call gets (R3 #3) — if the Library tab is open, force it to reload
 // so already-built tiles/chips don't go stale after a bulk edit.
-function refreshLibraryIfOpen() { if (state.view === "library") loadLibrary(); }
+function refreshLibraryIfOpen() {
+  // A2 — a bulk rename/delete/rescan changed the whole-DB tag set; drop the cache so the Library
+  // chips re-fetch it (they seed from list_all_tags now).
+  state._libAllTags = null; state._libAllTagsSorted = null; state._libAllTagsSet = null;
+  if (state.view === "library") loadLibrary();
+}
 let _tagRescanPoll = null;
 function stopTagRescanPoll() { if (_tagRescanPoll) { clearInterval(_tagRescanPoll); _tagRescanPoll = null; } }
 function pollTagRescan(tag) {
@@ -1433,7 +1551,9 @@ async function renderLibrary() {
       <select id="libsvc" title="Filter by where it was generated"><option value="">all sources</option></select>
       <select id="libtype" title="Filter by media type"><option value="">all types</option><option value="image">images</option><option value="video">video</option></select>
     </div>
+    <div class="s2lbl libcollapse" data-target="libtags" data-key="omni_lib_tags_collapsed"><span class="libcaret">▾</span>Tags</div>
     <div class="libtags" id="libtags"></div>
+    <div class="s2lbl libcollapse" data-target="libfolders" data-key="omni_lib_folders_collapsed"><span class="libcaret">▾</span>Folders</div>
     <div class="libfolders" id="libfolders"></div>
     <div class="wmason" id="libmason"><div class="emptystate">loading…</div></div>`;
   $("librefresh").addEventListener("click", async () => {
@@ -1441,19 +1561,90 @@ async function renderLibrary() {
     try { await api().refresh_library(8000); } catch (e) {}
     await loadLibrary();
   });
+  wireLibCollapse();
   renderLibFolders();
   await loadLibrary();
 }
 
+// FIX 7 — fold the Tags + Folders clusters on the Library view to give the grid more room. State
+// persists per-cluster in localStorage. Uses a `.collapsed` class (not [hidden]) because the boxes
+// carry `display:flex` at equal specificity, which would beat the UA [hidden] rule.
+function wireLibCollapse() {
+  document.querySelectorAll(".libcollapse").forEach(h => {
+    const box = $(h.dataset.target);
+    const caret = h.querySelector(".libcaret");
+    const apply = (collapsed) => {
+      if (box) box.classList.toggle("collapsed", collapsed);
+      if (caret) caret.textContent = collapsed ? "▸" : "▾";
+    };
+    apply(localStorage.getItem(h.dataset.key) === "1");
+    h.addEventListener("click", () => {
+      const collapsed = !(box && box.classList.contains("collapsed"));
+      apply(collapsed);
+      try { localStorage.setItem(h.dataset.key, collapsed ? "1" : "0"); } catch (e) {}
+    });
+  });
+}
+
+// A1 — collapsible Settings sections. Same shape as wireLibCollapse, but the Settings modal DOM is
+// static (never rebuilt), so we bind the click handler once per header (_scWired) while ALWAYS
+// re-applying the saved state — that restores each section's collapsed state on every modal open.
+function wireSettingsCollapse() {
+  document.querySelectorAll(".settingscollapse").forEach(h => {
+    const box = $(h.dataset.target);
+    const caret = h.querySelector(".setcaret");
+    const apply = (collapsed) => {
+      if (box) box.classList.toggle("collapsed", collapsed);
+      if (caret) caret.textContent = collapsed ? "▸" : "▾";
+    };
+    apply(localStorage.getItem(h.dataset.key) === "1");
+    if (h._scWired) return;
+    h._scWired = true;
+    h.addEventListener("click", () => {
+      const collapsed = !(box && box.classList.contains("collapsed"));
+      apply(collapsed);
+      try { localStorage.setItem(h.dataset.key, collapsed ? "1" : "0"); } catch (e) {}
+    });
+  });
+}
+
 function renderLibFolders() {
   const box = $("libfolders"); if (!box) return;
+  // Each folder is a pill: [checkbox+name] [full path] [✎ edit] [✕ remove]. The pill is a <span>
+  // (not a <label>) so the edit/remove buttons don't toggle the enable checkbox — only the inner
+  // <label> does. Full path is shown (not just the basename) so duplicate names are distinguishable.
   box.innerHTML = state.libraryDirs.map(d =>
-    `<label class="libfolder ${d.enabled ? "on" : ""} ${d.exists ? "" : "missing"}" title="${escapeHtml(d.path)}${d.exists ? "" : " — folder not found"}">
-       <input type="checkbox" data-fp="${escapeHtml(d.path)}" ${d.enabled ? "checked" : ""}> ${escapeHtml(d.name)}</label>`
+    `<span class="libfolder ${d.enabled ? "on" : ""} ${d.exists ? "" : "missing"}" title="${escapeHtml(d.path)}${d.exists ? "" : " — folder not found"}">
+       <label class="libfolderlabel"><input type="checkbox" data-fp="${escapeHtml(d.path)}" ${d.enabled ? "checked" : ""}> ${escapeHtml(d.name)}</label>
+       <span class="libfolderpath">${escapeHtml(d.path)}</span>
+       <button class="libfolderbtn" data-edit="${escapeHtml(d.path)}" title="Change this folder's path">✎</button>
+       <button class="libfolderbtn" data-del="${escapeHtml(d.path)}" title="Remove this folder from the library">✕</button>
+     </span>`
   ).join("") + `<button id="libadd" class="libaddbtn" title="Add another folder to the library">＋ add folder</button>`;
   box.querySelectorAll("input[data-fp]").forEach(cb => cb.addEventListener("change", async () => {
     cb.disabled = true;
     try { const res = await api().set_library_dir_enabled(cb.dataset.fp, cb.checked); if (res && res.dirs) state.libraryDirs = res.dirs; } catch (e) {}
+    renderLibFolders();
+    await loadLibrary();
+  }));
+  box.querySelectorAll("[data-del]").forEach(b => b.addEventListener("click", async () => {
+    const p = b.dataset.del;
+    if (!confirm("Remove this folder from the library?\n\n" + p)) return;
+    b.disabled = true;
+    try { const res = await api().remove_library_dir(p); if (res && res.dirs) state.libraryDirs = res.dirs; } catch (e) {}
+    renderLibFolders();
+    await loadLibrary();
+  }));
+  box.querySelectorAll("[data-edit]").forEach(b => b.addEventListener("click", async () => {
+    const oldp = b.dataset.edit;
+    const np = (prompt("Change this library folder's path to:", oldp) || "").trim();
+    if (!np || np === oldp) return;
+    b.disabled = true;
+    try {
+      const res = await api().set_library_dir_path(oldp, np);
+      if (res && res.ok === false) alert("Couldn't update folder: " + (res.error || "unknown"));
+      if (res && res.dirs) state.libraryDirs = res.dirs;
+    } catch (e) {}
     renderLibFolders();
     await loadLibrary();
   }));
@@ -1466,11 +1657,14 @@ function renderLibFolders() {
 
 async function loadLibrary() {
   try { state.libRecords = await api().list_library(8000); } catch (e) { state.libRecords = []; }
-  const dirs = [...new Set(state.libRecords.map(r => r.dir).filter(Boolean))];
   const svcs = [...new Set(state.libRecords.map(r => r.service).filter(Boolean))].sort();
   const folderSel = $("libfolder"), svcSel = $("libsvc");
+  // Populate the folder filter from the CONFIGURED library dirs (state.libraryDirs) so it stays in
+  // sync with Settings + the folder toggles — NOT from distinct scanned record dirs, which drift
+  // (e.g. show a nested `…\generated\YYYY-MM` that was never a configured folder). Option value is
+  // the full path, which equals a record's `dir` (its index base), so applyLibFilter keeps matching.
   if (folderSel) folderSel.innerHTML = `<option value="">all folders</option>` +
-    dirs.map(d => `<option value="${escapeHtml(d)}">${escapeHtml(d.split(/[\\/]/).filter(Boolean).pop() || d)}</option>`).join("");
+    state.libraryDirs.map(d => `<option value="${escapeHtml(d.path)}">${escapeHtml(d.name || d.path)}</option>`).join("");
   if (svcSel) svcSel.innerHTML = `<option value="">all sources</option>` +
     svcs.map(s => `<option value="${escapeHtml(s)}">${escapeHtml(s)}</option>`).join("");
   ["libq", "libfolder", "libsvc", "libtype"].forEach(id => {
@@ -1499,13 +1693,46 @@ function applyLibFilter() {
   renderLibTiles();
 }
 
-// AC-8.3 — chips derived from the distinct tags in the CURRENT filtered result set ("in view" =
-// current query results, not the whole DB), capped at 40, sorted by frequency.
+// A2 — chips now seed from the WHOLE-DB tag set (list_all_tags, freq-sorted — so Settings-created
+// tags that have 0 matches in the current view still appear) UNIONed with the in-view tags. Whole-DB
+// tags are lazy-loaded once into state._libAllTags; a "+N more" affordance expands the rendered cap.
+// PERF GUARD (unchanged intent): a captioned archive hits ~34k distinct tags — never render them all
+// at once. Default cap 60; "+more" expands only to LIB_TAGS_HARD_CAP, and any remainder past that is
+// reachable via ⚙ Settings › Tags search, never dumped into the DOM.
+const LIB_TAGS_CAP = 60;
+const LIB_TAGS_HARD_CAP = 300;
 function renderLibTagChips() {
   const box = $("libtags"); if (!box) return;
-  const freq = new Map();
-  for (const r of state.libFiltered) for (const t of (r.tags || [])) freq.set(t, (freq.get(t) || 0) + 1);
-  const chips = [...freq.entries()].sort((a, b) => b[1] - a[1] || a[0].localeCompare(b[0])).slice(0, 40);
+  // whole-DB tags [{tag,count}], lazy-fetched once. Sort the 34k-worst-case set ONCE at load (into
+  // _libAllTagsSorted) + keep a Set of them — so a library-search keystroke never re-sorts the whole
+  // archive, only the small in-view delta below.
+  if (!state._libAllTags && !state._libAllTagsLoading) {
+    state._libAllTagsLoading = true;
+    api().list_all_tags()
+      .then(r => {
+        state._libAllTags = r || [];
+        state._libAllTagsSorted = state._libAllTags.map(t => [t.tag, t.count])
+          .sort((a, b) => b[1] - a[1] || a[0].localeCompare(b[0]));
+        state._libAllTagsSet = new Set(state._libAllTags.map(t => t.tag));
+        state._libAllTagsLoading = false;
+        if (state.view === "library") renderLibTagChips();
+      })
+      .catch(() => { state._libAllTags = []; state._libAllTagsSorted = []; state._libAllTagsSet = new Set(); state._libAllTagsLoading = false; });
+  }
+  // in-view frequency (current filtered results)
+  const inView = new Map();
+  for (const r of state.libFiltered) for (const t of (r.tags || [])) inView.set(t, (inView.get(t) || 0) + 1);
+  const dbSorted = state._libAllTagsSorted || [];
+  const dbSet = state._libAllTagsSet || new Set();
+  // session-added tags not yet in the cached whole-DB list float to the front (freshly made). Before
+  // the whole-DB cache loads, dbSet is empty → extras = every in-view tag = the original behavior.
+  const extras = [...inView.entries()].filter(([t]) => !dbSet.has(t))
+    .sort((a, b) => b[1] - a[1] || a[0].localeCompare(b[0]));
+  const sorted = extras.concat(dbSorted);
+  const showAll = !!state._libTagsShowAll;
+  const limit = showAll ? LIB_TAGS_HARD_CAP : LIB_TAGS_CAP;
+  const chips = sorted.slice(0, limit);
+  const remainder = sorted.length - chips.length;   // still hidden past the current cap
   const active = state.libFilter.tags || [];
   const favOn = !!state.libFilter.favoritesOnly;   // R3 #3 — dedicated chip, same tagchip look, no new CSS
   box.innerHTML =
@@ -1513,6 +1740,9 @@ function renderLibTagChips() {
     + (chips.length
       ? chips.map(([t, n]) => `<button class="tagchip filterchip ${active.includes(t) ? "on" : ""}" data-tag="${escapeHtml(t)}">${escapeHtml(t)} <em>${n}</em></button>`).join("")
         + (active.length ? `<button class="tagchip clearchip" id="libtagsclear">clear tags ✕</button>` : "")
+        + (!showAll && remainder > 0 ? `<button class="tagchip clearchip" id="libtagsmore" title="show more tags">+${remainder} more…</button>` : "")
+        + (showAll ? `<button class="tagchip clearchip" id="libtagsless" title="show fewer tags">show fewer</button>` : "")
+        + (showAll && remainder > 0 ? `<span class="tagchip-empty">+${remainder} more — search them in ⚙ Settings › Tags</span>` : "")
       : `<span class="tagchip-empty">no tags in view</span>`);
   $("libfavfilter").addEventListener("click", () => { state.libFilter.favoritesOnly = !state.libFilter.favoritesOnly; applyLibFilter(); });
   box.querySelectorAll("[data-tag]").forEach(b => b.addEventListener("click", () => {
@@ -1522,6 +1752,8 @@ function renderLibTagChips() {
     applyLibFilter();
   }));
   const clr = $("libtagsclear"); if (clr) clr.addEventListener("click", () => { state.libFilter.tags = []; applyLibFilter(); });
+  const more = $("libtagsmore"); if (more) more.addEventListener("click", () => { state._libTagsShowAll = true; renderLibTagChips(); });
+  const less = $("libtagsless"); if (less) less.addEventListener("click", () => { state._libTagsShowAll = false; renderLibTagChips(); });
 }
 
 // PERF (R3 #1): the library grid used to fully rebuild `mason.innerHTML` (recreating every <img>)
@@ -1789,7 +2021,11 @@ function neededKinds(model) {
   const src = cat.split("-to-")[0];
   const kind = SRC_KIND[src];
   if (kind) return [kind];
-  // fall back to any explicit flags for edge models that declare them
+  // A "<src>-to-<dst>" category is authoritative about its source: if the src isn't an input-kind
+  // (e.g. "text"), the model needs NO input — never consult the unreliable needs_input_* flags
+  // (32 text-to-image fal models carry a bogus needs_input_image:true → false "input required").
+  if (cat.includes("-to-")) return [];
+  // Only a model with no -to- category structure falls back to its explicit flags.
   return model ? Object.entries(INPUT_KINDS).filter(([f]) => model[f]).map(([, k]) => k) : [];
 }
 function renderInputPickers(model) {
@@ -1825,6 +2061,10 @@ window.onEngineEvent = (evt) => {
     if (evt.error !== "Cancelled.") showError(evt.error, evt.detail || "");  // #15 copyable popup
     setBusy(false);
   }
+  // B2 — NSFW sweep runs on its OWN worker thread (not the generation job), so it only updates the
+  // status line; it never touches the generation busy state.
+  else if (evt.type === "sweep_progress") { $("statusmsg").textContent = evt.message || "sweeping…"; }
+  else if (evt.type === "sweep_done") { $("statusmsg").textContent = `NSFW sweep finished (exit ${evt.code})`; }
   if (state.view === "logs") loadLogs();  // live-refresh the Logs panel on any event
 };
 

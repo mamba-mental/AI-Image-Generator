@@ -26,6 +26,7 @@ from pathlib import Path
 _STATE = {"dir": None, "extra": [], "thumbs": None}  # output dir + library roots + thumb cache dir
 _IMG_EXT = {".png", ".jpg", ".jpeg", ".webp", ".gif", ".bmp"}
 _THUMB_LOCK = threading.Lock()
+_FIND_CACHE: dict[str, str] = {}  # basename -> resolved absolute path (misses trigger one rglob)
 
 
 def _roots():
@@ -33,8 +34,33 @@ def _roots():
 
 
 def _find(name: str):
-    """Resolve a basename to the first matching root file (path-traversal-safe)."""
-    return next((Path(b) / name for b in _roots() if b and (Path(b) / name).is_file()), None)
+    """Resolve a basename to a real file under any root.
+
+    Generations save to `<root>/generated/YYYY-MM/<file>`, so a top-level-only check 404s every
+    generated image. Resolution order: (1) cache, (2) top-level of each root (fast, the common case
+    for archive libraries whose files sit at the root), (3) ONE recursive rglob per root, breaking on
+    the first hit and caching it. After the first miss a name is a pure dict lookup forever.
+    # ponytail: per-name rglob (break-on-first-hit) + hit-only cache. Genuine 404s re-walk each time
+    # (rare — a broken reference); if a cold nested grid of hundreds ever drags, swap to a one-shot
+    # basename index built on first miss.
+    """
+    if not name:
+        return None
+    cached = _FIND_CACHE.get(name)
+    if cached and Path(cached).is_file():   # guard a moved/deleted cached path
+        return Path(cached)
+    for b in _roots():                      # fast path: top level (unchanged behavior)
+        if b and (Path(b) / name).is_file():
+            _FIND_CACHE[name] = str(Path(b) / name)
+            return Path(b) / name
+    for b in _roots():                      # slow path: recurse, first hit wins, cache it
+        if not b:
+            continue
+        hit = next((p for p in Path(b).rglob(name) if p.is_file()), None)
+        if hit is not None:
+            _FIND_CACHE[name] = str(hit)
+            return hit
+    return None
 
 
 def _thumb_dir() -> Path:
@@ -141,6 +167,7 @@ def start(output_dir: str) -> str:
 
 def set_dir(output_dir: str) -> None:
     _STATE["dir"] = output_dir
+    _FIND_CACHE.clear()   # roots changed — a cached path may no longer be under a served root
 
 
 def add_root(path: str) -> None:
@@ -149,6 +176,7 @@ def add_root(path: str) -> None:
     _STATE.setdefault("extra", [])
     if path and path not in _STATE["extra"]:
         _STATE["extra"].append(path)
+        _FIND_CACHE.clear()   # a new root can change what a basename resolves to
 
 
 def remove_root(path: str) -> None:
@@ -156,3 +184,4 @@ def remove_root(path: str) -> None:
     disabled folder stops serving without an app restart. No-op if it wasn't a registered root."""
     if path and path in _STATE.get("extra", []):
         _STATE["extra"].remove(path)
+        _FIND_CACHE.clear()   # drop any entries that pointed into the removed root

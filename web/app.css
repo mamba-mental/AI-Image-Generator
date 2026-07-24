@@ -40,7 +40,13 @@ header::after {
 .brand .brand-dash { color: var(--txt3); }
 .verbadge { font-family: var(--mono); font-size: 10px; line-height: 1; opacity: .5; padding: 3px 8px; margin-left: 10px; border: 1px solid var(--border); border-radius: 999px; white-space: nowrap; color: var(--txt3); }
 .drivebanner { background: #5a1717; color: #ffdcdc; font-size: 12.5px; line-height: 1.4; padding: 8px 16px; text-align: center; border-bottom: 1px solid #7a2020; }
-.prefs-h { font-size: 13px; margin: 18px 0 8px; color: var(--txt2, #bbb); border-top: 1px solid var(--border); padding-top: 14px; }
+.prefs-h { font-family: var(--disp); font-size: 12px; font-weight: 600; letter-spacing: .06em; text-transform: uppercase; margin: 24px 0 10px; color: var(--txt2, #bbb); border-top: 1px solid var(--border); padding-top: 16px; }
+/* A1 — collapsible Settings sections (fold the section BODY; wrapper carries .collapsed because
+   .prefs/.presetmanager are display:flex and beat the UA [hidden] rule). Mirrors .libcollapse. */
+.prefs-h.settingscollapse { display: flex; align-items: center; gap: 7px; cursor: pointer; user-select: none; }
+.prefs-h.settingscollapse:hover { color: var(--accent-hi); }
+.setcaret { color: var(--accent-hi); font-size: 9px; width: 9px; display: inline-block; flex: none; }
+.settingsfold.collapsed { display: none; }
 .prefs { display: flex; flex-direction: column; gap: 12px; }
 .pref-row { display: flex; flex-direction: column; gap: 5px; }
 .pref-row > label { font-size: 12px; color: var(--txt3); }
@@ -72,7 +78,7 @@ header::after {
   background: none; border: 1px solid transparent; color: var(--txt3); font-family: var(--mono);
   font-size: 9.5px; padding: 4px 9px; border-radius: 5px; cursor: pointer; letter-spacing: .5px;
 }
-.picker button.on { background: var(--accent-soft); background-image: linear-gradient(var(--accent-soft), var(--accent-soft)), var(--prism-gradient); color: var(--accent-hi); }
+.picker button.on { background: var(--accent-soft); background-image: linear-gradient(var(--accent-soft), var(--accent-soft)), var(--prism-gradient); color: #0b0b0f; font-weight: 600; }
 .swatch { width: 10px; height: 10px; border-radius: 50%; display: inline-block; margin-right: 4px; vertical-align: -1px; }
 
 /* prism ring: shared clip/origin for every .on/.active state below — the gradient only
@@ -98,13 +104,15 @@ aside { width: 380px; border-right: 1px solid var(--border); background: var(--p
 /* service toggle */
 .svc { display: grid; grid-template-columns: repeat(4, 1fr); gap: 4px; background: var(--card); padding: 4px; border-radius: 8px; border: 1px solid var(--border); }
 .svc button { background: none; border: 1px solid transparent; text-align: center; padding: 7px 0; border-radius: 6px; color: var(--txt2); font-family: var(--disp); font-size: 11.5px; font-weight: 500; cursor: pointer; }
+/* text sits on the opaque solid --accent fill (padding-box); --prism-gradient only
+   paints the border-box ring here, so var(--accent-fg) stays token-safe — no color change needed. */
 .svc button.on { background: var(--accent); background-image: linear-gradient(var(--accent), var(--accent)), var(--prism-gradient); border-color: transparent; color: var(--accent-fg); font-weight: 600; }
 .svc button.nokey { opacity: .4; }
 
 /* category chips */
 .cat-chips { display: flex; gap: 5px; flex-wrap: wrap; margin-bottom: 8px; }
 .chip { font-size: 10px; padding: 4px 10px; border-radius: 99px; border: 1px solid var(--border); color: var(--txt2); background: none; cursor: pointer; font-family: var(--disp); }
-.chip.on { border-color: transparent; color: var(--accent-hi); background: var(--accent-soft); background-image: linear-gradient(var(--accent-soft), var(--accent-soft)), var(--prism-gradient); }
+.chip.on { border-color: transparent; color: #0b0b0f; font-weight: 600; background: var(--accent-soft); background-image: linear-gradient(var(--accent-soft), var(--accent-soft)), var(--prism-gradient); }
 
 select, textarea, input[type="text"], input[type="number"] {
   width: 100%; background: var(--input); border: 1px solid var(--border); border-radius: 8px;
@@ -141,15 +149,25 @@ input[type="range"]::-webkit-slider-thumb { -webkit-appearance: none; width: 12p
 .lora-add { display: flex; gap: 6px; margin-top: 8px; }
 .lora-add input { flex: 1; min-width: 0; font-size: 10px; font-family: var(--mono); padding: 5px 8px;
   border-radius: 6px; background: var(--card); border: 1px solid var(--border); color: inherit; }
-.lora-add button { font-size: 10px; padding: 5px 9px; border-radius: 6px; cursor: pointer;
-  background: rgba(255,255,255,.06); border: 1px solid var(--border); color: inherit; white-space: nowrap; }
-.lora-add button:hover { border-color: var(--accent-hi); color: var(--accent-hi); }
+.lora-add button { font-size: 10px; padding: 5px 10px; border-radius: 6px; cursor: pointer; white-space: nowrap;
+  background: var(--accent-soft); border: 1px solid var(--border); color: var(--accent-hi); transition: border-color .12s, background .12s, color .12s; }
+.lora-add button:hover { border-color: var(--accent-hi); background: var(--accent); color: var(--accent-fg); }
+/* A3 — import-to-all row: CREATE the missing style (was bare-UA) + the Ask-AI button idiom */
+.lora-import { display: flex; gap: 6px; margin-top: 6px; }
+.lora-import input { min-width: 0; font-size: 10px; font-family: var(--mono); padding: 5px 8px;
+  border-radius: 6px; background: var(--card); border: 1px solid var(--border); color: inherit; }
+.lora-import input#loraimportref { flex: 1; }
+.lora-import input#loraimportscale { width: 56px; flex: none; }
+.lora-import button { font-size: 10px; padding: 5px 10px; border-radius: 6px; cursor: pointer; white-space: nowrap;
+  background: var(--accent-soft); border: 1px solid var(--border); color: var(--accent-hi); transition: border-color .12s, background .12s, color .12s; }
+.lora-import button:hover { border-color: var(--accent-hi); background: var(--accent); color: var(--accent-fg); }
 .civ-search { margin-top: 8px; border: 1px solid var(--border); border-radius: 8px; padding: 8px; background: var(--card); }
 .civ-bar { display: flex; gap: 6px; }
 .civ-bar input { flex: 1; min-width: 0; font-size: 11px; padding: 5px 8px; border-radius: 6px;
   background: var(--bg, #000); border: 1px solid var(--border); color: inherit; }
-.civ-bar button { font-size: 10px; padding: 5px 11px; border-radius: 6px; cursor: pointer;
-  background: var(--accent, #6c5ce7); border: none; color: #fff; }
+.civ-bar button { font-size: 10px; padding: 5px 10px; border-radius: 6px; cursor: pointer; white-space: nowrap;
+  background: var(--accent-soft); border: 1px solid var(--border); color: var(--accent-hi); transition: border-color .12s, background .12s, color .12s; }
+.civ-bar button:hover { border-color: var(--accent-hi); background: var(--accent); color: var(--accent-fg); }
 .civ-results { display: grid; grid-template-columns: repeat(auto-fill, minmax(96px, 1fr)); gap: 8px; margin-top: 8px; max-height: 320px; overflow-y: auto; }
 .civ-hint { grid-column: 1 / -1; font-size: 10px; color: var(--txt3); padding: 8px 2px; font-family: var(--mono); }
 .civ-card { border: 1px solid var(--border); border-radius: 7px; overflow: hidden; background: var(--bg, #111); display: flex; flex-direction: column; }
@@ -159,8 +177,8 @@ input[type="range"]::-webkit-slider-thumb { -webkit-appearance: none; width: 12p
 .civ-meta b { display: block; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .civ-meta span { color: var(--txt3); font-family: var(--mono); }
 .civ-add { margin: 0 6px 6px; font-size: 9px; padding: 4px 0; border-radius: 5px; cursor: pointer;
-  background: rgba(255,255,255,.06); border: 1px solid var(--border); color: inherit; }
-.civ-add:hover { border-color: var(--accent-hi); color: var(--accent-hi); }
+  background: var(--accent-soft); border: 1px solid var(--border); color: var(--accent-hi); transition: border-color .12s, background .12s, color .12s; }
+.civ-add:hover { border-color: var(--accent-hi); background: var(--accent); color: var(--accent-fg); }
 
 /* generate */
 .gen-wrap { padding: 14px 18px; border-top: 1px solid var(--border); flex: none; }
@@ -195,7 +213,7 @@ input[type="range"]::-webkit-slider-thumb { -webkit-appearance: none; width: 12p
 /* view toggle (SESSION / HISTORY) */
 .viewtoggle { display: flex; gap: 2px; }
 .viewtoggle button { background: none; border: 1px solid var(--border); color: var(--txt3); font-family: var(--mono); font-size: 9.5px; padding: 4px 11px; border-radius: 6px; cursor: pointer; letter-spacing: .5px; }
-.viewtoggle button.on { border-color: transparent; color: var(--accent-hi); background: var(--accent-soft); background-image: linear-gradient(var(--accent-soft), var(--accent-soft)), var(--prism-gradient); }
+.viewtoggle button.on { border-color: transparent; color: #0b0b0f; font-weight: 600; background: var(--accent-soft); background-image: linear-gradient(var(--accent-soft), var(--accent-soft)), var(--prism-gradient); }
 
 /* history list */
 .history[hidden], .gallery[hidden] { display: none; }
@@ -425,7 +443,7 @@ footer .sp { flex: 1; }
   transition: color .12s, border-color .12s, background .12s;
 }
 .cmode-seg button:hover { color: var(--txt2); border-color: var(--txt3); }
-.cmode-seg button.active { color: var(--accent-hi); border-color: transparent; background: var(--accent-soft); background-image: linear-gradient(var(--accent-soft), var(--accent-soft)), var(--prism-gradient); }
+.cmode-seg button.active { color: #0b0b0f; font-weight: 600; border-color: transparent; background: var(--accent-soft); background-image: linear-gradient(var(--accent-soft), var(--accent-soft)), var(--prism-gradient); }
 .nsfw-sub { font-family: var(--mono); font-size: 9.5px; text-transform: uppercase; letter-spacing: .06em; color: var(--txt3); margin: 12px 0 6px; }
 .nsfw-sub:first-child { margin-top: 0; }
 .cmode-verified { display: flex; align-items: center; gap: 6px; margin-top: 8px; font-size: 11px; color: var(--txt2); font-family: var(--disp); cursor: pointer; }
@@ -473,6 +491,16 @@ footer .sp { flex: 1; }
 .libaddbtn { font-size: 11px; font-family: var(--mono); padding: 3px 11px; border-radius: 20px;
   background: rgba(255,255,255,.06); border: 1px dashed rgba(255,255,255,.28); color: inherit; cursor: pointer; }
 .libaddbtn:hover { background: rgba(255,255,255,.12); border-color: var(--accent-hi); }
+.libfolderlabel { display: inline-flex; align-items: center; gap: 5px; cursor: pointer; }
+.libfolderpath { font-size: 10px; color: var(--txt3); opacity: .65; max-width: 300px;
+  overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.libfolderbtn { font-size: 11px; line-height: 1; padding: 1px 5px; border: none; border-radius: 4px;
+  background: transparent; color: inherit; cursor: pointer; opacity: .5; }
+.libfolderbtn:hover { opacity: 1; background: rgba(255,255,255,.14); }
+/* FIX 7 — Library Tags/Folders collapse headers */
+.libcollapse { cursor: pointer; justify-content: flex-start; gap: 6px; user-select: none; margin-bottom: 8px; }
+.libcaret { color: var(--accent-hi); font-size: 9px; width: 9px; display: inline-block; }
+.libtags.collapsed, .libfolders.collapsed { display: none; }
 
 /* Tags — Library filter chips + lightbox manual-tag editor (Spec C #8) */
 .libtags { display: flex; gap: 6px; flex-wrap: wrap; align-items: center; margin: 0 0 10px; }
@@ -480,7 +508,7 @@ footer .sp { flex: 1; }
   padding: 3px 9px; border-radius: 20px; border: 1px solid var(--border); background: var(--card);
   color: var(--txt3); cursor: pointer; user-select: none; }
 .tagchip em { font-style: normal; color: var(--txt3); opacity: .7; }
-.tagchip.on, .tagchip.filterchip.on { color: var(--accent-hi); border-color: transparent; background: var(--accent-soft); background-image: linear-gradient(var(--accent-soft), var(--accent-soft)), var(--prism-gradient); }
+.tagchip.on, .tagchip.filterchip.on { color: #0b0b0f; font-weight: 600; border-color: transparent; background: var(--accent-soft); background-image: linear-gradient(var(--accent-soft), var(--accent-soft)), var(--prism-gradient); }
 .tagchip-empty { font-size: 10.5px; font-family: var(--mono); color: var(--txt3); opacity: .6; }
 .tagchip.clearchip { border-style: dashed; opacity: .8; }
 .lbtags-block .tagrow { display: flex; gap: 6px; flex-wrap: wrap; background: none; padding: 0; margin-bottom: 8px; }
@@ -508,6 +536,25 @@ footer .sp { flex: 1; }
 .msuggest-chip b { font-weight: 600; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .msuggest-chip span { font-family: var(--mono); font-size: 9px; color: var(--txt3); text-transform: uppercase; flex: none; }
 .msuggest-empty { font-size: 10px; color: var(--txt3); padding: 4px 2px; }
+
+/* Ask AI (#askaibtn): restrained accent pill, matches .refinery-btn's slot (own line
+   below the composer input) + the accent-soft/accent-hi tint used by .chip/.tagchip/.phelp. */
+#askaibtn {
+  width: 100%; margin-top: 8px; padding: 7px 10px;
+  background: var(--accent-soft); border: 1px solid var(--border); border-radius: 7px;
+  color: var(--accent-hi); font-family: var(--disp); font-size: 11px; font-weight: 600;
+  cursor: pointer; transition: border-color .12s, background .12s, color .12s;
+}
+#askaibtn:hover { border-color: var(--accent-hi); background: var(--accent); color: var(--accent-fg); }
+#askaibtn:disabled { opacity: .5; cursor: default; }
+
+/* A4/B2 — NSFW reference + sweep buttons: same restrained accent-pill idiom as Ask-AI */
+.nsfw-links { display: flex; gap: 6px; margin-top: 8px; flex-wrap: wrap; }
+.nsfw-links button { flex: 1; min-width: 0; padding: 6px 9px; border-radius: 7px; cursor: pointer; white-space: nowrap;
+  background: var(--accent-soft); border: 1px solid var(--border); color: var(--accent-hi);
+  font-family: var(--disp); font-size: 10.5px; transition: border-color .12s, background .12s, color .12s; }
+.nsfw-links button:hover { border-color: var(--accent-hi); background: var(--accent); color: var(--accent-fg); }
+.nsfw-links button:disabled { opacity: .5; cursor: default; }
 
 /* card-grid finish (gap-report): "sample: our render" corner tag on sweep-sourced thumbs */
 .mcard { position: relative; }

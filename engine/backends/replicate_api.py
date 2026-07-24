@@ -3,9 +3,14 @@
 Returns a list of image URLs on success, or a single-element ["Replicate Error: ..."] list.
 """
 import os
+import re
+import time
 import traceback
 
 import replicate
+
+# UI/engine bookkeeping keys that are never part of Replicate's model Input.
+_ENGINE_ONLY = {"category", "enabled_loras", "_inputs"}
 
 
 def balance() -> dict:
@@ -24,27 +29,25 @@ def balance() -> dict:
 
 
 def _build_input(params: dict, model_id: str = "") -> dict:
-    input_params = {
-        "prompt": params.get("prompt", ""),
-        "width": params.get("width"),
-        "height": params.get("height"),
-        "num_inference_steps": params.get("num_inference_steps", 28),
-        "guidance_scale": params.get("guidance_scale", params.get("guidance", 7.5)),
-        "negative_prompt": params.get("negative_prompt", ""),
-        "num_outputs": params.get("num_outputs", 1),
-        "apply_watermark": False,
-        "disable_safety_checker": True,
-    }
-    ui_safety_tolerance = params.get("safety_tolerance")
-    if ui_safety_tolerance is not None:
-        input_params["safety_tolerance"] = min(int(ui_safety_tolerance), 6)
-    else:
-        input_params["safety_tolerance"] = 6
+    """Forward the UI's params (its Replicate form is built from the model's own OpenAPI Input
+    schema in bridge._replicate_input_params, so the field names + ranges are the model's real
+    ones) rather than a fixed FLUX/SDXL-shaped list. The old fixed list sent
+    guidance_scale/width/height/num_inference_steps=28 to every model, which broke FLUX — e.g.
+    flux-schnell caps num_inference_steps at 4 (28 -> 422 range) and flux-dev takes `guidance`
+    + `aspect_ratio`, not guidance_scale/width/height, so those values were silently dropped.
+
+    The NSFW-permissive policy (ported from app.py:1877 — no watermark, safety checker off, max
+    tolerance) is still forced. Replicate ignores input fields a model doesn't declare, and
+    generate()'s retry drops any a stricter model rejects."""
+    input_params = {k: v for k, v in params.items()
+                    if v is not None and k not in _ENGINE_ONLY}
+    # NSFW-permissive posture — hard policy, as before (overrides any UI/schema default).
+    input_params["apply_watermark"] = False
+    input_params["disable_safety_checker"] = True
+    input_params["safety_tolerance"] = min(int(params.get("safety_tolerance", 6) or 6), 6)
 
     if params.get("image"):
         input_params["image"] = params["image"]
-    if params.get("seed"):
-        input_params["seed"] = params["seed"]
     # LoRA (Phase 4) — Replicate's param names differ PER MODEL (research §Replicate):
     #   *flux-dev-multi-lora* -> hf_loras:[str] + lora_scales:[num]  (up to 20, real multi-LoRA)
     #   flux-dev-lora / others -> lora_weights + extra_lora (+ *_scale), max 2
@@ -64,6 +67,34 @@ def _build_input(params: dict, model_id: str = "") -> dict:
     return {k: v for k, v in input_params.items() if v is not None}
 
 
+def _rate_limit_wait(attempt: int, cancel_event=None) -> bool:
+    """Back off before retrying a Replicate 429: 2, 4, 8, 16 ... capped at 30s, polling
+    cancel_event so a wait can be interrupted. Returns True if cancelled.
+
+    Needed because Replicate's SDK RetryTransport retries 429 on GET polling but NOT on the
+    prediction-creation POST (POST is outside its RETRYABLE_METHODS), and ReplicateError carries
+    no Retry-After header to honor — so we do the backoff locally."""
+    wait = min(2.0 * (2 ** max(0, attempt - 1)), 30.0)
+    slept = 0.0
+    while slept < wait:
+        if cancel_event is not None and cancel_event.is_set():
+            return True
+        step = min(0.5, wait - slept)
+        time.sleep(step)
+        slept += step
+    return False
+
+
+def _dropped_fields(err, inp: dict) -> list:
+    """Field names Replicate's 422 validation error blames — safe to drop and retry.
+    Replicate returns RFC-7807 errors whose `.detail` lists each offending field as
+    'input.<field>: <message>' (an out-of-range value, an extra property a model doesn't
+    declare, a type mismatch). Never drops `prompt`."""
+    detail = getattr(err, "detail", "") or ""
+    names = set(re.findall(r"input\.([A-Za-z0-9_]+)", detail))
+    return [n for n in names if n != "prompt" and n in inp]
+
+
 def generate(model_id: str, params: dict, progress=None, cancel_event=None) -> list:
     if not os.environ.get("REPLICATE_API_TOKEN"):
         return ["Replicate Error: API Key not configured or found in environment/.env."]
@@ -73,28 +104,50 @@ def generate(model_id: str, params: dict, progress=None, cancel_event=None) -> l
     input_params = _build_input(params, model_id)
     if progress:
         progress(f"Calling Replicate: {model_id}")
-    try:
-        output = replicate.run(model_id, input=input_params)
-    except replicate.exceptions.ReplicateError as e:
-        error_msg = str(e)
-        if "nsfw" in error_msg.lower() or "safety" in error_msg.lower():
-            # ported retry-with-aggressive-bypass path (:1942)
-            retry_params = input_params.copy()
-            retry_params["negative_prompt"] = (
-                f"{retry_params.get('negative_prompt', '')}, nsfw, nude, safety watermark, "
-                f"censored, explicit, bad quality, worst quality, deformed, blurry"
-            ).strip(", ")
-            if progress:
-                progress("NSFW filter tripped — retrying with aggressive bypass")
-            try:
-                output = replicate.run(model_id, input=retry_params)
-            except Exception as retry_e:
-                return [f"Replicate Error (Retry Failed): {retry_e}"]
-        else:
+    output = None
+    nsfw_retried = False
+    rl_attempt = 0
+    for _attempt in range(6):
+        try:
+            output = replicate.run(model_id, input=input_params)
+            break
+        except replicate.exceptions.ReplicateError as e:
+            # Rate-limit backoff: the SDK doesn't retry 429 on the creation POST (see
+            # _rate_limit_wait), so wait + retry here. cancel_event bails during the wait.
+            if getattr(e, "status", None) == 429:
+                rl_attempt += 1
+                if progress:
+                    progress(f"Replicate rate-limited (429) — backing off (attempt {rl_attempt})")
+                if _rate_limit_wait(rl_attempt, cancel_event):
+                    return ["Replicate Error: Cancelled."]
+                continue
+            # Self-healing: drop the input field(s) Replicate's validation error names, then retry
+            # — so a param a given model doesn't accept (or caps out of range) stops being a 422.
+            if getattr(e, "status", None) == 422:
+                drop = _dropped_fields(e, input_params)
+                if drop:
+                    for d in drop:
+                        input_params.pop(d, None)
+                    if progress:
+                        progress(f"Replicate rejected {drop} — dropping and retrying")
+                    continue
+            error_msg = str(e)
+            if not nsfw_retried and ("nsfw" in error_msg.lower() or "safety" in error_msg.lower()):
+                # ported retry-with-aggressive-bypass path (:1942)
+                nsfw_retried = True
+                input_params["negative_prompt"] = (
+                    f"{input_params.get('negative_prompt', '')}, nsfw, nude, safety watermark, "
+                    f"censored, explicit, bad quality, worst quality, deformed, blurry"
+                ).strip(", ")
+                if progress:
+                    progress("NSFW filter tripped — retrying with aggressive bypass")
+                continue
             return [f"Replicate Error: {error_msg}"]
-    except Exception as e:
-        traceback.print_exc()
-        return [f"Unexpected Replicate Error: {e}"]
+        except Exception as e:
+            traceback.print_exc()
+            return [f"Unexpected Replicate Error: {e}"]
+    else:
+        return ["Replicate Error: too many retries (rate-limit or validation)"]
 
     num_outputs = params.get("num_outputs", 1)
     if isinstance(output, list):

@@ -253,7 +253,28 @@ def main():
     ap.add_argument("--recheck", action="store_true")
     ap.add_argument("--providers", default="fal,together,agnes,novita,runware")
     ap.add_argument("--limit", type=int, default=0, help="cap models tested (smoke); 0 = all")
+    # Versioned-rerun overrides (nsfw_rerun.py) — absent = default behavior, byte-identical to before.
+    ap.add_argument("--prompt", default=None, help="override the benchmark prompt text "
+                    "(default: engine/nsfw_benchmark_prompt.txt)")
+    ap.add_argument("--prompt-file", default=None,
+                    help="override the prompt from a file (takes precedence over --prompt)")
+    ap.add_argument("--out", default=None,
+                    help="capability json output path (default: engine/nsfw_capability.json)")
     args = ap.parse_args()
+
+    # Apply prompt/out overrides to the module globals BEFORE any scope/existing load reads them.
+    # Every worker (generate_url / test_model / save / load_existing) looks these up by name at
+    # call time, so reassigning the globals here fully redirects the run without touching signatures.
+    global PROMPT, PROMPT_SHA, OUT
+    if args.prompt_file:
+        PROMPT = Path(args.prompt_file).read_text(encoding="utf-8").strip()
+    elif args.prompt is not None:
+        PROMPT = args.prompt.strip()
+    if args.prompt_file or args.prompt is not None:
+        PROMPT_SHA = hashlib.sha256(PROMPT.encode("utf-8")).hexdigest()
+    if args.out:
+        OUT = Path(args.out)
+
     providers = [p.strip() for p in args.providers.split(",") if p.strip()]
 
     scope, skipped, api = build_scope(providers)

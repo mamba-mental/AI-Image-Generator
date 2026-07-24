@@ -5,19 +5,29 @@ so PRIME can visually judge which models fit his style before the full 95-model 
 Unlike verify_nsfw_capability.py (which gen'd -> classified -> discarded), this KEEPS every image.
 Run: python scripts/gen_verified_gallery.py   (needs FAL_KEY). ~22 fal gens (~<$1).
 """
+import argparse
 import json
 import re
+import sys
 import time
 import urllib.request
 from concurrent.futures import ThreadPoolExecutor
 from pathlib import Path
 
+try:
+    sys.stdout.reconfigure(encoding="utf-8")
+except Exception:
+    pass
+
 ROOT = Path(__file__).resolve().parent.parent
 CAP = json.loads((ROOT / "engine" / "nsfw_capability.json").read_text(encoding="utf-8"))
 CAT = {m["id"]: m for m in json.loads((ROOT / "engine" / "fal_models.json").read_text(encoding="utf-8"))["models"]}
-OUT = Path("I:/nsfw-verify")
-OUT.mkdir(exist_ok=True)
-PROMPT = "artistic nude figure study of a woman, tasteful fine-art photography, soft studio light"
+# Console pages + their data live under C:/AI CoWork/dashboards (served at :31960).
+DASH = Path(r"C:/AI CoWork/dashboards")
+DEFAULT_OUT = Path("I:/nsfw-verify")            # base (untagged) full-res archive
+DEFAULT_PROMPT = "artistic nude figure study of a woman, tasteful fine-art photography, soft studio light"
+OUT = DEFAULT_OUT                                # overridden per-run in main()
+PROMPT = DEFAULT_PROMPT                          # overridden per-run in main()
 
 
 def permissive_params(model):
@@ -115,18 +125,68 @@ def build_contact_sheet(results, out_path):
 
 
 def main():
-    verified = [k for k, v in CAP["models"].items() if v.get("grade") == "verified"]
-    print(f"generating {len(verified)} verified models -> {OUT} (SPENDING fal credits)...")
+    global PROMPT, OUT
+    ap = argparse.ArgumentParser(description="Re-generate the fal-verified models on a prompt + save images.")
+    ap.add_argument("--prompt", default=DEFAULT_PROMPT, help="the Test-1 prompt to render (default: fine-art nude)")
+    ap.add_argument("--tag", default=None, help="date-version slug. When set, images go to "
+                    "dashboards/nsfw-img/<tag>/ and dashboards/data/nsfw-verified-test1-<tag>.json is written.")
+    args = ap.parse_args()
+    PROMPT = (args.prompt or "").strip() or DEFAULT_PROMPT
+    tag = (args.tag or "").strip() or None
+    OUT = (DASH / "nsfw-img" / tag) if tag else DEFAULT_OUT
+    OUT.mkdir(parents=True, exist_ok=True)
+
+    # Test 1 scope = fal text-to-image models graded "verified" in the capability file. Resolve the
+    # BARE fal model id from the "provider:id" key so fal_client.subscribe gets a real model id.
+    verified = []
+    for k, v in CAP["models"].items():
+        if v.get("grade") != "verified":
+            continue
+        provider = v.get("provider") or (k.split(":", 1)[0] if ":" in k else "fal")
+        if provider != "fal":
+            continue
+        mid = v.get("model") or (k.split(":", 1)[-1] if ":" in k else k)
+        verified.append((mid, v))
+
+    print(f"generating {len(verified)} fal-verified models -> {OUT} (SPENDING fal credits)...")
     t0 = time.time()
+    cap_by_mid = {mid: v for mid, v in verified}
     results = []
     with ThreadPoolExecutor(4) as pool:
-        for r in pool.map(gen_one, verified):
+        for r in pool.map(gen_one, [mid for mid, _ in verified]):
             results.append(r)
             print(f"  {'OK ' if r['ok'] else 'ERR'} {r['id']}" + ("" if r["ok"] else f"  ({r.get('err')})"))
     ok = [r for r in results if r.get("ok")]
     (OUT / "_manifest.json").write_text(json.dumps(results, indent=1), encoding="utf-8")
     print(f"\n{len(ok)}/{len(results)} generated in {time.time()-t0:.0f}s")
-    if ok:
+
+    # Tagged run → emit the reproducible Test-1 console dataset the page consumes (shape mirrors
+    # data/nsfw-verified-test1.json). Untagged run keeps the legacy archive + contact-sheet only,
+    # so the working base dataset is never overwritten.
+    if tag:
+        sample_prefix = f"nsfw-img/{tag}/"
+        rows = []
+        for r in results:
+            mid = r["id"]
+            cap = cap_by_mid.get(mid, {})
+            fn = re.sub(r"[^a-z0-9]+", "_", mid.lower()).strip("_") + ".jpg"
+            rows.append({
+                "provider": "fal", "model": mid, "label": r.get("label") or mid,
+                "grade": "verified" if r.get("ok") else "blacked",
+                "votes": cap.get("nsfw_votes"), "mean": cap.get("mean"),
+                "sample": (sample_prefix + fn) if r.get("ok") else "", "test": 1,
+            })
+        rows.sort(key=lambda x: (x["grade"] != "verified", x["model"]))
+        data_path = DASH / "data" / f"nsfw-verified-test1-{tag}.json"
+        data_path.parent.mkdir(parents=True, exist_ok=True)
+        data_path.write_text(json.dumps({
+            "test": 1, "prompt": PROMPT, "prompt_label": "Test 1 — custom rerun",
+            "provider_note": "fal text-to-image models graded verified, re-rendered on this prompt",
+            "tested_total": len(results), "verified_count": len(ok),
+            "generated_at": time.strftime("%Y-%m-%d"), "tag": tag, "models": rows,
+        }, indent=1), encoding="utf-8")
+        print("console dataset:", data_path)
+    elif ok:
         sheet = build_contact_sheet(results, str(ROOT / "scripts" / "_contact-sheet.jpg"))
         # also drop a copy on the NAS next to the images
         import shutil

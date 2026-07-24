@@ -6,6 +6,7 @@ Key from NOVITA_API_KEY. Ref: https://novita.ai/docs/api-reference/model-apis-tx
 """
 import json
 import os
+import re
 import time
 import urllib.error
 import urllib.request
@@ -67,6 +68,73 @@ def _post(url, body, key, timeout):
 def _get(url, key, timeout=30):
     req = urllib.request.Request(url, headers={"Authorization": f"Bearer {key}"})
     return json.loads(urllib.request.urlopen(req, timeout=timeout).read())
+
+
+def _drop_rejected(container: dict, err_text: str, droppable) -> str:
+    """The first droppable key present in `container` and named in the 4xx body, else ''.
+    Word-boundary + case-insensitive so 'seed' can't hit a substring like 'seeded'."""
+    low = err_text.lower()
+    for k in droppable:
+        if k in container and re.search(r"\b" + re.escape(k.lower()) + r"\b", low):
+            return k
+    return ""
+
+
+def _retry_wait(headers, fallback):
+    """Seconds to wait before retrying a 429 — server's Retry-After/reset header, else `fallback`.
+    Caps at 30s; a header carrying an epoch reset (>1e6) is converted to a delta."""
+    for h in ("Retry-After", "X-RateLimit-Reset", "x-ratelimit-reset"):
+        v = headers.get(h) if headers else None
+        if not v:
+            continue
+        try:
+            n = float(v)
+        except (TypeError, ValueError):
+            continue
+        if n > 1e6:
+            n -= time.time()
+        return max(1.0, min(n, 30.0))
+    return max(1.0, min(fallback, 30.0))
+
+
+def _sleep_cancellable(secs, cancel_event=None) -> bool:
+    """Sleep up to `secs`, waking every 0.5s to honor a cancel. Returns True if cancelled."""
+    end = time.time() + secs
+    while True:
+        remaining = end - time.time()
+        if remaining <= 0:
+            return False
+        if cancel_event is not None and getattr(cancel_event, "is_set", lambda: False)():
+            return True
+        time.sleep(min(0.5, remaining))
+
+
+def _submit_retry(url, envelope, container, key, droppable, progress=None, cancel_event=None):
+    """POST `envelope`; on a 400/422 naming a droppable param, pop it from `container` (which
+    `envelope` references, so the re-serialize drops it) and retry. On 429 wait per the server
+    header (else exponential backoff 2→30s) and retry. Cap 6. Returns (response_dict, error_str)."""
+    backoff = 2.0
+    for _ in range(6):
+        try:
+            return _post(url, envelope, key, 60), None
+        except urllib.error.HTTPError as e:
+            msg = e.read().decode(errors="ignore")
+            if e.code == 429:
+                if _sleep_cancellable(_retry_wait(e.headers, backoff), cancel_event):
+                    return None, "novita: cancelled"
+                backoff = min(30.0, backoff * 2)
+                continue
+            if e.code in (400, 422):
+                bad = _drop_rejected(container, msg, droppable)
+                if bad:
+                    container.pop(bad, None)
+                    if progress:
+                        progress(f"Novita rejected '{bad}' for this model — dropping it and retrying")
+                    continue
+            return None, f"novita Error: HTTP {e.code} — {msg[:400]}"
+        except Exception as e:
+            return None, f"novita Error: {type(e).__name__}: {e}"
+    return None, "novita Error: too many retries (rate-limit or unsupported param)"
 
 
 def _imgs(r: dict) -> list:
@@ -148,12 +216,10 @@ def _generate_model_api(model_id, params, key, progress=None, cancel_event=None)
     body = _build_model_api_body(model_id, params)
     if progress:
         progress(f"Submitting to Novita Model API: {model_id}")
-    try:
-        d = _post(spec["endpoint"], body, key, 60)
-    except urllib.error.HTTPError as e:
-        return [f"novita Error: HTTP {e.code} — {e.read().decode(errors='ignore')[:400]}"]
-    except Exception as e:
-        return [f"novita Error: {type(e).__name__}: {e}"]
+    d, err = _submit_retry(spec["endpoint"], body, body, key,
+                           ("seed", "watermark", "loras"), progress, cancel_event)
+    if err:
+        return [err]
     if not spec["async"]:
         urls = _imgs(d)
         return urls or [f"novita Error: completed but no image — {json.dumps(d)[:300]}"]
@@ -166,26 +232,32 @@ def _generate_model_api(model_id, params, key, progress=None, cancel_event=None)
 def _build_body(model_id, params):
     """The submit payload this backend POSTs. Shared with the verify harness (asserts the
     enable_nsfw_detection flag lands under `request` + LoRA translation) without a live call."""
+    # Doc ranges (novita.ai/docs/api-reference/model-apis-txt2img): prompt 1–1024, width/height
+    # 128–2048, image_num 1–8, steps 1–100, guidance_scale 1–30. Clamp every value up front so an
+    # out-of-range input never 400s (the drop-retry can't recover a required field like width).
     request = {
         "model_name": model_id,
-        # Novita hard-limits the prompt to 1–1024 runes; strip + clamp so we never trip its validator.
         "prompt": (params.get("prompt") or "").strip()[:1024],
-        "width": int(params.get("width", 1024) or 1024),
-        "height": int(params.get("height", 1024) or 1024),
-        "image_num": int(params.get("num_outputs", 1) or 1),
-        "steps": int(params.get("steps", 25) or 25),
-        "guidance_scale": max(1.0, float(params.get("guidance_scale", 7.0) or 7.0)),  # real floor is 1, not 0
+        "width": min(2048, max(128, int(params.get("width", 1024) or 1024))),
+        "height": min(2048, max(128, int(params.get("height", 1024) or 1024))),
+        "image_num": min(8, max(1, int(params.get("num_outputs", 1) or 1))),
+        "steps": min(100, max(1, int(params.get("steps", 25) or 25))),
+        "guidance_scale": min(30.0, max(1.0, float(params.get("guidance_scale", 7.0) or 7.0))),
         "sampler_name": params.get("sampler_name", "Euler a"),
         "seed": int(params.get("seed", -1) or -1),
     }
     if params.get("negative_prompt"):
         request["negative_prompt"] = str(params["negative_prompt"]).strip()[:1024]
-    if "enable_nsfw_detection" in params:
-        request["enable_nsfw_detection"] = bool(params["enable_nsfw_detection"])
     loras = [lo for lo in (params.get("enabled_loras") or []) if lo.get("enabled")]
     if loras:
         request["loras"] = [{"model_name": lo["url"], "strength": float(lo.get("scale", 1.0))} for lo in loras]
-    return {"extra": {"response_image_type": "jpeg"}, "request": request}
+    # enable_nsfw_detection (+ nsfw_detection_level 0–2) belong in `extra`, NOT `request` — the doc
+    # places them there; under `request` the flag silently no-ops (or trips the 422 unknown-field
+    # path on stricter models). Was previously written into `request` (a real placement bug).
+    extra = {"response_image_type": "jpeg"}
+    if "enable_nsfw_detection" in params:
+        extra["enable_nsfw_detection"] = bool(params["enable_nsfw_detection"])
+    return {"extra": extra, "request": request}
 
 
 def generate(model_id, params, progress=None, cancel_event=None) -> list:
@@ -201,12 +273,11 @@ def generate(model_id, params, progress=None, cancel_event=None) -> list:
     body = _build_body(model_id, params)
     if progress:
         progress(f"Submitting to Novita: {model_id}")
-    try:
-        d = _post(_SUBMIT, body, key, 60)
-    except urllib.error.HTTPError as e:
-        return [f"novita Error: HTTP {e.code} — {e.read().decode(errors='ignore')[:400]}"]
-    except Exception as e:
-        return [f"novita Error: {type(e).__name__}: {e}"]
+    d, err = _submit_retry(_SUBMIT, body, body["request"], key,
+                           ("negative_prompt", "sampler_name", "loras", "guidance_scale", "seed", "steps"),
+                           progress, cancel_event)
+    if err:
+        return [err]
     tid = d.get("task_id") or d.get("id")
     if not tid:
         return [f"novita Error: no task id — {json.dumps(d)[:300]}"]
@@ -214,11 +285,19 @@ def generate(model_id, params, progress=None, cancel_event=None) -> list:
 
 
 if __name__ == "__main__":  # structural self-check, no key needed
-    b = _build_body("sd_xl_base_1.0", {"prompt": "x", "enable_nsfw_detection": False,
+    b = _build_body("sd_xl_base_1.0", {"prompt": "x", "enable_nsfw_detection": False, "guidance_scale": 99,
                                        "enabled_loras": [{"url": "add_detail", "scale": 0.7, "enabled": True}]})
-    assert b["request"]["enable_nsfw_detection"] is False, b
+    assert b["extra"]["enable_nsfw_detection"] is False, b          # now under `extra`, not `request`
+    assert "enable_nsfw_detection" not in b["request"], b
+    assert b["request"]["guidance_scale"] == 30.0, b                # clamped to doc max
     assert b["request"]["loras"][0] == {"model_name": "add_detail", "strength": 0.7}, b
     assert _imgs({"images": [{"image_url": "http://x/1.jpg"}]}) == ["http://x/1.jpg"]
+    assert _drop_rejected({"guidance_scale": 7.0, "steps": 25},
+                          '{"code":1,"message":"guidance_scale is not supported"}',
+                          ("guidance_scale", "steps")) == "guidance_scale"
+    assert _drop_rejected({"prompt": "x"}, "prompt required", ("guidance_scale",)) == ""
+    assert _retry_wait({"Retry-After": "5"}, 2.0) == 5.0 and _retry_wait({}, 2.0) == 2.0
+    assert _sleep_cancellable(9, type("C", (), {"is_set": staticmethod(lambda: True)})()) is True
     # E2 — Model APIs body builders (offline, no key needed)
     assert novita_model_apis() == sorted(MODEL_APIS.keys())
     zb = _build_model_api_body("z-image-turbo", {"prompt": "y", "seed": 7, "width": 512, "height": 512})

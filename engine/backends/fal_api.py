@@ -34,9 +34,20 @@ _INPUT_ARG_NAME = {"image": "image_url", "video": "video_url",
 
 
 def _build_args(entry: dict, params: dict) -> dict:
-    """Pass params through; translate legacy UI fields; upload local input media."""
+    """Filter UI params to the model's DECLARED schema, then translate legacy UI fields and
+    upload local input media.
+
+    entry["params"] is the model's own fal OpenAPI Input properties (bridge builds the UI form
+    from the same list), so a param the UI sends outside that form — e.g. negative_prompt on a
+    Seedream/Kling model that declares no such input — is dropped locally instead of risking a
+    fal 422. `prompt` is always kept (the catalog never lists it — it's the universal main
+    input). Models with no declared schema (uncurated ids / the 61 empty-param entries) keep the
+    full passthrough; generate()'s self-healing retry drops any field fal then rejects.
+    """
+    declared = {p.get("name") for p in entry.get("params", [])}
     args = {k: v for k, v in params.items()
-            if v is not None and k not in _ENGINE_ONLY_KEYS}
+            if v is not None and k not in _ENGINE_ONLY_KEYS
+            and (not declared or k == "prompt" or k in declared)}
 
     # Custom width+height override the image_size preset (fal accepts either a
     # preset string or a {width,height} object). Both empty -> keep the preset.
@@ -56,7 +67,6 @@ def _build_args(entry: dict, params: dict) -> dict:
 
     # Speech/audio models take the prompt as `text` (their schema declares it), not `prompt`
     # — the UI always sends `prompt`, so map it or every TTS/audio gen 422s ("text required").
-    declared = {p.get("name") for p in entry.get("params", [])}
     if "prompt" in args and "text" in declared:
         args.setdefault("text", args.pop("prompt"))
 
@@ -65,8 +75,7 @@ def _build_args(entry: dict, params: dict) -> dict:
     # NSFW backstop (batch-D #1): FLUX_DISABLE_SAFETY=true flips fal permissive BY DEFAULT for programmatic
     # callers, only where a model declares the param and neither the UI nor Content Mode already set it.
     if os.environ.get("FLUX_DISABLE_SAFETY", "").lower() in ("1", "true", "yes"):
-        _declared = {p.get("name") for p in entry.get("params", [])}
-        if "enable_safety_checker" in _declared and "enable_safety_checker" not in args:
+        if "enable_safety_checker" in declared and "enable_safety_checker" not in args:
             args["enable_safety_checker"] = False
 
     # LoRA (Phase 4): enabled_loras (stripped from raw passthrough via _ENGINE_ONLY_KEYS) ->
@@ -127,6 +136,32 @@ def _describe(event) -> str:
     return event.__class__.__name__.lower()
 
 
+def _rejected_fields(err, args: dict) -> list:
+    """Field names a fal 422/400 blames as extra/unsupported inputs — safe to drop and retry.
+
+    fal_client sets err.message to the response body's `detail` (a FastAPI/Pydantic list:
+    [{"loc": ["body", <field>], "type": ..., "msg": ...}]); falls back to the raw response text.
+    Only extra/unsupported fields are dropped (not type/range errors), and never `prompt`."""
+    detail = getattr(err, "message", None)
+    if not isinstance(detail, (list, dict)):
+        try:
+            detail = json.loads(getattr(err, "response").text).get("detail")
+        except Exception:
+            detail = None
+    items = detail if isinstance(detail, list) else ([detail] if isinstance(detail, dict) else [])
+    names = set()
+    for d in items:
+        if not isinstance(d, dict):
+            continue
+        tag = f"{d.get('type', '')} {d.get('msg', '')}".lower()
+        if not any(w in tag for w in ("extra", "not permitted", "unexpected", "unsupported")):
+            continue
+        loc = d.get("loc")
+        if isinstance(loc, list) and len(loc) >= 2 and loc[0] == "body":
+            names.add(str(loc[-1]))
+    return [n for n in names if n != "prompt" and n in args]
+
+
 def generate(model_id: str, params: dict, progress=None, cancel_event=None) -> list:
     if not os.environ.get("FAL_KEY"):
         return ["fal Error: FAL_KEY not configured in environment/.env."]
@@ -141,26 +176,43 @@ def generate(model_id: str, params: dict, progress=None, cancel_event=None) -> l
 
     if progress:
         progress(f"Submitting to fal: {model_id}")
-    try:
-        handler = fal_client.submit(model_id, arguments=args)
-        for event in handler.iter_events(with_logs=True):
-            if cancel_event is not None and cancel_event.is_set():
-                try:
-                    fal_client.cancel(model_id, handler.request_id)
-                except Exception as cancel_err:
-                    print(f"fal cancel call failed: {cancel_err}")
-                return ["fal Error: Cancelled."]
-            if progress:
-                progress(_describe(event))
-        result = handler.get()
-    except Exception as e:
-        traceback.print_exc()
-        msg = str(e)
-        if "422" in msg or "validation" in msg.lower():
-            return [f"fal Error (validation — model schema may have drifted): {msg[:400]}"]
-        return [f"fal Error: {msg[:400]}"]
+    # Self-healing: if fal 422s on an extra/unsupported input, drop the field it names and retry
+    # (covers uncurated ids / empty-schema models the _build_args filter can't check against).
+    for _attempt in range(4):
+        try:
+            handler = fal_client.submit(model_id, arguments=args)
+            for event in handler.iter_events(with_logs=True):
+                if cancel_event is not None and cancel_event.is_set():
+                    try:
+                        fal_client.cancel(model_id, handler.request_id)
+                    except Exception as cancel_err:
+                        print(f"fal cancel call failed: {cancel_err}")
+                    return ["fal Error: Cancelled."]
+                if progress:
+                    progress(_describe(event))
+            result = handler.get()
+        except fal_client.FalClientHTTPError as e:
+            if e.status_code in (400, 422):
+                drop = _rejected_fields(e, args)
+                if drop:
+                    for d in drop:
+                        args.pop(d, None)
+                    if progress:
+                        progress(f"fal rejected {drop} for {model_id} — dropping and retrying")
+                    continue
+            traceback.print_exc()
+            if e.status_code == 422:
+                return [f"fal Error (validation — model schema may have drifted): {str(e)[:400]}"]
+            return [f"fal Error: {str(e)[:400]}"]
+        except Exception as e:
+            traceback.print_exc()
+            msg = str(e)
+            if "422" in msg or "validation" in msg.lower():
+                return [f"fal Error (validation — model schema may have drifted): {msg[:400]}"]
+            return [f"fal Error: {msg[:400]}"]
 
-    urls = _extract_outputs(result, entry.get("output", "image"))
-    if not urls:
-        return [f"fal Error: no output URL in result — keys: {list(result.keys()) if isinstance(result, dict) else type(result).__name__}"]
-    return urls
+        urls = _extract_outputs(result, entry.get("output", "image"))
+        if not urls:
+            return [f"fal Error: no output URL in result — keys: {list(result.keys()) if isinstance(result, dict) else type(result).__name__}"]
+        return urls
+    return ["fal Error: too many unsupported-parameter retries"]

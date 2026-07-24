@@ -270,8 +270,13 @@ class Api:
             # config seed, then a static fallback if the proxy is unreachable (never empty).
             "cliproxy": self.config.get("recent_models_cliproxy", []) or cliproxy_api.cliproxy_models() or [
                 "gpt-image-2", "gpt-image-1.5", "grok-imagine-image"],
-            # Ideogram = Plus subscription via web session; model auto-selected server-side
-            "ideogram": self.config.get("recent_models_ideogram", []) or ["auto"],
+            # Ideogram — the real rendering-tier ids ideogram_api.py's _SPEEDS map accepts
+            # (turbo/default/quality). dict.fromkeys = config-first dedup so the dropdown never
+            # collapses to just "auto". ponytail: the WEB backend (ideogram_web_api) currently
+            # hardcodes model_version=AUTO and ignores model_id — the tiers drive the ideogram-api
+            # path; "auto" stays as the honest web default.
+            "ideogram": list(dict.fromkeys((self.config.get("recent_models_ideogram") or [])
+                             + ["ideogram-v3-quality", "ideogram-v3-default", "ideogram-v3-turbo", "auto"])),
             # AGNES-AI (Sapiens) — image via /v1/images/generations; video via async /v1/videos
             # (create → poll GET /agnesapi?video_id). All verified live 2026-07-20.
             "agnes": self.config.get("recent_models_agnes", []) or [
@@ -516,6 +521,64 @@ class Api:
         Returns {ok, live, models:[ids], filtered:bool, note}. Empty models + a note when there's no
         key or the fetch fails, so the frontend can fall back to its labelled offline seeds."""
         import urllib.request
+        # cliproxy — own endpoint/auth (not the Bearer _CATALOG pattern) → reuse the engine helper,
+        # which live-discovers via GET /v1/models and self-falls-back to the static allowlist.
+        if service == "cliproxy":
+            ids = cliproxy_api.cliproxy_models()
+            hinted = [i for i in ids if any(h in i.lower() for h in self._IMG_HINTS)]
+            models, filtered = (hinted, True) if hinted else (ids, False)
+            live = bool(os.environ.get("CLIPROXY_API_KEY"))  # key-verified vs static fallback
+            return {"ok": True, "live": live, "models": models[:int(limit)], "filtered": filtered,
+                    "note": f"{len(models)} model(s)" + ("" if live else " — static allowlist (no key)")}
+        # replicate — Token-auth (not Bearer) + Cloudflare browser-UA; paginated {results, next}, ids
+        # are owner/name. ponytail: 2-page cap then image-hint filter — never pull the huge full catalog.
+        if service == "replicate":
+            key = os.environ.get("REPLICATE_API_TOKEN")
+            if not key:
+                return {"ok": False, "live": False, "models": [], "note": "no key set"}
+            hdr = {"Authorization": f"Token {key}", "User-Agent": "Mozilla/5.0"}
+            ids, url = [], "https://api.replicate.com/v1/models"
+            try:
+                for _ in range(2):  # bounded — the filter keeps it sane, not thousands
+                    d = json.loads(urllib.request.urlopen(
+                        urllib.request.Request(url, headers=hdr), timeout=20).read())
+                    for m in (d.get("results") or []):
+                        o, n = m.get("owner"), m.get("name")
+                        if o and n and f"{o}/{n}" not in ids:
+                            ids.append(f"{o}/{n}")
+                    url = d.get("next")
+                    if not url:
+                        break
+                hinted = [i for i in ids if any(h in i.lower() for h in self._IMG_HINTS)]
+                models, filtered = (hinted, True) if hinted else (ids, False)
+                return {"ok": True, "live": True, "models": models[:int(limit)], "filtered": filtered,
+                        "note": f"{len(models)} image model(s) of {len(ids)} scanned"}
+            except Exception as e:
+                return {"ok": False, "live": False, "models": [],
+                        "note": f"catalog fetch failed ({type(e).__name__})"}
+        # gemini — key goes in the URL (not a header); response shape {models:[{name}]}. Keep the
+        # image-capable ones via the shared hint filter (imagen/…-image), fall back to full list.
+        if service == "gemini":
+            key = os.environ.get("GEMINI_API_KEY")
+            if not key:
+                return {"ok": False, "live": False, "models": [], "note": "no key set"}
+            try:
+                url = f"https://generativelanguage.googleapis.com/v1beta/models?key={key}"
+                d = json.loads(urllib.request.urlopen(urllib.request.Request(url), timeout=20).read())
+                ids = []
+                for m in (d.get("models") or []):
+                    n = (m.get("name") or "").split("/")[-1]
+                    if n and n not in ids:
+                        ids.append(n)
+                hinted = [i for i in ids if any(h in i.lower() for h in self._IMG_HINTS)]
+                models, filtered = (hinted, True) if hinted else (ids, False)
+                return {"ok": True, "live": True, "models": models[:int(limit)], "filtered": filtered,
+                        "note": f"{len(models)} live model(s)" + ("" if filtered else " — unfiltered")}
+            except Exception as e:
+                return {"ok": False, "live": False, "models": [],
+                        "note": f"catalog fetch failed ({type(e).__name__})"}
+        # runware (CivitAI AIRs, no /v1/models), huggingface (millions, not a curated catalog) and
+        # ideogram/ideogram-api (fixed auto/v3 set) have no listable image catalog → offline seeds.
         spec = self._CATALOG.get(service)
         if not spec:
             return {"ok": False, "live": False, "models": [], "note": "no live catalog (uses offline seeds)"}
@@ -681,15 +744,23 @@ class Api:
         return {"ok": True}
 
     def recent_files(self, limit: int = 24) -> list:
-        """Newest media in the output dir (for the browse landing). Basename only —
-        the JS resolves it against the media server, same as the session gallery."""
+        """Newest media anywhere under the output dir (for the browse landing). Basename only —
+        the JS resolves it against the media server, same as the session gallery. Recurses because
+        generations live in `<output>/generated/YYYY-MM/`, not at the output-dir top level — a plain
+        iterdir() there finds nothing and the 'recent' strip stays empty."""
         exts = {".png", ".jpg", ".jpeg", ".webp", ".mp4", ".webm", ".mov"}
         d = Path(self.config["output_directory"])
         if not d.exists():
             return []
-        files = [f for f in d.iterdir() if f.is_file() and f.suffix.lower() in exts]
-        files.sort(key=lambda f: f.stat().st_mtime, reverse=True)
-        return [{"file": f.name} for f in files[:int(limit)]]
+        files = []
+        for f in d.rglob("*"):   # ponytail: one walk on the browse landing only, not a hot path
+            try:
+                if f.is_file() and f.suffix.lower() in exts:
+                    files.append((f, f.stat().st_mtime))
+            except OSError:
+                continue
+        files.sort(key=lambda t: t[1], reverse=True)
+        return [{"file": f.name} for f, _ in files[:int(limit)]]
 
     def _index(self):
         """The SQLite Library Index (ADR 0001), lazily opened once per Api. Replaces the old flat
@@ -705,12 +776,48 @@ class Api:
             self._lib_idx = idx
         return idx
 
+    def _has_ancestor_library_dir(self, root: str) -> bool:
+        """True when some configured library dir is a STRICT ancestor of `root`. The index and media
+        server both recurse, so an ancestor already makes `root`'s files findable — registering
+        `root` as its own entry only duplicates scans. This is what kept re-creating the redundant
+        nested `generated` entry (a child of the output/library dir)."""
+        try:
+            rp = Path(root).resolve()
+        except OSError:
+            return False
+        for d in self._all_library_dirs():
+            try:
+                dp = Path(d).resolve()
+            except OSError:
+                continue
+            if dp in rp.parents:   # strict ancestor only (not equal to root itself)
+                return True
+        return False
+
     def _ensure_output_registered(self) -> None:
         """Guarantee the output `generated/` root is in the Library scan set so fresh generations are
-        findable (#6, AC-6.2). Idempotent — the common case is a cheap membership check."""
+        findable (#6, AC-6.2). Idempotent — the common case is a cheap membership check.
+
+        When an ancestor library dir already covers `root` (e.g. the output dir itself is a library
+        dir), `root` is a redundant duplicate scan: refuse to add it AND prune it if a prior version
+        left it in the config. Self-healing, so the cleanup holds across restarts even if the running
+        app re-persisted the stale entry."""
         from engine import save
         root = save.generated_root(self.config.get("output_directory", ""))
-        if not root or root in self._all_library_dirs():
+        if not root:
+            return
+        if self._has_ancestor_library_dir(root):
+            dirs = self.config.get("library_directories")
+            base = list(dirs) if isinstance(dirs, list) else self._all_library_dirs()
+            if root in base:   # prune the redundant nested entry once
+                self.config["library_directories"] = [d for d in base if d != root]
+                try:
+                    mediaserver.remove_root(root)
+                except Exception:
+                    pass
+                self._persist()
+            return
+        if root in self._all_library_dirs():
             return
         try:
             os.makedirs(root, exist_ok=True)
@@ -999,6 +1106,41 @@ class Api:
             self._persist()
         return {"ok": True, "dirs": self.list_library_dirs()}
 
+    def remove_library_dir(self, path: str) -> dict:
+        """Drop a folder from the library entirely: remove it from library_directories AND from the
+        disabled set, stop serving it as a media root, persist. Complements add/toggle — there was
+        no way to remove a stale/dead configured folder before."""
+        existing = self.config.get("library_directories")
+        base = list(existing) if isinstance(existing, list) else self._all_library_dirs()
+        self.config["library_directories"] = [d for d in base if d != path]
+        disabled = [d for d in (self.config.get("library_directories_disabled") or []) if d != path]
+        self.config["library_directories_disabled"] = disabled
+        mediaserver.remove_root(path)
+        self._persist()
+        return {"ok": True, "dirs": self.list_library_dirs()}
+
+    def set_library_dir_path(self, old_path: str, new_path: str) -> dict:
+        """Re-point a library folder from old_path to new_path in place (preserves list position and
+        its enabled/disabled state). Updates media roots to match. No-op-ish if new_path isn't a real
+        folder (returns an error but leaves config untouched)."""
+        new_path = (new_path or "").strip()
+        if not new_path or not os.path.isdir(new_path):
+            return {"ok": False, "error": "not a folder", "dirs": self.list_library_dirs()}
+        existing = self.config.get("library_directories")
+        base = list(existing) if isinstance(existing, list) else self._all_library_dirs()
+        if old_path not in base:
+            return {"ok": False, "error": "unknown folder", "dirs": self.list_library_dirs()}
+        self.config["library_directories"] = [new_path if d == old_path else d for d in base]
+        disabled = self.config.get("library_directories_disabled") or []
+        was_disabled = old_path in disabled
+        self.config["library_directories_disabled"] = sorted(
+            {new_path if d == old_path else d for d in disabled})
+        mediaserver.remove_root(old_path)
+        if not was_disabled:                     # only serve it if it wasn't toggled off
+            mediaserver.add_root(new_path)
+        self._persist()
+        return {"ok": True, "dirs": self.list_library_dirs()}
+
     def get_balance(self, service: str) -> dict:
         """Credit/quota status for the footer. Only fal exposes a real balance
         (via FAL_KEY_ADMIN); the rest are usage-based or free-tier. Key never returned."""
@@ -1156,6 +1298,8 @@ class Api:
     def civitai_search(self, query: str = "", base_model: str = "", limit: int = 24) -> dict:
         """Browse CivitAI LoRAs (public REST API; CIVITAI_API_KEY optional for higher limits).
         Returns {ok, items:[{modelId, versionId, name, baseModel, nsfw, thumb, downloadUrl, air}]}."""
+        import time
+        import urllib.error
         import urllib.parse
         import urllib.request
         q = {"types": "LORA", "limit": max(1, min(int(limit or 24), 50)),
@@ -1169,11 +1313,23 @@ class Api:
         key = os.environ.get("CIVITAI_API_KEY")
         if key:
             headers["Authorization"] = f"Bearer {key}"
-        try:
-            req = urllib.request.Request(url, headers=headers)
-            d = json.loads(urllib.request.urlopen(req, timeout=30).read())
-        except Exception as e:
-            return {"ok": False, "error": str(e)[:200], "items": []}
+        req = urllib.request.Request(url, headers=headers)
+        # Cloudflare transiently 503/429s CivitAI — retry ONCE after 2s before giving up.
+        d = None
+        for attempt in (1, 2):
+            try:
+                d = json.loads(urllib.request.urlopen(req, timeout=30).read())
+                break
+            except urllib.error.HTTPError as e:
+                if e.code in (429, 503):
+                    if attempt == 1:
+                        time.sleep(2)
+                        continue
+                    return {"ok": False, "items": [],
+                            "error": "CivitAI is rate-limiting (503) — try again in a moment"}
+                return {"ok": False, "error": str(e)[:200], "items": []}
+            except Exception as e:
+                return {"ok": False, "error": str(e)[:200], "items": []}
         items = []
         for m in d.get("items", []):
             vers = m.get("modelVersions") or []
@@ -1187,6 +1343,34 @@ class Api:
                 "downloadUrl": f"https://civitai.com/api/download/models/{v.get('id')}",
                 "air": f"civitai:{m.get('id')}@{v.get('id')}",
             })
+        return {"ok": True, "items": items}
+
+    def hf_lora_search(self, query: str = "", limit: int = 24) -> dict:
+        """Browse HuggingFace LoRA repos (HUGGINGFACE_TOKEN from config, optional).
+        Returns {ok, items:[{repo, name, downloads, thumb, ref}]} where repo/ref = the HF
+        model id (user/name) — exactly what import_lora() accepts (fal/together/replicate/hf)."""
+        import urllib.parse
+        import urllib.request
+        q = {"filter": "lora", "search": query or "",
+             "limit": max(1, min(int(limit or 24), 100)),
+             "sort": "downloads", "direction": -1, "full": "true"}
+        url = "https://huggingface.co/api/models?" + urllib.parse.urlencode(q)
+        headers = {"User-Agent": "Mozilla/5.0"}
+        tok = os.environ.get("HUGGINGFACE_TOKEN") or self.config.get("huggingface_token", "")
+        if tok:
+            headers["Authorization"] = f"Bearer {tok}"
+        try:
+            req = urllib.request.Request(url, headers=headers)
+            d = json.loads(urllib.request.urlopen(req, timeout=30).read())
+        except Exception as e:
+            return {"ok": False, "error": str(e)[:200], "items": []}
+        items = []
+        for m in (d or []):
+            rid = m.get("id") or m.get("modelId")
+            if not rid:
+                continue
+            items.append({"repo": rid, "ref": rid, "name": str(rid).split("/")[-1],
+                          "downloads": m.get("downloads", 0), "thumb": ""})
         return {"ok": True, "items": items}
 
     def civitai_ref_for(self, service: str, model_id, version_id) -> str:
@@ -1233,6 +1417,85 @@ class Api:
         import webbrowser
         webbrowser.open("http://localhost:31960/prompt-refinery.html")
         return {"ok": True}
+
+    def open_nsfw_reference(self) -> dict:
+        """A4 — open the NSFW model reference page (served alongside prompt-refinery at :31960)."""
+        import webbrowser
+        webbrowser.open("http://localhost:31960/nsfw-providers-reference.html")
+        return {"ok": True}
+
+    def nsfw_favorites(self) -> list:
+        """A5 — the NSFW reference page keeps a favorites list in the dashboards_server store
+        (GET /api/favorites?key=nsfw -> JSON array of "provider::model" strings). Fetched here
+        server-side (the WebView can't reach :31960 cross-origin). Returns [] on any error."""
+        import urllib.request
+        try:
+            with urllib.request.urlopen("http://localhost:31960/api/favorites?key=nsfw", timeout=4) as resp:
+                data = json.loads(resp.read().decode("utf-8"))
+            return [str(x) for x in data] if isinstance(data, list) else []
+        except Exception:
+            return []
+
+    def run_nsfw_sweep(self, prompt: str = "", test: int = 1, dry_run: bool = True) -> dict:
+        """B2 — run the shared NSFW sweep core (scripts/nsfw_rerun.py) as a background subprocess on
+        its OWN daemon thread, so the long sweep never blocks the single generation worker. Streams
+        the script's stdout to the UI as `sweep_progress` events (window.onEngineEvent) and emits a
+        final `sweep_done`. Returns immediately. Defaults to a dry-run — a real (spending) sweep only
+        runs when the caller explicitly passes dry_run=False.
+        ponytail: mirrors the existing start_tag_rescan/start_vision_tag_backfill daemon-thread
+        pattern (own thread + a polled _sweep_state) rather than routing through jobs.REGISTRY, whose
+        single _active slot is the generation job and MUST NOT be occupied by the sweep."""
+        import threading
+        import subprocess
+        import sys
+        prompt = (prompt or "").strip()
+        if not prompt:
+            return {"ok": False, "error": "empty prompt"}
+        if getattr(self, "_sweep_state", None) and self._sweep_state.get("running"):
+            return {"ok": False, "error": "a sweep is already running"}
+        script = os.path.join(os.path.dirname(os.path.abspath(__file__)), "scripts", "nsfw_rerun.py")
+        if not os.path.exists(script):
+            return {"ok": False, "error": f"sweep script not found: {script}"}
+        try:
+            test = int(test)
+        except (TypeError, ValueError):
+            test = 1
+        test = 2 if test == 2 else 1
+        # Exact CLI per the shared-core contract. NOTE: dry-run appends --dry-run; a real spend
+        # appends nothing here. The nsfw-sweep skill gates a real spend behind --go, so this
+        # dry-run path is safe under both conventions; reconcile the real-spend flag before ever
+        # wiring dry_run=False from the UI.
+        argv = [sys.executable, script, "--prompt", prompt, "--test", str(test)]
+        if dry_run:
+            argv.append("--dry-run")
+        else:
+            argv.append("--go")  # nsfw_rerun.py spends ONLY on --go; a confirmed real run must pass it
+        self._sweep_state = {"running": True, "dry_run": bool(dry_run), "test": test, "code": None}
+
+        def _run():
+            try:
+                proc = subprocess.Popen(argv, stdout=subprocess.PIPE, stderr=subprocess.STDOUT,
+                                        text=True, encoding="utf-8", errors="replace",
+                                        cwd=os.path.dirname(script))
+                for line in proc.stdout:
+                    line = line.rstrip()
+                    if line:
+                        REGISTRY.emit({"type": "sweep_progress", "message": line})
+                proc.wait()
+                self._sweep_state["code"] = proc.returncode
+                REGISTRY.emit({"type": "sweep_done", "code": proc.returncode, "dry_run": bool(dry_run)})
+            except Exception as e:
+                self._sweep_state["code"] = -1
+                REGISTRY.emit({"type": "job_error", "error": f"NSFW sweep failed to run: {e}"})
+            finally:
+                self._sweep_state["running"] = False
+
+        threading.Thread(target=_run, daemon=True).start()
+        return {"ok": True, "started": True, "dry_run": bool(dry_run), "test": test}
+
+    def nsfw_sweep_status(self) -> dict:
+        """B2 — poll the running/last NSFW sweep (mirror of rescan_tag_status)."""
+        return getattr(self, "_sweep_state", None) or {"running": False}
 
     def analyze_image(self, filename: str) -> dict:
         """#3 — img->prompt. First DETECT the original prompt (sidecar/history via read_meta);
