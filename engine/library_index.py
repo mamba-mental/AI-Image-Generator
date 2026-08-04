@@ -329,7 +329,7 @@ class LibraryIndex:
         rec["tags"] = [t for t in tags if t]
         return rec
 
-    def list_images(self, bases: list[str], limit: int = 8000) -> list:
+    def list_images(self, bases: list[str], limit: int = 50000) -> list:
         """Warm Library read: a single local-DB query, de-duped by basename, no NAS access.
         Record shape matches the old scanner exactly so the JS contract is unchanged."""
         if not bases:
@@ -352,7 +352,7 @@ class LibraryIndex:
         self._db.execute("UPDATE folders SET enabled=? WHERE path=?", (1 if enabled else 0, base))
         self._db.commit()
 
-    def search(self, query: str, bases: list[str], limit: int = 8000) -> list:
+    def search(self, query: str, bases: list[str], limit: int = 50000) -> list:
         """Prompt/tag search — FTS5 when available, LIKE fallback otherwise (AC-5)."""
         if not query.strip():
             return self.list_images(bases, limit)

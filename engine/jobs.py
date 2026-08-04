@@ -24,6 +24,11 @@ def _looks_rate_limited(results) -> bool:
     return False
 
 
+def _is_error_result(results) -> bool:
+    """A backend returned a single ['... Error: ...'] element instead of image URLs."""
+    return len(results) == 1 and isinstance(results[0], str) and "Error" in results[0]
+
+
 class JobRegistry:
     def __init__(self):
         self._lock = threading.Lock()
@@ -90,18 +95,12 @@ class JobRegistry:
                 self.emit({"type": "job_progress", "job_id": job_id,
                            "message": str(message), "pct": pct})
 
-            # #13 — on a rate-limit/auth failure, rotate to the next pooled key and retry
-            results = []
-            attempts = max(1, keypool.size(service))
-            for attempt in range(attempts):
-                results = backend(model_id, params, progress=progress, cancel_event=cancel)
-                if cancel.is_set():
-                    self.emit({"type": "job_error", "job_id": job_id, "error": "Cancelled."})
-                    return
-                if attempt < attempts - 1 and _looks_rate_limited(results) and keypool.rotate(service):
-                    progress(f"key rate-limited — switching to key {attempt + 2}/{attempts}…")
-                    continue
-                break
+            # loop-N: make `_n_images` images (one backend call each) so providers with no native
+            # multi-output still batch; target=1 (the default) is a single call = unchanged behavior.
+            results, cancelled = self._batch_generate(service, backend, model_id, params, progress, cancel)
+            if cancelled:
+                self.emit({"type": "job_error", "job_id": job_id, "error": "Cancelled."})
+                return
 
             progress("saving…")  # #15 — explicit save stage: queued -> running -> saving -> done
             paths = save.make_output_paths(output_dir, len(results), seed=params.get("seed"))
@@ -126,6 +125,46 @@ class JobRegistry:
             self.emit({"type": "job_error", "job_id": job_id, "error": str(e), "detail": tb})
         finally:
             self._finish()
+
+    def _batch_generate(self, service, backend, model_id, params, progress, cancel):
+        """Generate `_n_images` results, one backend call per image (loop-N), so Replicate models with
+        no native multi-output can still make N. target=1 -> a single call, params untouched (every
+        other service's native batch is unaffected). Each pass past the first varies the seed (when one
+        is set) so the images differ. The existing per-call key-rotation retry (#13) is preserved.
+        Returns (results, cancelled)."""
+        target = max(1, min(int(params.pop("_n_images", 1) or 1), 8))
+        all_results = []
+        for i in range(target):
+            if cancel.is_set():
+                return all_results, True
+            cp = dict(params)
+            if target > 1:
+                cp["num_outputs"] = 1                      # one per call; the loop provides the count
+                sd = str(cp.get("seed") or "").strip()
+                if sd and sd != "0":
+                    try:
+                        cp["seed"] = int(float(sd)) + i    # distinct seed -> distinct image
+                    except (TypeError, ValueError):
+                        pass
+                progress(f"image {i + 1} of {target}…")
+            # #13 — per-call key rotation on a rate-limit/auth failure
+            results = []
+            attempts = max(1, keypool.size(service))
+            for attempt in range(attempts):
+                results = backend(model_id, cp, progress=progress, cancel_event=cancel)
+                if cancel.is_set():
+                    return all_results, True
+                if attempt < attempts - 1 and _looks_rate_limited(results) and keypool.rotate(service):
+                    progress(f"key rate-limited — switching to key {attempt + 2}/{attempts}…")
+                    continue
+                break
+            if _is_error_result(results):
+                if not all_results:
+                    return results, False                  # first image failed → surface the error
+                progress(f"stopped at {len(all_results)}/{target}: {results[0]}")
+                break                                      # partial success → keep what we have
+            all_results.extend(results)
+        return all_results, False
 
 
 REGISTRY = JobRegistry()

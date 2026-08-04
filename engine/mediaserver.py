@@ -18,6 +18,7 @@ NAS images. Full-res is still served (lightbox) from the original path.
 # video seeking is needed.
 """
 import mimetypes
+import sqlite3
 import threading
 import urllib.parse
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
@@ -27,6 +28,43 @@ _STATE = {"dir": None, "extra": [], "thumbs": None}  # output dir + library root
 _IMG_EXT = {".png", ".jpg", ".jpeg", ".webp", ".gif", ".bmp"}
 _THUMB_LOCK = threading.Lock()
 _FIND_CACHE: dict[str, str] = {}  # basename -> resolved absolute path (misses trigger one rglob)
+
+# DB-backed name->path resolve (library.db has idx_images_name). Replaces the per-name recursive
+# rglob for any INDEXED image — critical for nested archives like .replicate_recover/images/<id>/*
+# where a filesystem walk of thousands of subdirs would otherwise run per uncached basename.
+_DB_CONN = None
+_DB_LOCK = threading.Lock()
+
+
+def _db_conn():
+    global _DB_CONN
+    if _DB_CONN is None:
+        db = Path(__file__).resolve().parent.parent / ".cache" / "library.db"
+        if not db.is_file():
+            return None
+        try:
+            _DB_CONN = sqlite3.connect(f"file:{db}?mode=ro", uri=True, timeout=2, check_same_thread=False)
+            _DB_CONN.execute("PRAGMA busy_timeout=2000")
+        except Exception:
+            _DB_CONN = None
+    return _DB_CONN
+
+
+def _db_resolve(name: str):
+    """Resolve a basename to its absolute path via library.db (idx_images_name = index seek, no fs
+    walk). Autocommit read so each query sees the latest WAL snapshot. Only trusts a row whose file
+    still exists on disk. Returns Path or None."""
+    con = _db_conn()
+    if con is None:
+        return None
+    try:
+        with _DB_LOCK:
+            row = con.execute("SELECT path FROM images WHERE name=? LIMIT 1", (name,)).fetchone()
+    except Exception:
+        return None
+    if row and Path(row[0]).is_file():
+        return Path(row[0])
+    return None
 
 
 def _roots():
@@ -38,11 +76,13 @@ def _find(name: str):
 
     Generations save to `<root>/generated/YYYY-MM/<file>`, so a top-level-only check 404s every
     generated image. Resolution order: (1) cache, (2) top-level of each root (fast, the common case
-    for archive libraries whose files sit at the root), (3) ONE recursive rglob per root, breaking on
-    the first hit and caching it. After the first miss a name is a pure dict lookup forever.
-    # ponytail: per-name rglob (break-on-first-hit) + hit-only cache. Genuine 404s re-walk each time
-    # (rare — a broken reference); if a cold nested grid of hundreds ever drags, swap to a one-shot
-    # basename index built on first miss.
+    for archive libraries whose files sit at the root), (3) library.db index seek on the basename
+    (idx_images_name — resolves nested archive images with ZERO filesystem walk), (4) ONE recursive
+    rglob per root as a last resort for names not yet indexed. After the first hit a name is a pure
+    dict lookup forever.
+    # ponytail: DB index seek replaces the per-name rglob for every indexed image (the .replicate_recover
+    # nested archive would otherwise rglob thousands of subdirs per basename). rglob remains only for
+    # un-indexed names (a fresh gen before its folder is indexed) — rare, and top-level-findable anyway.
     """
     if not name:
         return None
@@ -53,6 +93,10 @@ def _find(name: str):
         if b and (Path(b) / name).is_file():
             _FIND_CACHE[name] = str(Path(b) / name)
             return Path(b) / name
+    hit = _db_resolve(name)                  # index seek (idx_images_name) — no filesystem walk
+    if hit is not None:
+        _FIND_CACHE[name] = str(hit)
+        return hit
     for b in _roots():                      # slow path: recurse, first hit wins, cache it
         if not b:
             continue

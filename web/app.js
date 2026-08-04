@@ -42,7 +42,7 @@ const state = {
   inputFiles: {}, job: null, gallery: [], selected: null,
   genCount: 0, loras: {}, mediaBase: "", outDirName: "generated_images",
   view: "session", grid: "m", lbFile: null, lbDir: "", lbTags: [], lbList: null, lbIndex: -1, lbMeta: null, contentMode: "safe", verifiedOnly: false,
-  contentGrades: {}, aspectPreset: "Custom", modelMeta: {},
+  contentGrades: {}, aspectPreset: "Custom", numImages: 1, modelMeta: {},
   novitaCovers: {}, openrouterDescriptions: {}, sweepThumbs: {},
   nsfwFavs: new Set(),  // A5 — NSFW-page favorites ("provider::model", lowercased); ★ + top-of-group in the model picker
   libRecords: [], libFiltered: [], libraryDirs: [], libFilter: { folder: "", service: "", type: "", q: "", tags: [], favoritesOnly: false },
@@ -391,19 +391,61 @@ function accessibleModels() {
   }
   return out;
 }
+// §4b — add ANY model by id or URL. The engine runs any owner/model[:version]; this normalizes a
+// replicate.com URL to that id (and leaves an already-canonical id / bare model name untouched), so a
+// brand-new model that's not in your recents catalog still gets an entry point.
+function parseModelRef(raw) {
+  const s = (raw || "").trim();
+  if (!s) return "";
+  const u = s.match(/replicate\.com\/([\w.-]+)\/([\w.-]+?)(?:\/versions\/([a-f0-9]{8,}))?(?:[/?#].*)?$/i);
+  if (u) return u[3] ? `${u[1]}/${u[2]}:${u[3]}` : `${u[1]}/${u[2]}`;
+  return s;   // already an id / bare model name — trim is the only normalization
+}
+// Only offer "Use this model" when the text actually looks like a model reference (a URL, or an
+// owner/model[:version] shape) — not for a plain keyword search like "uncensored photoreal".
+function looksLikeModelRef(raw) {
+  const s = (raw || "").trim();
+  return /replicate\.com\//i.test(s) || /^[\w.-]+\/[\w.-]+(:[a-f0-9]{6,})?$/i.test(s);
+}
+// Add a typed/pasted model to the ACTIVE service's recents, select it, pull its schema, re-render.
+async function addUserModel(raw) {
+  const id = parseModelRef(raw);
+  if (!id) return;
+  try {
+    const r = await api().add_recent_model(state.service, id);
+    if (r && r.ok) {
+      state.recentModels[state.service] = r.models;
+      state.model = id;
+      if (state.lastUsed) state.lastUsed[state.service] = id;
+      const q = $("modelquery"); if (q) q.value = "";
+      const box = $("modelsuggest"); if (box) box.innerHTML = "";
+      render();
+      maybeFetchSchema(state.service, id);   // live per-model input schema (replicate/openrouter/novita)
+      if ($("statusmsg")) $("statusmsg").textContent = `Added ${id} to ${SVC_LABELS[state.service] || state.service}`;
+    } else if ($("statusmsg")) {
+      $("statusmsg").textContent = (r && r.error) || "couldn't add model";
+    }
+  } catch (e) {}
+}
+
 function renderModelSuggest() {
   const box = $("modelsuggest");
   if (!box) return;
-  const q = (($("modelquery") && $("modelquery").value) || "").trim().toLowerCase();
+  const raw = (($("modelquery") && $("modelquery").value) || "").trim();
+  const q = raw.toLowerCase();
   if (!q) { box.innerHTML = ""; return; }
   const toks = q.split(/\s+/).filter(Boolean);
   const hits = accessibleModels().filter(m => {
     const hay = (m.service + " " + m.id + " " + m.label).toLowerCase();
     return toks.every(t => hay.includes(t));
   }).slice(0, 10);
-  box.innerHTML = hits.length
+  // "Use this model" — when the query is a model id/URL, offer to add+select it on the active service.
+  const useChip = looksLikeModelRef(raw)
+    ? `<button class="msuggest-chip msuggest-use" data-usemodel="${encodeURIComponent(parseModelRef(raw))}"><b>▶ Use ${escapeHtml(parseModelRef(raw))}</b><span>add to ${escapeHtml(SVC_LABELS[state.service] || state.service)}</span></button>`
+    : "";
+  box.innerHTML = useChip + (hits.length
     ? hits.map(m => `<button class="msuggest-chip" data-svc="${m.service}" data-id="${encodeURIComponent(m.id)}"><b>${m.label}</b><span>${m.service}</span></button>`).join("")
-    : `<div class="msuggest-empty">no accessible model matches — try another word (or add that provider's key)</div>`;
+    : (useChip ? "" : `<div class="msuggest-empty">no accessible model matches — paste an owner/model id or a replicate.com URL to add one</div>`));
 }
 
 /* ---------- renderers ---------- */
@@ -507,7 +549,25 @@ async function loadNsfwFavs() {
    {width,height} for free_wh/fixed_wh_enum_independent, a "WxH" string for enum_wh_string, an
    "R:R"/"RxR" string for enum-native ratio families). No client-side re-derivation of the algorithm —
    the table already encodes it per provider. */
+// Standard ratio -> {width,height} for Replicate models that take free width/height (no aspect_ratio
+// enum). ~1MP each, the FLUX/SDXL sweet spot. "Custom" passes the user's own width/height through.
+const REPLICATE_WH_PRESETS = {
+  "Custom": null, "1:1": { width: 1024, height: 1024 }, "16:9": { width: 1344, height: 768 },
+  "9:16": { width: 768, height: 1344 }, "4:3": { width: 1152, height: 896 },
+  "3:4": { width: 896, height: 1152 }, "3:2": { width: 1216, height: 832 },
+  "2:3": { width: 832, height: 1216 }, "21:9": { width: 1536, height: 640 },
+};
+// Replicate has no static aspect table (it's per-model) — derive one from the SELECTED model's own
+// fetched schema so the dedicated ASPECT RATIO dropdown works like every other provider's.
+function replicateAspectTable() {
+  const params = (currentModel() && currentModel().params) || [];
+  const ar = params.find(p => p.name === "aspect_ratio" && p.type === "enum" && p.values && p.values.length);
+  if (ar) { const t = {}; ar.values.forEach(v => { t[v] = v; }); return t; }   // enum-native ratio (most FLUX)
+  const hasWH = params.some(p => p.name === "width") && params.some(p => p.name === "height");
+  return hasWH ? REPLICATE_WH_PRESETS : null;                                   // free width/height fallback
+}
 function servicePresetTable(service) {
+  if (service === "replicate") return replicateAspectTable();
   const sp = state.serviceParams[service];
   return (sp && sp.aspect_presets) || null;
 }
@@ -562,6 +622,10 @@ function applyAspectPreset(key) {
   else setComposerParam("aspect_ratio", val);                       // enum-native ratio (gemini/ideogram/openrouter)
 }
 $("aspectpreset") && $("aspectpreset").addEventListener("change", () => applyAspectPreset($("aspectpreset").value));
+$("numimages") && $("numimages").addEventListener("change", e => {
+  state.numImages = Math.max(1, Math.min(8, parseInt(e.target.value, 10) || 1));
+  e.target.value = state.numImages;
+});
 
 /* ---------- P3 — model-info panel (description + cover, where the provider's catalog has one) ---------- */
 // One-line honest family blurbs for providers with no per-model description API (cites the matrix).
@@ -620,6 +684,12 @@ function render() {
   $("negwrap").style.display = fam.neg ? "" : "none";
   renderParams(cur);
   renderAspectPreset(cur);    // P1 — must run AFTER renderParams so its width/height/size controls exist
+  // "# Images" (loop-N) — Replicate only; other services use their native multi-output param
+  const niw = $("numimgwrap");
+  if (niw) {
+    niw.style.display = state.service === "replicate" ? "" : "none";
+    const ni = $("numimages"); if (ni) ni.value = state.numImages || 1;
+  }
   renderNsfw(cur);
   renderLoras();
   if (state.view === "session") renderGallery();  // refresh stage (browse landing or session gallery)
@@ -717,7 +787,16 @@ function paramControl(p) {
   return `<input type="text" data-p="${p.name}" placeholder="${p.optional ? "optional" : ""}">`;
 }
 function renderParams(model) {
-  const params = model && model.params ? model.params : LEGACY_PARAMS;
+  let params = model && model.params ? model.params : LEGACY_PARAMS;
+  // On Replicate the dedicated "# Images" control owns the count (it loops the gen), so hide the
+  // schema's own num_outputs to avoid two competing controls. Same for aspect_ratio: the ASPECT RATIO
+  // dropdown owns it, and two controls drift out of sync (a re-render resets the in-params one to its
+  // 1:1 default → square images no matter what the dropdown says).
+  if (state.service === "replicate") {
+    params = params.filter(p => p.name !== "num_outputs");
+    if (params.some(p => p.name === "aspect_ratio" && p.type === "enum"))
+      params = params.filter(p => p.name !== "aspect_ratio");
+  }
   $("params").innerHTML = params.map(p => {
     const help = p.description || PARAM_HELP[p.name] || "";  // schema-driven help; hand-authored fallback
     const info = help ? ` <span class="phelp" title="${help.replace(/"/g, "&quot;")}">&#9432;</span>` : "";
@@ -1262,6 +1341,10 @@ function fileUrl(p) {
 // Small cached thumbnail (generated once, stored on local disk) for grid tiles — avoids
 // re-pulling full-size images from the NAS on every app open. Non-images fall back to full URL.
 const THUMB_EXT = ["png", "jpg", "jpeg", "webp", "gif", "bmp"];
+// Library record cap. Raised from 8000 once the recover archive's images got unique basenames
+// (~10.6k distinct now); the virtualized grid keeps DOM bounded regardless, so this only bounds the
+// single indexed DB read, not what's mounted.
+const LIB_MAX = 50000;
 function thumbUrl(p, size = 400) {
   const name = p.split(/[\\/]/).pop();
   const ext = name.split(".").pop().toLowerCase();
@@ -1328,6 +1411,11 @@ async function openLightbox(file, dir, list) {
     state.lbTags = (t && t.tags) || [];
     state.lbMeta = m;   // R3 #3 — source data for "save as Style/Recipe from this image"
     $("lbside").innerHTML = renderMeta(m, file);
+    const cp = $("lbcopyprompt");
+    if (cp) cp.addEventListener("click", async () => {
+      try { await navigator.clipboard.writeText((state.lbMeta && state.lbMeta.prompt) || ""); cp.textContent = "✓ copied"; setTimeout(() => { cp.textContent = "⧉ copy"; }, 1200); }
+      catch (e) {}
+    });
     wireTagEditor();
     syncLbFavStarButton();
   } catch (e) {
@@ -1350,7 +1438,7 @@ function renderMeta(m, file) {
   const params = m.params || {};
   const pstr = Object.entries(params).map(([k, v]) => `${k}=${v}`).join(" · ");
   let html = `<div class="lbm-title">Metadata <em>${m.source || ""}</em></div>${rows.join("")}`;
-  if (m.prompt) html += `<div class="lbm-block"><span>prompt</span><div>${escapeHtml(m.prompt)}</div></div>`;
+  if (m.prompt) html += `<div class="lbm-block"><span>prompt <button class="lbm-copy" id="lbcopyprompt" title="copy prompt to clipboard">⧉ copy</button></span><div>${escapeHtml(m.prompt)}</div></div>`;
   if (pstr) html += `<div class="lbm-block"><span>params</span><div>${escapeHtml(pstr)}</div></div>`;
   html += renderTagEditor();
   return html;
@@ -1449,12 +1537,15 @@ $("lightbox").addEventListener("click", e => { if (e.target.id === "lightbox") c
 $("lbedit").addEventListener("click", () => { if (state.lbFile) api().open_in_editor(state.lbFile); });
 $("lbfolder").addEventListener("click", () => api().open_output_folder());
 $("lbsave").addEventListener("click", () => { if (state.lbFile) api().save_as(state.lbFile); });
-// R3 #3 — lightbox favorite star: same "favorite" tag, via the existing addLbTag/removeLbTag path.
-$("lbfav") && $("lbfav").addEventListener("click", async () => {
+// R3 #3 — lightbox favorite toggle: same "favorite" tag, via the existing addLbTag/removeLbTag
+// path. Shared by the ★ button AND the "f" keyboard shortcut (in the keydown handler below).
+async function toggleLbFav() {
+  if (!state.lbFile) return;
   const has = (state.lbTags || []).includes("favorite");
   await (has ? removeLbTag("favorite") : addLbTag("favorite"));
   syncLbFavStarButton();
-});
+}
+$("lbfav") && $("lbfav").addEventListener("click", toggleLbFav);
 // R3 #3 — "save as Style/Recipe from this image" (prefills from state.lbMeta — the metadata this
 // lightbox already fetched — instead of the live composer). Same underlying save flow as
 // saveStyleBtn/saveRecipeBtn below, factored out so both surfaces share one implementation.
@@ -1501,8 +1592,9 @@ function navLightbox(dir) {
 document.addEventListener("keydown", e => {
   if ($("lightbox").hidden) return;
   if (e.key === "Escape") { closeLightbox(); return; }
+  if (/^(INPUT|TEXTAREA)$/.test((e.target && e.target.tagName) || "")) return;   // ignore while typing (tag input)
+  if (e.key === "f" || e.key === "F") { e.preventDefault(); toggleLbFav(); return; }  // f = favorite the open image (no button click needed)
   if (e.key !== "ArrowLeft" && e.key !== "ArrowRight") return;
-  if (/^(INPUT|TEXTAREA)$/.test((e.target && e.target.tagName) || "")) return;
   navLightbox(e.key === "ArrowLeft" ? -1 : 1);
 });
 
@@ -1546,7 +1638,7 @@ async function renderLibrary() {
     <div class="s2lbl">Library <em id="libcount">loading…</em>
       <button id="librefresh" class="lib-refresh" title="Rescan the archive folders for new images">↻ refresh</button></div>
     <div class="libfilters">
-      <input id="libq" type="text" placeholder="search prompt / model…" spellcheck="false">
+      <input id="libq" type="text" placeholder="search prompt / model…" spellcheck="false" value="${escapeHtml(state.libFilter.q || '')}">
       <select id="libfolder" title="Filter by source folder"><option value="">all folders</option></select>
       <select id="libsvc" title="Filter by where it was generated"><option value="">all sources</option></select>
       <select id="libtype" title="Filter by media type"><option value="">all types</option><option value="image">images</option><option value="video">video</option></select>
@@ -1558,7 +1650,7 @@ async function renderLibrary() {
     <div class="wmason" id="libmason"><div class="emptystate">loading…</div></div>`;
   $("librefresh").addEventListener("click", async () => {
     const rb = $("librefresh"); rb.disabled = true; rb.textContent = "↻ rescanning…";
-    try { await api().refresh_library(8000); } catch (e) {}
+    try { await api().refresh_library(LIB_MAX); } catch (e) {}
     await loadLibrary();
   });
   wireLibCollapse();
@@ -1656,7 +1748,7 @@ function renderLibFolders() {
 }
 
 async function loadLibrary() {
-  try { state.libRecords = await api().list_library(8000); } catch (e) { state.libRecords = []; }
+  try { state.libRecords = await api().list_library(LIB_MAX); } catch (e) { state.libRecords = []; }
   const svcs = [...new Set(state.libRecords.map(r => r.service).filter(Boolean))].sort();
   const folderSel = $("libfolder"), svcSel = $("libsvc");
   // Populate the folder filter from the CONFIGURED library dirs (state.libraryDirs) so it stays in
@@ -1667,6 +1759,10 @@ async function loadLibrary() {
     state.libraryDirs.map(d => `<option value="${escapeHtml(d.path)}">${escapeHtml(d.name || d.path)}</option>`).join("");
   if (svcSel) svcSel.innerHTML = `<option value="">all sources</option>` +
     svcs.map(s => `<option value="${escapeHtml(s)}">${escapeHtml(s)}</option>`).join("");
+  // Restore the sticky filter values so switching views + coming back keeps the search/filters.
+  if (folderSel) folderSel.value = state.libFilter.folder || "";
+  if (svcSel) svcSel.value = state.libFilter.service || "";
+  if ($("libtype")) $("libtype").value = state.libFilter.type || "";
   ["libq", "libfolder", "libsvc", "libtype"].forEach(id => {
     const el = $(id); if (el && !el._libwired) { el._libwired = true; el.addEventListener("input", applyLibFilter); }
   });
@@ -1674,10 +1770,14 @@ async function loadLibrary() {
 }
 
 function applyLibFilter() {
-  const q = ($("libq") ? $("libq").value : "").toLowerCase().trim();
+  const rawq = $("libq") ? $("libq").value : "";
+  const q = rawq.toLowerCase().trim();
   const folder = $("libfolder") ? $("libfolder").value : "";
   const svc = $("libsvc") ? $("libsvc").value : "";
   const type = $("libtype") ? $("libtype").value : "";
+  // Persist the filters so they survive leaving + re-entering the Library view (renderLibrary rebuilds
+  // the inputs, so their values must live in state, not just the DOM).
+  Object.assign(state.libFilter, { q: rawq, folder, service: svc, type });
   const activeTags = state.libFilter.tags || [];
   const favOnly = !!state.libFilter.favoritesOnly;   // R3 #3 — favorites filter chip
   state.libFiltered = state.libRecords.filter(r =>
@@ -2002,9 +2102,27 @@ $("gen").addEventListener("click", async () => {
   if (missing.length) { $("statusmsg").textContent = "input required: " + missing.join(", "); return; }
   const inputFiles = {};
   kinds.forEach(k => { inputFiles[k] = state.inputFiles[k]; });
+  const genParams = applyContentMode(collectParams(cur), cur, state.contentMode, state.service);
+  // Attach enabled LoRAs — the backend (_build_input) reads params.enabled_loras and converts them to
+  // each model's real lora field names; collectParams only gathers the [data-p] form controls, so
+  // without this the LoRA panel's selections never reached the generator.
+  const lsvc = LORA_SERVICES.includes(state.service) ? state.service : null;
+  const activeLoras = lsvc ? (state.loras[lsvc] || []).filter(l => l.enabled) : [];
+  if (activeLoras.length) genParams.enabled_loras = activeLoras;
+  if (state.service === "replicate" && state.numImages > 1) genParams._n_images = state.numImages;  // loop-N in the job runner
+  // Aspect ratio is owned by the ASPECT RATIO dropdown — inject its value at gen time so it's
+  // authoritative (immune to the in-params control being reset to 1:1 by a re-render).
+  if (state.service === "replicate") {
+    const at = servicePresetTable("replicate"), key = state.aspectPreset;
+    if (at && key && key !== "Custom" && key !== "Auto" && at[key] != null) {
+      const val = at[key];
+      if (typeof val === "object") { genParams.width = val.width; genParams.height = val.height; }
+      else genParams.aspect_ratio = val;
+    }
+  }
   const req = {
     service: state.service, model: cur.id, category: state.category,
-    prompt, params: applyContentMode(collectParams(cur), cur, state.contentMode, state.service), input_files: inputFiles,
+    prompt, params: genParams, input_files: inputFiles,
   };
   const r = await api().generate(req);
   if (r.error) { $("statusmsg").textContent = r.error; return; }
@@ -2094,6 +2212,7 @@ $("model").addEventListener("change", () => { state.model = $("model").value; re
 $("modelquery") && $("modelquery").addEventListener("input", renderModelSuggest);
 $("modelsuggest") && $("modelsuggest").addEventListener("click", e => {
   const btn = e.target.closest(".msuggest-chip"); if (!btn) return;
+  if (btn.dataset.usemodel) { addUserModel(decodeURIComponent(btn.dataset.usemodel)); return; }
   const svc = btn.dataset.svc, id = decodeURIComponent(btn.dataset.id);
   if (svc !== state.service) { state.service = svc; state.inputFiles = {}; renderService(); refreshBalance(); }
   state.model = id;
@@ -2129,7 +2248,21 @@ async function askAI() {
   }
 }
 $("askaibtn") && $("askaibtn").addEventListener("click", askAI);
-$("modelquery") && $("modelquery").addEventListener("keydown", e => { if (e.key === "Enter") { e.preventDefault(); askAI(); } });
+$("modelquery") && $("modelquery").addEventListener("keydown", e => {
+  if (e.key !== "Enter") return;
+  e.preventDefault();
+  const raw = (e.target.value || "").trim();
+  if (looksLikeModelRef(raw)) addUserModel(raw);   // a pasted id/URL → add + select it
+  else askAI();                                     // a keyword → grounded suggestion
+});
+// §4b — dedicated "+ add model" input (always visible under the model select)
+$("addmodelbtn") && $("addmodelbtn").addEventListener("click", () => {
+  const el = $("addmodelinput"); if (!el) return;
+  addUserModel(el.value); el.value = "";
+});
+$("addmodelinput") && $("addmodelinput").addEventListener("keydown", e => {
+  if (e.key === "Enter") { e.preventDefault(); addUserModel(e.target.value); e.target.value = ""; }
+});
 
 /* ---------- boot ---------- */
 function tryBoot() {

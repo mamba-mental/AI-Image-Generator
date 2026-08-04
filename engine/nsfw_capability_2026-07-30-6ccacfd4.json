@@ -1,0 +1,6434 @@
+{
+ "version": 2,
+ "classifier": "fal-ai/x-ailab/nsfw",
+ "prompt_sha256": "6ccacfd4258617ee270af024e45084f0fb12a556e14bc6fe25c2cb907edc5e09",
+ "n_renders": 3,
+ "generated_at": "2026-07-30 04:59",
+ "excluded": [
+  {
+   "provider": "fal",
+   "id": "fal-ai/flux-pro/kontext/text-to-image",
+   "reason": "BFL-proprietary FLUX Kontext \u2014 provider-enforced content policy with no permissive override; nudity is blocked upstream regardless of client flags."
+  },
+  {
+   "provider": "fal",
+   "id": "fal-ai/flux-pro/kontext/max/text-to-image",
+   "reason": "BFL-proprietary FLUX Kontext \u2014 provider-enforced content policy with no permissive override; nudity is blocked upstream regardless of client flags."
+  },
+  {
+   "provider": "fal",
+   "id": "fal-ai/flux-lora/inpainting",
+   "reason": "Not a text-to-image generation model (utility/analysis endpoint) \u2014 out of scope for a capability sweep."
+  },
+  {
+   "provider": "fal",
+   "id": "fal-ai/flux-kontext-lora/text-to-image",
+   "reason": "BFL-proprietary FLUX Kontext \u2014 provider-enforced content policy with no permissive override; nudity is blocked upstream regardless of client flags."
+  },
+  {
+   "provider": "together",
+   "id": "black-forest-labs/FLUX.1-kontext-pro",
+   "reason": "BFL-proprietary FLUX Kontext \u2014 provider-enforced content policy with no permissive override; nudity is blocked upstream regardless of client flags."
+  },
+  {
+   "provider": "together",
+   "id": "black-forest-labs/FLUX.1-kontext-max",
+   "reason": "BFL-proprietary FLUX Kontext \u2014 provider-enforced content policy with no permissive override; nudity is blocked upstream regardless of client flags."
+  },
+  {
+   "provider": "together",
+   "id": "openai/gpt-image-1.5",
+   "reason": "OpenAI-backed image model \u2014 content moderation is server-side and non-overridable."
+  },
+  {
+   "provider": "together",
+   "id": "google/veo-3.0-fast-audio",
+   "reason": "Google-backed image model \u2014 SynthID + non-overridable safety filters; art-nude refused by policy."
+  },
+  {
+   "provider": "together",
+   "id": "google/veo-3.0-audio",
+   "reason": "Google-backed image model \u2014 SynthID + non-overridable safety filters; art-nude refused by policy."
+  },
+  {
+   "provider": "together",
+   "id": "kwaivgI/kling-2.1-master",
+   "reason": "Video-generation model \u2014 Spec B scopes the NSFW sweep to IMAGE models; video-NSFW testing is an explicit follow-up non-goal."
+  },
+  {
+   "provider": "together",
+   "id": "kwaivgI/kling-2.1-pro",
+   "reason": "Video-generation model \u2014 Spec B scopes the NSFW sweep to IMAGE models; video-NSFW testing is an explicit follow-up non-goal."
+  },
+  {
+   "provider": "together",
+   "id": "google/veo-2.0",
+   "reason": "Google-backed image model \u2014 SynthID + non-overridable safety filters; art-nude refused by policy."
+  },
+  {
+   "provider": "together",
+   "id": "openai/sora-2",
+   "reason": "OpenAI-backed image model \u2014 content moderation is server-side and non-overridable."
+  },
+  {
+   "provider": "together",
+   "id": "kwaivgI/kling-2.1-standard",
+   "reason": "Video-generation model \u2014 Spec B scopes the NSFW sweep to IMAGE models; video-NSFW testing is an explicit follow-up non-goal."
+  },
+  {
+   "provider": "together",
+   "id": "google/veo-3.0-fast",
+   "reason": "Google-backed image model \u2014 SynthID + non-overridable safety filters; art-nude refused by policy."
+  },
+  {
+   "provider": "together",
+   "id": "google/gemini-3-pro-image",
+   "reason": "Google-backed image model \u2014 SynthID + non-overridable safety filters; art-nude refused by policy."
+  },
+  {
+   "provider": "together",
+   "id": "openai/sora-2-pro",
+   "reason": "OpenAI-backed image model \u2014 content moderation is server-side and non-overridable."
+  },
+  {
+   "provider": "together",
+   "id": "ByteDance/Seedance-1.0-lite",
+   "reason": "Video-generation model \u2014 Spec B scopes the NSFW sweep to IMAGE models; video-NSFW testing is an explicit follow-up non-goal."
+  },
+  {
+   "provider": "together",
+   "id": "ByteDance/Seedance-1.0-pro",
+   "reason": "Video-generation model \u2014 Spec B scopes the NSFW sweep to IMAGE models; video-NSFW testing is an explicit follow-up non-goal."
+  },
+  {
+   "provider": "together",
+   "id": "google/imagen-4.0-fast",
+   "reason": "Google-backed image model \u2014 SynthID + non-overridable safety filters; art-nude refused by policy."
+  },
+  {
+   "provider": "together",
+   "id": "google/flash-image-2.5",
+   "reason": "Google-backed image model \u2014 SynthID + non-overridable safety filters; art-nude refused by policy."
+  },
+  {
+   "provider": "together",
+   "id": "minimax/hailuo-02",
+   "reason": "Video-generation model \u2014 Spec B scopes the NSFW sweep to IMAGE models; video-NSFW testing is an explicit follow-up non-goal."
+  },
+  {
+   "provider": "together",
+   "id": "google/imagen-4.0-ultra",
+   "reason": "Google-backed image model \u2014 SynthID + non-overridable safety filters; art-nude refused by policy."
+  },
+  {
+   "provider": "together",
+   "id": "google/imagen-4.0-preview",
+   "reason": "Google-backed image model \u2014 SynthID + non-overridable safety filters; art-nude refused by policy."
+  },
+  {
+   "provider": "together",
+   "id": "google/veo-3.0",
+   "reason": "Google-backed image model \u2014 SynthID + non-overridable safety filters; art-nude refused by policy."
+  },
+  {
+   "provider": "together",
+   "id": "kwaivgI/kling-1.6-standard",
+   "reason": "Video-generation model \u2014 Spec B scopes the NSFW sweep to IMAGE models; video-NSFW testing is an explicit follow-up non-goal."
+  },
+  {
+   "provider": "together",
+   "id": "minimax/video-01-director",
+   "reason": "Video-generation model \u2014 Spec B scopes the NSFW sweep to IMAGE models; video-NSFW testing is an explicit follow-up non-goal."
+  },
+  {
+   "provider": "together",
+   "id": "google/flash-image-3.1",
+   "reason": "Google-backed image model \u2014 SynthID + non-overridable safety filters; art-nude refused by policy."
+  },
+  {
+   "provider": "together",
+   "id": "google/veo-3.1-test-debug",
+   "reason": "Google-backed image model \u2014 SynthID + non-overridable safety filters; art-nude refused by policy."
+  },
+  {
+   "provider": "together",
+   "id": "ByteDance/Seedance-2.0",
+   "reason": "Video-generation model \u2014 Spec B scopes the NSFW sweep to IMAGE models; video-NSFW testing is an explicit follow-up non-goal."
+  },
+  {
+   "provider": "together",
+   "id": "google/veo-3.1",
+   "reason": "Google-backed image model \u2014 SynthID + non-overridable safety filters; art-nude refused by policy."
+  },
+  {
+   "provider": "together",
+   "id": "google/veo-3.1-lite",
+   "reason": "Google-backed image model \u2014 SynthID + non-overridable safety filters; art-nude refused by policy."
+  },
+  {
+   "provider": "together",
+   "id": "openai/gpt-image-2",
+   "reason": "OpenAI-backed image model \u2014 content moderation is server-side and non-overridable."
+  },
+  {
+   "provider": "together",
+   "id": "google/flash-image-3.1-lite",
+   "reason": "Google-backed image model \u2014 SynthID + non-overridable safety filters; art-nude refused by policy."
+  },
+  {
+   "provider": "agnes",
+   "id": "agnes-video-v2.0",
+   "reason": "Video-generation model \u2014 Spec B scopes the NSFW sweep to IMAGE models; video-NSFW testing is an explicit follow-up non-goal."
+  },
+  {
+   "provider": "novita",
+   "id": "realisticVisionV40_v40VAE-inpainting_81543.safetensors",
+   "reason": "Not a text-to-image generation model (utility/analysis endpoint) \u2014 out of scope for a capability sweep."
+  },
+  {
+   "provider": "novita",
+   "id": "pornmasterPro_fullV5-inpainting_135217.safetensors",
+   "reason": "Not a text-to-image generation model (utility/analysis endpoint) \u2014 out of scope for a capability sweep."
+  },
+  {
+   "provider": "novita",
+   "id": "dreamshaper_8Inpainting_95072.safetensors",
+   "reason": "Not a text-to-image generation model (utility/analysis endpoint) \u2014 out of scope for a capability sweep."
+  },
+  {
+   "provider": "novita",
+   "id": "realisticVisionV51_v51VAE-inpainting_94324.safetensors",
+   "reason": "Not a text-to-image generation model (utility/analysis endpoint) \u2014 out of scope for a capability sweep."
+  }
+ ],
+ "models": {
+  "fal:fal-ai/flux-2-pro": {
+   "provider": "fal",
+   "model": "fal-ai/flux-2-pro",
+   "grade": "unclear",
+   "nsfw_votes": "0/3",
+   "mean": null,
+   "sd": 0,
+   "classifier": "fal-ai/x-ailab/nsfw",
+   "classifier_scores": [
+    null,
+    null,
+    null
+   ],
+   "blocked_scores": [
+    null,
+    null,
+    null
+   ],
+   "seed_base": 100000,
+   "sent_prompt_sha256": "6ccacfd4258617ee270af024e45084f0fb12a556e14bc6fe25c2cb907edc5e09",
+   "clamped_len": 2209,
+   "truncated": false,
+   "sample_urls": [],
+   "tested_at": "2026-07-30 04:34"
+  },
+  "fal:bytedance/seedream/v5/pro/text-to-image": {
+   "provider": "fal",
+   "model": "bytedance/seedream/v5/pro/text-to-image",
+   "grade": "unclear",
+   "nsfw_votes": "0/3",
+   "mean": null,
+   "sd": 0,
+   "classifier": "fal-ai/x-ailab/nsfw",
+   "classifier_scores": [
+    null,
+    null,
+    null
+   ],
+   "blocked_scores": [
+    null,
+    null,
+    null
+   ],
+   "seed_base": 100000,
+   "sent_prompt_sha256": "6ccacfd4258617ee270af024e45084f0fb12a556e14bc6fe25c2cb907edc5e09",
+   "clamped_len": 2209,
+   "truncated": false,
+   "sample_urls": [],
+   "tested_at": "2026-07-30 04:34"
+  },
+  "fal:fal-ai/flux-2/klein/9b": {
+   "provider": "fal",
+   "model": "fal-ai/flux-2/klein/9b",
+   "grade": "unclear",
+   "nsfw_votes": "0/3",
+   "mean": null,
+   "sd": 0,
+   "classifier": "fal-ai/x-ailab/nsfw",
+   "classifier_scores": [
+    null,
+    null,
+    null
+   ],
+   "blocked_scores": [
+    null,
+    null,
+    null
+   ],
+   "seed_base": 100000,
+   "sent_prompt_sha256": "6ccacfd4258617ee270af024e45084f0fb12a556e14bc6fe25c2cb907edc5e09",
+   "clamped_len": 2209,
+   "truncated": false,
+   "sample_urls": [],
+   "tested_at": "2026-07-30 04:34"
+  },
+  "fal:fal-ai/flux/schnell": {
+   "provider": "fal",
+   "model": "fal-ai/flux/schnell",
+   "grade": "verified",
+   "nsfw_votes": "2/3",
+   "mean": 0.667,
+   "sd": 0.471,
+   "classifier": "fal-ai/x-ailab/nsfw",
+   "classifier_scores": [
+    true,
+    true,
+    false
+   ],
+   "blocked_scores": [
+    false,
+    false,
+    true
+   ],
+   "seed_base": 100000,
+   "sent_prompt_sha256": "6ccacfd4258617ee270af024e45084f0fb12a556e14bc6fe25c2cb907edc5e09",
+   "clamped_len": 2209,
+   "truncated": false,
+   "sample_urls": [
+    "https://v3b.fal.media/files/b/0aa44e1e/rQD978cU2K_i2rXGCcJKQ.jpg"
+   ],
+   "tested_at": "2026-07-30 04:34"
+  },
+  "fal:fal-ai/bytedance/seedream/v4.5/text-to-image": {
+   "provider": "fal",
+   "model": "fal-ai/bytedance/seedream/v4.5/text-to-image",
+   "grade": "unclear",
+   "nsfw_votes": "0/3",
+   "mean": null,
+   "sd": 0,
+   "classifier": "fal-ai/x-ailab/nsfw",
+   "classifier_scores": [
+    null,
+    null,
+    null
+   ],
+   "blocked_scores": [
+    null,
+    null,
+    null
+   ],
+   "seed_base": 100000,
+   "sent_prompt_sha256": "6ccacfd4258617ee270af024e45084f0fb12a556e14bc6fe25c2cb907edc5e09",
+   "clamped_len": 2209,
+   "truncated": false,
+   "sample_urls": [],
+   "tested_at": "2026-07-30 04:34"
+  },
+  "fal:fal-ai/flux-2": {
+   "provider": "fal",
+   "model": "fal-ai/flux-2",
+   "grade": "unclear",
+   "nsfw_votes": "0/3",
+   "mean": null,
+   "sd": 0,
+   "classifier": "fal-ai/x-ailab/nsfw",
+   "classifier_scores": [
+    null,
+    null,
+    null
+   ],
+   "blocked_scores": [
+    null,
+    null,
+    null
+   ],
+   "seed_base": 100000,
+   "sent_prompt_sha256": "6ccacfd4258617ee270af024e45084f0fb12a556e14bc6fe25c2cb907edc5e09",
+   "clamped_len": 2209,
+   "truncated": false,
+   "sample_urls": [],
+   "tested_at": "2026-07-30 04:34"
+  },
+  "fal:fal-ai/flux/dev": {
+   "provider": "fal",
+   "model": "fal-ai/flux/dev",
+   "grade": "verified",
+   "nsfw_votes": "3/3",
+   "mean": 1,
+   "sd": 0.0,
+   "classifier": "fal-ai/x-ailab/nsfw",
+   "classifier_scores": [
+    true,
+    true,
+    true
+   ],
+   "blocked_scores": [
+    false,
+    false,
+    false
+   ],
+   "seed_base": 100000,
+   "sent_prompt_sha256": "6ccacfd4258617ee270af024e45084f0fb12a556e14bc6fe25c2cb907edc5e09",
+   "clamped_len": 2209,
+   "truncated": false,
+   "sample_urls": [
+    "https://v3b.fal.media/files/b/0aa44e0e/bd-GvZw_uYs8PiW_R_q_Z.jpg"
+   ],
+   "tested_at": "2026-07-30 04:34"
+  },
+  "fal:fal-ai/bytedance/seedream/v4/text-to-image": {
+   "provider": "fal",
+   "model": "fal-ai/bytedance/seedream/v4/text-to-image",
+   "grade": "unclear",
+   "nsfw_votes": "0/3",
+   "mean": null,
+   "sd": 0,
+   "classifier": "fal-ai/x-ailab/nsfw",
+   "classifier_scores": [
+    null,
+    null,
+    null
+   ],
+   "blocked_scores": [
+    null,
+    null,
+    null
+   ],
+   "seed_base": 100000,
+   "sent_prompt_sha256": "6ccacfd4258617ee270af024e45084f0fb12a556e14bc6fe25c2cb907edc5e09",
+   "clamped_len": 2209,
+   "truncated": false,
+   "sample_urls": [],
+   "tested_at": "2026-07-30 04:34"
+  },
+  "fal:fal-ai/flux-2/flash": {
+   "provider": "fal",
+   "model": "fal-ai/flux-2/flash",
+   "grade": "unclear",
+   "nsfw_votes": "0/3",
+   "mean": null,
+   "sd": 0,
+   "classifier": "fal-ai/x-ailab/nsfw",
+   "classifier_scores": [
+    null,
+    null,
+    null
+   ],
+   "blocked_scores": [
+    null,
+    null,
+    null
+   ],
+   "seed_base": 100000,
+   "sent_prompt_sha256": "6ccacfd4258617ee270af024e45084f0fb12a556e14bc6fe25c2cb907edc5e09",
+   "clamped_len": 2209,
+   "truncated": false,
+   "sample_urls": [],
+   "tested_at": "2026-07-30 04:34"
+  },
+  "fal:fal-ai/flux-2/turbo": {
+   "provider": "fal",
+   "model": "fal-ai/flux-2/turbo",
+   "grade": "unclear",
+   "nsfw_votes": "0/3",
+   "mean": null,
+   "sd": 0,
+   "classifier": "fal-ai/x-ailab/nsfw",
+   "classifier_scores": [
+    null,
+    null,
+    null
+   ],
+   "blocked_scores": [
+    null,
+    null,
+    null
+   ],
+   "seed_base": 100000,
+   "sent_prompt_sha256": "6ccacfd4258617ee270af024e45084f0fb12a556e14bc6fe25c2cb907edc5e09",
+   "clamped_len": 2209,
+   "truncated": false,
+   "sample_urls": [],
+   "tested_at": "2026-07-30 04:34"
+  },
+  "fal:fal-ai/flux-2-max": {
+   "provider": "fal",
+   "model": "fal-ai/flux-2-max",
+   "grade": "unclear",
+   "nsfw_votes": "0/3",
+   "mean": null,
+   "sd": 0,
+   "classifier": "fal-ai/x-ailab/nsfw",
+   "classifier_scores": [
+    null,
+    null,
+    null
+   ],
+   "blocked_scores": [
+    null,
+    null,
+    null
+   ],
+   "seed_base": 100000,
+   "sent_prompt_sha256": "6ccacfd4258617ee270af024e45084f0fb12a556e14bc6fe25c2cb907edc5e09",
+   "clamped_len": 2209,
+   "truncated": false,
+   "sample_urls": [],
+   "tested_at": "2026-07-30 04:34"
+  },
+  "fal:fal-ai/flux-lora": {
+   "provider": "fal",
+   "model": "fal-ai/flux-lora",
+   "grade": "verified",
+   "nsfw_votes": "3/3",
+   "mean": 1,
+   "sd": 0.0,
+   "classifier": "fal-ai/x-ailab/nsfw",
+   "classifier_scores": [
+    true,
+    true,
+    true
+   ],
+   "blocked_scores": [
+    false,
+    false,
+    false
+   ],
+   "seed_base": 100000,
+   "sent_prompt_sha256": "6ccacfd4258617ee270af024e45084f0fb12a556e14bc6fe25c2cb907edc5e09",
+   "clamped_len": 2209,
+   "truncated": false,
+   "sample_urls": [
+    "https://v3b.fal.media/files/b/0aa44e0e/yHaoDo0EZ7p3w-EInhNS3.jpg"
+   ],
+   "tested_at": "2026-07-30 04:34"
+  },
+  "fal:fal-ai/flux-2/lora": {
+   "provider": "fal",
+   "model": "fal-ai/flux-2/lora",
+   "grade": "unclear",
+   "nsfw_votes": "0/3",
+   "mean": null,
+   "sd": 0,
+   "classifier": "fal-ai/x-ailab/nsfw",
+   "classifier_scores": [
+    null,
+    null,
+    null
+   ],
+   "blocked_scores": [
+    null,
+    null,
+    null
+   ],
+   "seed_base": 100000,
+   "sent_prompt_sha256": "6ccacfd4258617ee270af024e45084f0fb12a556e14bc6fe25c2cb907edc5e09",
+   "clamped_len": 2209,
+   "truncated": false,
+   "sample_urls": [],
+   "tested_at": "2026-07-30 04:34"
+  },
+  "fal:fal-ai/flux-pro/v1.1": {
+   "provider": "fal",
+   "model": "fal-ai/flux-pro/v1.1",
+   "grade": "verified",
+   "nsfw_votes": "3/3",
+   "mean": 1,
+   "sd": 0.0,
+   "classifier": "fal-ai/x-ailab/nsfw",
+   "classifier_scores": [
+    true,
+    true,
+    true
+   ],
+   "blocked_scores": [
+    false,
+    false,
+    false
+   ],
+   "seed_base": 100000,
+   "sent_prompt_sha256": "6ccacfd4258617ee270af024e45084f0fb12a556e14bc6fe25c2cb907edc5e09",
+   "clamped_len": 2209,
+   "truncated": false,
+   "sample_urls": [
+    "https://v3b.fal.media/files/b/0aa44e0e/SNYPG5hEFsqr743O6FIgO_ea6663dd3d844d73851c3a98e75a3262.jpg"
+   ],
+   "tested_at": "2026-07-30 04:34"
+  },
+  "fal:fal-ai/flux-1/schnell": {
+   "provider": "fal",
+   "model": "fal-ai/flux-1/schnell",
+   "grade": "verified",
+   "nsfw_votes": "2/3",
+   "mean": 0.667,
+   "sd": 0.471,
+   "classifier": "fal-ai/x-ailab/nsfw",
+   "classifier_scores": [
+    true,
+    true,
+    false
+   ],
+   "blocked_scores": [
+    false,
+    false,
+    true
+   ],
+   "seed_base": 100000,
+   "sent_prompt_sha256": "6ccacfd4258617ee270af024e45084f0fb12a556e14bc6fe25c2cb907edc5e09",
+   "clamped_len": 2209,
+   "truncated": false,
+   "sample_urls": [
+    "https://v3b.fal.media/files/b/0aa44e1f/cy81fxaEB6EeFnU6-tTSA.jpg"
+   ],
+   "tested_at": "2026-07-30 04:34"
+  },
+  "fal:fal-ai/fast-sdxl": {
+   "provider": "fal",
+   "model": "fal-ai/fast-sdxl",
+   "grade": "unclear",
+   "nsfw_votes": "1/3",
+   "mean": 0.333,
+   "sd": 0.471,
+   "classifier": "fal-ai/x-ailab/nsfw",
+   "classifier_scores": [
+    false,
+    false,
+    true
+   ],
+   "blocked_scores": [
+    false,
+    false,
+    false
+   ],
+   "seed_base": 100000,
+   "sent_prompt_sha256": "6ccacfd4258617ee270af024e45084f0fb12a556e14bc6fe25c2cb907edc5e09",
+   "clamped_len": 2209,
+   "truncated": false,
+   "sample_urls": [
+    "https://v3b.fal.media/files/b/0aa44e1f/sToqBASwS6s2DIsaj7tB9.jpg"
+   ],
+   "tested_at": "2026-07-30 04:34"
+  },
+  "fal:fal-ai/flux-2-flex": {
+   "provider": "fal",
+   "model": "fal-ai/flux-2-flex",
+   "grade": "unclear",
+   "nsfw_votes": "0/3",
+   "mean": null,
+   "sd": 0,
+   "classifier": "fal-ai/x-ailab/nsfw",
+   "classifier_scores": [
+    null,
+    null,
+    null
+   ],
+   "blocked_scores": [
+    null,
+    null,
+    null
+   ],
+   "seed_base": 100000,
+   "sent_prompt_sha256": "6ccacfd4258617ee270af024e45084f0fb12a556e14bc6fe25c2cb907edc5e09",
+   "clamped_len": 2209,
+   "truncated": false,
+   "sample_urls": [],
+   "tested_at": "2026-07-30 04:34"
+  },
+  "fal:fal-ai/flux-2/klein/4b": {
+   "provider": "fal",
+   "model": "fal-ai/flux-2/klein/4b",
+   "grade": "unclear",
+   "nsfw_votes": "0/3",
+   "mean": null,
+   "sd": 0,
+   "classifier": "fal-ai/x-ailab/nsfw",
+   "classifier_scores": [
+    null,
+    null,
+    null
+   ],
+   "blocked_scores": [
+    null,
+    null,
+    null
+   ],
+   "seed_base": 100000,
+   "sent_prompt_sha256": "6ccacfd4258617ee270af024e45084f0fb12a556e14bc6fe25c2cb907edc5e09",
+   "clamped_len": 2209,
+   "truncated": false,
+   "sample_urls": [],
+   "tested_at": "2026-07-30 04:34"
+  },
+  "fal:fal-ai/qwen-image-2/text-to-image": {
+   "provider": "fal",
+   "model": "fal-ai/qwen-image-2/text-to-image",
+   "grade": "unclear",
+   "nsfw_votes": "0/3",
+   "mean": null,
+   "sd": 0,
+   "classifier": "fal-ai/x-ailab/nsfw",
+   "classifier_scores": [
+    null,
+    null,
+    null
+   ],
+   "blocked_scores": [
+    null,
+    null,
+    null
+   ],
+   "seed_base": 100000,
+   "sent_prompt_sha256": "6ccacfd4258617ee270af024e45084f0fb12a556e14bc6fe25c2cb907edc5e09",
+   "clamped_len": 2209,
+   "truncated": false,
+   "sample_urls": [],
+   "tested_at": "2026-07-30 04:34"
+  },
+  "fal:fal-ai/flux-pro/v1.1-ultra": {
+   "provider": "fal",
+   "model": "fal-ai/flux-pro/v1.1-ultra",
+   "grade": "verified",
+   "nsfw_votes": "3/3",
+   "mean": 1,
+   "sd": 0.0,
+   "classifier": "fal-ai/x-ailab/nsfw",
+   "classifier_scores": [
+    true,
+    true,
+    true
+   ],
+   "blocked_scores": [
+    false,
+    false,
+    false
+   ],
+   "seed_base": 100000,
+   "sent_prompt_sha256": "6ccacfd4258617ee270af024e45084f0fb12a556e14bc6fe25c2cb907edc5e09",
+   "clamped_len": 2209,
+   "truncated": false,
+   "sample_urls": [
+    "https://v3b.fal.media/files/b/0aa44e1e/LRwH40lgToRxmkNMzEjYd_596752e21b40485a9d06d345e2f7d1fb.jpg"
+   ],
+   "tested_at": "2026-07-30 04:35"
+  },
+  "fal:fal-ai/qwen-image-2/pro/text-to-image": {
+   "provider": "fal",
+   "model": "fal-ai/qwen-image-2/pro/text-to-image",
+   "grade": "unclear",
+   "nsfw_votes": "0/3",
+   "mean": null,
+   "sd": 0,
+   "classifier": "fal-ai/x-ailab/nsfw",
+   "classifier_scores": [
+    null,
+    null,
+    null
+   ],
+   "blocked_scores": [
+    null,
+    null,
+    null
+   ],
+   "seed_base": 100000,
+   "sent_prompt_sha256": "6ccacfd4258617ee270af024e45084f0fb12a556e14bc6fe25c2cb907edc5e09",
+   "clamped_len": 2209,
+   "truncated": false,
+   "sample_urls": [],
+   "tested_at": "2026-07-30 04:35"
+  },
+  "fal:fal-ai/fast-lightning-sdxl": {
+   "provider": "fal",
+   "model": "fal-ai/fast-lightning-sdxl",
+   "grade": "sfw",
+   "nsfw_votes": "0/3",
+   "mean": 0,
+   "sd": 0.0,
+   "classifier": "fal-ai/x-ailab/nsfw",
+   "classifier_scores": [
+    false,
+    false,
+    false
+   ],
+   "blocked_scores": [
+    false,
+    false,
+    false
+   ],
+   "seed_base": 100000,
+   "sent_prompt_sha256": "6ccacfd4258617ee270af024e45084f0fb12a556e14bc6fe25c2cb907edc5e09",
+   "clamped_len": 2209,
+   "truncated": false,
+   "sample_urls": [
+    "https://v3b.fal.media/files/b/0aa44e11/gfBRYxXrNqtnYwgy7I55Z.jpg"
+   ],
+   "tested_at": "2026-07-30 04:35"
+  },
+  "fal:fal-ai/qwen-image": {
+   "provider": "fal",
+   "model": "fal-ai/qwen-image",
+   "grade": "unclear",
+   "nsfw_votes": "0/3",
+   "mean": null,
+   "sd": 0,
+   "classifier": "fal-ai/x-ailab/nsfw",
+   "classifier_scores": [
+    null,
+    null,
+    null
+   ],
+   "blocked_scores": [
+    null,
+    null,
+    null
+   ],
+   "seed_base": 100000,
+   "sent_prompt_sha256": "6ccacfd4258617ee270af024e45084f0fb12a556e14bc6fe25c2cb907edc5e09",
+   "clamped_len": 2209,
+   "truncated": false,
+   "sample_urls": [],
+   "tested_at": "2026-07-30 04:35"
+  },
+  "fal:fal-ai/wan/v2.7/text-to-image": {
+   "provider": "fal",
+   "model": "fal-ai/wan/v2.7/text-to-image",
+   "grade": "unclear",
+   "nsfw_votes": "0/3",
+   "mean": null,
+   "sd": 0,
+   "classifier": "fal-ai/x-ailab/nsfw",
+   "classifier_scores": [
+    null,
+    null,
+    null
+   ],
+   "blocked_scores": [
+    null,
+    null,
+    null
+   ],
+   "seed_base": 100000,
+   "sent_prompt_sha256": "6ccacfd4258617ee270af024e45084f0fb12a556e14bc6fe25c2cb907edc5e09",
+   "clamped_len": 2209,
+   "truncated": false,
+   "sample_urls": [],
+   "tested_at": "2026-07-30 04:35"
+  },
+  "fal:fal-ai/lora": {
+   "provider": "fal",
+   "model": "fal-ai/lora",
+   "grade": "unclear",
+   "nsfw_votes": "0/3",
+   "mean": null,
+   "sd": 0,
+   "classifier": "fal-ai/x-ailab/nsfw",
+   "classifier_scores": [
+    null,
+    null,
+    null
+   ],
+   "blocked_scores": [
+    null,
+    null,
+    null
+   ],
+   "seed_base": 100000,
+   "sent_prompt_sha256": "6ccacfd4258617ee270af024e45084f0fb12a556e14bc6fe25c2cb907edc5e09",
+   "clamped_len": 2209,
+   "truncated": false,
+   "sample_urls": [],
+   "tested_at": "2026-07-30 04:35"
+  },
+  "fal:fal-ai/flux/krea": {
+   "provider": "fal",
+   "model": "fal-ai/flux/krea",
+   "grade": "verified",
+   "nsfw_votes": "3/3",
+   "mean": 1,
+   "sd": 0.0,
+   "classifier": "fal-ai/x-ailab/nsfw",
+   "classifier_scores": [
+    true,
+    true,
+    true
+   ],
+   "blocked_scores": [
+    false,
+    false,
+    false
+   ],
+   "seed_base": 100000,
+   "sent_prompt_sha256": "6ccacfd4258617ee270af024e45084f0fb12a556e14bc6fe25c2cb907edc5e09",
+   "clamped_len": 2209,
+   "truncated": false,
+   "sample_urls": [
+    "https://v3b.fal.media/files/b/0aa44e12/SuIytJOfeffxtMeW0JYP1.jpg"
+   ],
+   "tested_at": "2026-07-30 04:35"
+  },
+  "fal:fal-ai/qwen-image-2512": {
+   "provider": "fal",
+   "model": "fal-ai/qwen-image-2512",
+   "grade": "verified",
+   "nsfw_votes": "3/3",
+   "mean": 1,
+   "sd": 0.0,
+   "classifier": "fal-ai/x-ailab/nsfw",
+   "classifier_scores": [
+    true,
+    true,
+    true
+   ],
+   "blocked_scores": [
+    false,
+    false,
+    false
+   ],
+   "seed_base": 100000,
+   "sent_prompt_sha256": "6ccacfd4258617ee270af024e45084f0fb12a556e14bc6fe25c2cb907edc5e09",
+   "clamped_len": 2209,
+   "truncated": false,
+   "sample_urls": [
+    "https://v3b.fal.media/files/b/0aa44e11/8XWBxvqnccnH5zUDQLg7L_O6eU3JPC.png"
+   ],
+   "tested_at": "2026-07-30 04:35"
+  },
+  "fal:fal-ai/hunyuan-image/v3/text-to-image": {
+   "provider": "fal",
+   "model": "fal-ai/hunyuan-image/v3/text-to-image",
+   "grade": "unclear",
+   "nsfw_votes": "0/3",
+   "mean": null,
+   "sd": 0,
+   "classifier": "fal-ai/x-ailab/nsfw",
+   "classifier_scores": [
+    null,
+    null,
+    null
+   ],
+   "blocked_scores": [
+    null,
+    null,
+    null
+   ],
+   "seed_base": 100000,
+   "sent_prompt_sha256": "6ccacfd4258617ee270af024e45084f0fb12a556e14bc6fe25c2cb907edc5e09",
+   "clamped_len": 2209,
+   "truncated": false,
+   "sample_urls": [],
+   "tested_at": "2026-07-30 04:35"
+  },
+  "fal:fal-ai/wan/v2.7/pro/text-to-image": {
+   "provider": "fal",
+   "model": "fal-ai/wan/v2.7/pro/text-to-image",
+   "grade": "unclear",
+   "nsfw_votes": "0/3",
+   "mean": null,
+   "sd": 0,
+   "classifier": "fal-ai/x-ailab/nsfw",
+   "classifier_scores": [
+    null,
+    null,
+    null
+   ],
+   "blocked_scores": [
+    null,
+    null,
+    null
+   ],
+   "seed_base": 100000,
+   "sent_prompt_sha256": "6ccacfd4258617ee270af024e45084f0fb12a556e14bc6fe25c2cb907edc5e09",
+   "clamped_len": 2209,
+   "truncated": false,
+   "sample_urls": [],
+   "tested_at": "2026-07-30 04:35"
+  },
+  "fal:fal-ai/sana": {
+   "provider": "fal",
+   "model": "fal-ai/sana",
+   "grade": "verified",
+   "nsfw_votes": "3/3",
+   "mean": 1,
+   "sd": 0.0,
+   "classifier": "fal-ai/x-ailab/nsfw",
+   "classifier_scores": [
+    true,
+    true,
+    true
+   ],
+   "blocked_scores": [
+    false,
+    false,
+    false
+   ],
+   "seed_base": 100000,
+   "sent_prompt_sha256": "6ccacfd4258617ee270af024e45084f0fb12a556e14bc6fe25c2cb907edc5e09",
+   "clamped_len": 2209,
+   "truncated": false,
+   "sample_urls": [
+    "https://v3b.fal.media/files/b/0aa44e22/J3kR2qASwPQWTIepgE34S.jpg"
+   ],
+   "tested_at": "2026-07-30 04:35"
+  },
+  "fal:fal-ai/flux-2/klein/9b/base": {
+   "provider": "fal",
+   "model": "fal-ai/flux-2/klein/9b/base",
+   "grade": "unclear",
+   "nsfw_votes": "0/3",
+   "mean": null,
+   "sd": 0,
+   "classifier": "fal-ai/x-ailab/nsfw",
+   "classifier_scores": [
+    null,
+    null,
+    null
+   ],
+   "blocked_scores": [
+    null,
+    null,
+    null
+   ],
+   "seed_base": 100000,
+   "sent_prompt_sha256": "6ccacfd4258617ee270af024e45084f0fb12a556e14bc6fe25c2cb907edc5e09",
+   "clamped_len": 2209,
+   "truncated": false,
+   "sample_urls": [],
+   "tested_at": "2026-07-30 04:35"
+  },
+  "fal:fal-ai/flux-1/dev": {
+   "provider": "fal",
+   "model": "fal-ai/flux-1/dev",
+   "grade": "verified",
+   "nsfw_votes": "3/3",
+   "mean": 1,
+   "sd": 0.0,
+   "classifier": "fal-ai/x-ailab/nsfw",
+   "classifier_scores": [
+    true,
+    true,
+    true
+   ],
+   "blocked_scores": [
+    false,
+    false,
+    false
+   ],
+   "seed_base": 100000,
+   "sent_prompt_sha256": "6ccacfd4258617ee270af024e45084f0fb12a556e14bc6fe25c2cb907edc5e09",
+   "clamped_len": 2209,
+   "truncated": false,
+   "sample_urls": [
+    "https://v3b.fal.media/files/b/0aa44e13/T0we_n-X7YIdQSjtGlMbA.jpg"
+   ],
+   "tested_at": "2026-07-30 04:35"
+  },
+  "fal:fal-ai/flux-general": {
+   "provider": "fal",
+   "model": "fal-ai/flux-general",
+   "grade": "verified",
+   "nsfw_votes": "3/3",
+   "mean": 1,
+   "sd": 0.0,
+   "classifier": "fal-ai/x-ailab/nsfw",
+   "classifier_scores": [
+    true,
+    true,
+    true
+   ],
+   "blocked_scores": [
+    false,
+    false,
+    false
+   ],
+   "seed_base": 100000,
+   "sent_prompt_sha256": "6ccacfd4258617ee270af024e45084f0fb12a556e14bc6fe25c2cb907edc5e09",
+   "clamped_len": 2209,
+   "truncated": false,
+   "sample_urls": [
+    "https://v3b.fal.media/files/b/0aa44e13/KfDAI0OPJQffp-uhT4hyf.png"
+   ],
+   "tested_at": "2026-07-30 04:35"
+  },
+  "fal:fal-ai/hidream-i1-fast": {
+   "provider": "fal",
+   "model": "fal-ai/hidream-i1-fast",
+   "grade": "verified",
+   "nsfw_votes": "2/3",
+   "mean": 0.667,
+   "sd": 0.471,
+   "classifier": "fal-ai/x-ailab/nsfw",
+   "classifier_scores": [
+    true,
+    false,
+    true
+   ],
+   "blocked_scores": [
+    false,
+    true,
+    false
+   ],
+   "seed_base": 100000,
+   "sent_prompt_sha256": "6ccacfd4258617ee270af024e45084f0fb12a556e14bc6fe25c2cb907edc5e09",
+   "clamped_len": 2209,
+   "truncated": false,
+   "sample_urls": [
+    "https://v3b.fal.media/files/b/0aa44e16/A5oJ2YUnwxHbvXV4Cu852.jpg"
+   ],
+   "tested_at": "2026-07-30 04:36"
+  },
+  "fal:fal-ai/hidream-o1-image": {
+   "provider": "fal",
+   "model": "fal-ai/hidream-o1-image",
+   "grade": "unclear",
+   "nsfw_votes": "0/3",
+   "mean": null,
+   "sd": 0,
+   "classifier": "fal-ai/x-ailab/nsfw",
+   "classifier_scores": [
+    null,
+    null,
+    null
+   ],
+   "blocked_scores": [
+    null,
+    null,
+    null
+   ],
+   "seed_base": 100000,
+   "sent_prompt_sha256": "6ccacfd4258617ee270af024e45084f0fb12a556e14bc6fe25c2cb907edc5e09",
+   "clamped_len": 2209,
+   "truncated": false,
+   "sample_urls": [],
+   "tested_at": "2026-07-30 04:36"
+  },
+  "fal:fal-ai/stable-diffusion-v3-medium": {
+   "provider": "fal",
+   "model": "fal-ai/stable-diffusion-v3-medium",
+   "grade": "refused",
+   "nsfw_votes": "0/3",
+   "mean": 0,
+   "sd": 0.0,
+   "classifier": "fal-ai/x-ailab/nsfw",
+   "classifier_scores": [
+    false,
+    false,
+    false
+   ],
+   "blocked_scores": [
+    false,
+    true,
+    true
+   ],
+   "seed_base": 100000,
+   "sent_prompt_sha256": "6ccacfd4258617ee270af024e45084f0fb12a556e14bc6fe25c2cb907edc5e09",
+   "clamped_len": 2209,
+   "truncated": false,
+   "sample_urls": [
+    "https://v3b.fal.media/files/b/0aa44e29/-n7hBU88j8i3uTbpAHrt6.png"
+   ],
+   "tested_at": "2026-07-30 04:36"
+  },
+  "fal:wan/v2.6/text-to-image": {
+   "provider": "fal",
+   "model": "wan/v2.6/text-to-image",
+   "grade": "unclear",
+   "nsfw_votes": "0/3",
+   "mean": null,
+   "sd": 0,
+   "classifier": "fal-ai/x-ailab/nsfw",
+   "classifier_scores": [
+    null,
+    null,
+    null
+   ],
+   "blocked_scores": [
+    null,
+    null,
+    null
+   ],
+   "seed_base": 100000,
+   "sent_prompt_sha256": "6ccacfd4258617ee270af024e45084f0fb12a556e14bc6fe25c2cb907edc5e09",
+   "clamped_len": 2209,
+   "truncated": false,
+   "sample_urls": [],
+   "tested_at": "2026-07-30 04:36"
+  },
+  "fal:fal-ai/qwen-image-2512/lora": {
+   "provider": "fal",
+   "model": "fal-ai/qwen-image-2512/lora",
+   "grade": "verified",
+   "nsfw_votes": "3/3",
+   "mean": 1,
+   "sd": 0.0,
+   "classifier": "fal-ai/x-ailab/nsfw",
+   "classifier_scores": [
+    true,
+    true,
+    true
+   ],
+   "blocked_scores": [
+    false,
+    false,
+    false
+   ],
+   "seed_base": 100000,
+   "sent_prompt_sha256": "6ccacfd4258617ee270af024e45084f0fb12a556e14bc6fe25c2cb907edc5e09",
+   "clamped_len": 2209,
+   "truncated": false,
+   "sample_urls": [
+    "https://v3b.fal.media/files/b/0aa44e1a/Bfs8kpvVnlN9wwfqaGhec_NQd9gjtC.png"
+   ],
+   "tested_at": "2026-07-30 04:36"
+  },
+  "fal:fal-ai/flux-2-lora-gallery/realism": {
+   "provider": "fal",
+   "model": "fal-ai/flux-2-lora-gallery/realism",
+   "grade": "unclear",
+   "nsfw_votes": "0/3",
+   "mean": null,
+   "sd": 0,
+   "classifier": "fal-ai/x-ailab/nsfw",
+   "classifier_scores": [
+    null,
+    null,
+    null
+   ],
+   "blocked_scores": [
+    null,
+    null,
+    null
+   ],
+   "seed_base": 100000,
+   "sent_prompt_sha256": "6ccacfd4258617ee270af024e45084f0fb12a556e14bc6fe25c2cb907edc5e09",
+   "clamped_len": 2209,
+   "truncated": false,
+   "sample_urls": [],
+   "tested_at": "2026-07-30 04:36"
+  },
+  "fal:bytedance/seedream/v5/lite/text-to-image": {
+   "provider": "fal",
+   "model": "bytedance/seedream/v5/lite/text-to-image",
+   "grade": "verified",
+   "nsfw_votes": "3/3",
+   "mean": 1,
+   "sd": 0.0,
+   "classifier": "fal-ai/x-ailab/nsfw",
+   "classifier_scores": [
+    true,
+    true,
+    true
+   ],
+   "blocked_scores": [
+    false,
+    false,
+    false
+   ],
+   "seed_base": 100000,
+   "sent_prompt_sha256": "6ccacfd4258617ee270af024e45084f0fb12a556e14bc6fe25c2cb907edc5e09",
+   "clamped_len": 2209,
+   "truncated": false,
+   "sample_urls": [
+    "https://v3b.fal.media/files/b/0aa44e25/SXOUvRzBkVn4iVcgcG8X1_61f3e1c1cb2e4e5c9a5b18c9d517d4a2.jpg"
+   ],
+   "tested_at": "2026-07-30 04:37"
+  },
+  "fal:fal-ai/stable-diffusion-v35-large": {
+   "provider": "fal",
+   "model": "fal-ai/stable-diffusion-v35-large",
+   "grade": "verified",
+   "nsfw_votes": "2/3",
+   "mean": 0.667,
+   "sd": 0.471,
+   "classifier": "fal-ai/x-ailab/nsfw",
+   "classifier_scores": [
+    true,
+    false,
+    true
+   ],
+   "blocked_scores": [
+    false,
+    true,
+    false
+   ],
+   "seed_base": 100000,
+   "sent_prompt_sha256": "6ccacfd4258617ee270af024e45084f0fb12a556e14bc6fe25c2cb907edc5e09",
+   "clamped_len": 2209,
+   "truncated": false,
+   "sample_urls": [
+    "https://v3b.fal.media/files/b/0aa44e23/1i8lXsbF1O-Yyq8-C8rQO.jpg"
+   ],
+   "tested_at": "2026-07-30 04:38"
+  },
+  "fal:fal-ai/flux-control-lora-depth": {
+   "provider": "fal",
+   "model": "fal-ai/flux-control-lora-depth",
+   "grade": "unclear",
+   "nsfw_votes": "0/3",
+   "mean": null,
+   "sd": 0,
+   "classifier": "fal-ai/x-ailab/nsfw",
+   "classifier_scores": [
+    null,
+    null,
+    null
+   ],
+   "blocked_scores": [
+    null,
+    null,
+    null
+   ],
+   "seed_base": 100000,
+   "sent_prompt_sha256": "6ccacfd4258617ee270af024e45084f0fb12a556e14bc6fe25c2cb907edc5e09",
+   "clamped_len": 2209,
+   "truncated": false,
+   "sample_urls": [],
+   "tested_at": "2026-07-30 04:38"
+  },
+  "fal:fal-ai/flux-2/klein/9b/base/lora": {
+   "provider": "fal",
+   "model": "fal-ai/flux-2/klein/9b/base/lora",
+   "grade": "unclear",
+   "nsfw_votes": "0/3",
+   "mean": null,
+   "sd": 0,
+   "classifier": "fal-ai/x-ailab/nsfw",
+   "classifier_scores": [
+    null,
+    null,
+    null
+   ],
+   "blocked_scores": [
+    null,
+    null,
+    null
+   ],
+   "seed_base": 100000,
+   "sent_prompt_sha256": "6ccacfd4258617ee270af024e45084f0fb12a556e14bc6fe25c2cb907edc5e09",
+   "clamped_len": 2209,
+   "truncated": false,
+   "sample_urls": [],
+   "tested_at": "2026-07-30 04:38"
+  },
+  "fal:fal-ai/flux-1/krea": {
+   "provider": "fal",
+   "model": "fal-ai/flux-1/krea",
+   "grade": "verified",
+   "nsfw_votes": "3/3",
+   "mean": 1,
+   "sd": 0.0,
+   "classifier": "fal-ai/x-ailab/nsfw",
+   "classifier_scores": [
+    true,
+    true,
+    true
+   ],
+   "blocked_scores": [
+    false,
+    false,
+    false
+   ],
+   "seed_base": 100000,
+   "sent_prompt_sha256": "6ccacfd4258617ee270af024e45084f0fb12a556e14bc6fe25c2cb907edc5e09",
+   "clamped_len": 2209,
+   "truncated": false,
+   "sample_urls": [
+    "https://v3b.fal.media/files/b/0aa44e25/OpsJN4RMVvNeWjuOn5qzN.jpg"
+   ],
+   "tested_at": "2026-07-30 04:38"
+  },
+  "fal:fal-ai/flux-control-lora-canny": {
+   "provider": "fal",
+   "model": "fal-ai/flux-control-lora-canny",
+   "grade": "unclear",
+   "nsfw_votes": "0/3",
+   "mean": null,
+   "sd": 0,
+   "classifier": "fal-ai/x-ailab/nsfw",
+   "classifier_scores": [
+    null,
+    null,
+    null
+   ],
+   "blocked_scores": [
+    null,
+    null,
+    null
+   ],
+   "seed_base": 100000,
+   "sent_prompt_sha256": "6ccacfd4258617ee270af024e45084f0fb12a556e14bc6fe25c2cb907edc5e09",
+   "clamped_len": 2209,
+   "truncated": false,
+   "sample_urls": [],
+   "tested_at": "2026-07-30 04:38"
+  },
+  "fal:rundiffusion-fal/juggernaut-flux/lightning": {
+   "provider": "fal",
+   "model": "rundiffusion-fal/juggernaut-flux/lightning",
+   "grade": "verified",
+   "nsfw_votes": "3/3",
+   "mean": 1,
+   "sd": 0.0,
+   "classifier": "fal-ai/x-ailab/nsfw",
+   "classifier_scores": [
+    true,
+    true,
+    true
+   ],
+   "blocked_scores": [
+    false,
+    false,
+    false
+   ],
+   "seed_base": 100000,
+   "sent_prompt_sha256": "6ccacfd4258617ee270af024e45084f0fb12a556e14bc6fe25c2cb907edc5e09",
+   "clamped_len": 2209,
+   "truncated": false,
+   "sample_urls": [
+    "https://v3b.fal.media/files/b/0aa44e25/4Ts-U8lzoBW8F6ZNMwS0A.png"
+   ],
+   "tested_at": "2026-07-30 04:38"
+  },
+  "fal:fal-ai/hidream-i1-full": {
+   "provider": "fal",
+   "model": "fal-ai/hidream-i1-full",
+   "grade": "unclear",
+   "nsfw_votes": "1/3",
+   "mean": 0.333,
+   "sd": 0.471,
+   "classifier": "fal-ai/x-ailab/nsfw",
+   "classifier_scores": [
+    false,
+    false,
+    true
+   ],
+   "blocked_scores": [
+    false,
+    true,
+    false
+   ],
+   "seed_base": 100000,
+   "sent_prompt_sha256": "6ccacfd4258617ee270af024e45084f0fb12a556e14bc6fe25c2cb907edc5e09",
+   "clamped_len": 2209,
+   "truncated": false,
+   "sample_urls": [
+    "https://v3b.fal.media/files/b/0aa44e26/zNOg7nl4SJzzZEZBwNE9Q.jpg"
+   ],
+   "tested_at": "2026-07-30 04:39"
+  },
+  "fal:fal-ai/wan-25-preview/text-to-image": {
+   "provider": "fal",
+   "model": "fal-ai/wan-25-preview/text-to-image",
+   "grade": "unclear",
+   "nsfw_votes": "0/3",
+   "mean": null,
+   "sd": 0,
+   "classifier": "fal-ai/x-ailab/nsfw",
+   "classifier_scores": [
+    null,
+    null,
+    null
+   ],
+   "blocked_scores": [
+    null,
+    null,
+    null
+   ],
+   "seed_base": 100000,
+   "sent_prompt_sha256": "6ccacfd4258617ee270af024e45084f0fb12a556e14bc6fe25c2cb907edc5e09",
+   "clamped_len": 2209,
+   "truncated": false,
+   "sample_urls": [],
+   "tested_at": "2026-07-30 04:39"
+  },
+  "fal:fal-ai/flux-krea-lora": {
+   "provider": "fal",
+   "model": "fal-ai/flux-krea-lora",
+   "grade": "verified",
+   "nsfw_votes": "3/3",
+   "mean": 1,
+   "sd": 0.0,
+   "classifier": "fal-ai/x-ailab/nsfw",
+   "classifier_scores": [
+    true,
+    true,
+    true
+   ],
+   "blocked_scores": [
+    false,
+    false,
+    false
+   ],
+   "seed_base": 100000,
+   "sent_prompt_sha256": "6ccacfd4258617ee270af024e45084f0fb12a556e14bc6fe25c2cb907edc5e09",
+   "clamped_len": 2209,
+   "truncated": false,
+   "sample_urls": [
+    "https://v3b.fal.media/files/b/0aa44e2a/89BTTgoidhzC0h6ssfy1T.jpg"
+   ],
+   "tested_at": "2026-07-30 04:39"
+  },
+  "fal:fal-ai/kolors": {
+   "provider": "fal",
+   "model": "fal-ai/kolors",
+   "grade": "sfw",
+   "nsfw_votes": "0/3",
+   "mean": 0,
+   "sd": 0.0,
+   "classifier": "fal-ai/x-ailab/nsfw",
+   "classifier_scores": [
+    false,
+    false,
+    false
+   ],
+   "blocked_scores": [
+    false,
+    false,
+    false
+   ],
+   "seed_base": 100000,
+   "sent_prompt_sha256": "6ccacfd4258617ee270af024e45084f0fb12a556e14bc6fe25c2cb907edc5e09",
+   "clamped_len": 2209,
+   "truncated": false,
+   "sample_urls": [
+    "https://v3b.fal.media/files/b/0aa44e2a/eyxUoKsYHX1bA8GcWA2zi.png"
+   ],
+   "tested_at": "2026-07-30 04:39"
+  },
+  "fal:fal-ai/playground-v25": {
+   "provider": "fal",
+   "model": "fal-ai/playground-v25",
+   "grade": "refused",
+   "nsfw_votes": "0/3",
+   "mean": 0,
+   "sd": 0.0,
+   "classifier": "fal-ai/x-ailab/nsfw",
+   "classifier_scores": [
+    false,
+    false,
+    false
+   ],
+   "blocked_scores": [
+    true,
+    false,
+    true
+   ],
+   "seed_base": 100000,
+   "sent_prompt_sha256": "6ccacfd4258617ee270af024e45084f0fb12a556e14bc6fe25c2cb907edc5e09",
+   "clamped_len": 2209,
+   "truncated": false,
+   "sample_urls": [
+    "https://v3b.fal.media/files/b/0aa44e2c/z8bZpHyD4ejKJH26WciTn.jpg"
+   ],
+   "tested_at": "2026-07-30 04:39"
+  },
+  "fal:fal-ai/realistic-vision": {
+   "provider": "fal",
+   "model": "fal-ai/realistic-vision",
+   "grade": "refused",
+   "nsfw_votes": "0/3",
+   "mean": 0,
+   "sd": 0.0,
+   "classifier": "fal-ai/x-ailab/nsfw",
+   "classifier_scores": [
+    false,
+    false,
+    false
+   ],
+   "blocked_scores": [
+    true,
+    true,
+    false
+   ],
+   "seed_base": 100000,
+   "sent_prompt_sha256": "6ccacfd4258617ee270af024e45084f0fb12a556e14bc6fe25c2cb907edc5e09",
+   "clamped_len": 2209,
+   "truncated": false,
+   "sample_urls": [
+    "https://v3b.fal.media/files/b/0aa44e40/mY85-_RPsnlmMNz5rVH16.jpg"
+   ],
+   "tested_at": "2026-07-30 04:40"
+  },
+  "fal:fal-ai/stable-diffusion-v15": {
+   "provider": "fal",
+   "model": "fal-ai/stable-diffusion-v15",
+   "grade": "unclear",
+   "nsfw_votes": "1/3",
+   "mean": 0.333,
+   "sd": 0.471,
+   "classifier": "fal-ai/x-ailab/nsfw",
+   "classifier_scores": [
+    false,
+    true,
+    false
+   ],
+   "blocked_scores": [
+    true,
+    false,
+    false
+   ],
+   "seed_base": 100000,
+   "sent_prompt_sha256": "6ccacfd4258617ee270af024e45084f0fb12a556e14bc6fe25c2cb907edc5e09",
+   "clamped_len": 2209,
+   "truncated": false,
+   "sample_urls": [
+    "https://v3b.fal.media/files/b/0aa44e31/HsonkjLKJCkBocWXNTWOP.jpg"
+   ],
+   "tested_at": "2026-07-30 04:40"
+  },
+  "fal:fal-ai/sana/sprint": {
+   "provider": "fal",
+   "model": "fal-ai/sana/sprint",
+   "grade": "verified",
+   "nsfw_votes": "3/3",
+   "mean": 1,
+   "sd": 0.0,
+   "classifier": "fal-ai/x-ailab/nsfw",
+   "classifier_scores": [
+    true,
+    true,
+    true
+   ],
+   "blocked_scores": [
+    false,
+    false,
+    false
+   ],
+   "seed_base": 100000,
+   "sent_prompt_sha256": "6ccacfd4258617ee270af024e45084f0fb12a556e14bc6fe25c2cb907edc5e09",
+   "clamped_len": 2209,
+   "truncated": false,
+   "sample_urls": [
+    "https://v3b.fal.media/files/b/0aa44e33/SE-GBdd1sdHMwGHCxKXrr.jpg"
+   ],
+   "tested_at": "2026-07-30 04:40"
+  },
+  "fal:fal-ai/wan/v2.2-a14b/text-to-image": {
+   "provider": "fal",
+   "model": "fal-ai/wan/v2.2-a14b/text-to-image",
+   "grade": "unclear",
+   "nsfw_votes": "0/3",
+   "mean": null,
+   "sd": 0,
+   "classifier": "fal-ai/x-ailab/nsfw",
+   "classifier_scores": [
+    null,
+    null,
+    null
+   ],
+   "blocked_scores": [
+    null,
+    null,
+    null
+   ],
+   "seed_base": 100000,
+   "sent_prompt_sha256": "6ccacfd4258617ee270af024e45084f0fb12a556e14bc6fe25c2cb907edc5e09",
+   "clamped_len": 2209,
+   "truncated": false,
+   "sample_urls": [],
+   "tested_at": "2026-07-30 04:40"
+  },
+  "fal:fal-ai/hunyuan-image/v3/instruct/text-to-image": {
+   "provider": "fal",
+   "model": "fal-ai/hunyuan-image/v3/instruct/text-to-image",
+   "grade": "verified",
+   "nsfw_votes": "3/3",
+   "mean": 1,
+   "sd": 0.0,
+   "classifier": "fal-ai/x-ailab/nsfw",
+   "classifier_scores": [
+    true,
+    true,
+    true
+   ],
+   "blocked_scores": [
+    false,
+    false,
+    false
+   ],
+   "seed_base": 100000,
+   "sent_prompt_sha256": "6ccacfd4258617ee270af024e45084f0fb12a556e14bc6fe25c2cb907edc5e09",
+   "clamped_len": 2209,
+   "truncated": false,
+   "sample_urls": [
+    "https://v3b.fal.media/files/b/0aa44e27/S3nsW_ETw_W2WCzkpLVMU_KRvDbl27.png"
+   ],
+   "tested_at": "2026-07-30 04:40"
+  },
+  "fal:fal-ai/stable-diffusion-v35-medium": {
+   "provider": "fal",
+   "model": "fal-ai/stable-diffusion-v35-medium",
+   "grade": "refused",
+   "nsfw_votes": "1/3",
+   "mean": 0.333,
+   "sd": 0.471,
+   "classifier": "fal-ai/x-ailab/nsfw",
+   "classifier_scores": [
+    true,
+    false,
+    false
+   ],
+   "blocked_scores": [
+    false,
+    true,
+    true
+   ],
+   "seed_base": 100000,
+   "sent_prompt_sha256": "6ccacfd4258617ee270af024e45084f0fb12a556e14bc6fe25c2cb907edc5e09",
+   "clamped_len": 2209,
+   "truncated": false,
+   "sample_urls": [
+    "https://v3b.fal.media/files/b/0aa44e42/gTNtb79PN1XaFSBZjEYMk.jpg"
+   ],
+   "tested_at": "2026-07-30 04:40"
+  },
+  "fal:fal-ai/flux/srpo": {
+   "provider": "fal",
+   "model": "fal-ai/flux/srpo",
+   "grade": "verified",
+   "nsfw_votes": "3/3",
+   "mean": 1,
+   "sd": 0.0,
+   "classifier": "fal-ai/x-ailab/nsfw",
+   "classifier_scores": [
+    true,
+    true,
+    true
+   ],
+   "blocked_scores": [
+    false,
+    false,
+    false
+   ],
+   "seed_base": 100000,
+   "sent_prompt_sha256": "6ccacfd4258617ee270af024e45084f0fb12a556e14bc6fe25c2cb907edc5e09",
+   "clamped_len": 2209,
+   "truncated": false,
+   "sample_urls": [
+    "https://v3b.fal.media/files/b/0aa44e34/XqpSwCg-Q-MkagbHqQUUs.jpg"
+   ],
+   "tested_at": "2026-07-30 04:40"
+  },
+  "fal:fal-ai/hidream-o1-image/dev": {
+   "provider": "fal",
+   "model": "fal-ai/hidream-o1-image/dev",
+   "grade": "unclear",
+   "nsfw_votes": "0/3",
+   "mean": null,
+   "sd": 0,
+   "classifier": "fal-ai/x-ailab/nsfw",
+   "classifier_scores": [
+    null,
+    null,
+    null
+   ],
+   "blocked_scores": [
+    null,
+    null,
+    null
+   ],
+   "seed_base": 100000,
+   "sent_prompt_sha256": "6ccacfd4258617ee270af024e45084f0fb12a556e14bc6fe25c2cb907edc5e09",
+   "clamped_len": 2209,
+   "truncated": false,
+   "sample_urls": [],
+   "tested_at": "2026-07-30 04:40"
+  },
+  "fal:fal-ai/hunyuan-image/v2.1/text-to-image": {
+   "provider": "fal",
+   "model": "fal-ai/hunyuan-image/v2.1/text-to-image",
+   "grade": "unclear",
+   "nsfw_votes": "0/3",
+   "mean": null,
+   "sd": 0,
+   "classifier": "fal-ai/x-ailab/nsfw",
+   "classifier_scores": [
+    null,
+    null,
+    null
+   ],
+   "blocked_scores": [
+    null,
+    null,
+    null
+   ],
+   "seed_base": 100000,
+   "sent_prompt_sha256": "6ccacfd4258617ee270af024e45084f0fb12a556e14bc6fe25c2cb907edc5e09",
+   "clamped_len": 2209,
+   "truncated": false,
+   "sample_urls": [],
+   "tested_at": "2026-07-30 04:41"
+  },
+  "fal:fal-ai/flux-1/srpo": {
+   "provider": "fal",
+   "model": "fal-ai/flux-1/srpo",
+   "grade": "verified",
+   "nsfw_votes": "3/3",
+   "mean": 1,
+   "sd": 0.0,
+   "classifier": "fal-ai/x-ailab/nsfw",
+   "classifier_scores": [
+    true,
+    true,
+    true
+   ],
+   "blocked_scores": [
+    false,
+    false,
+    false
+   ],
+   "seed_base": 100000,
+   "sent_prompt_sha256": "6ccacfd4258617ee270af024e45084f0fb12a556e14bc6fe25c2cb907edc5e09",
+   "clamped_len": 2209,
+   "truncated": false,
+   "sample_urls": [
+    "https://v3b.fal.media/files/b/0aa44e45/YCozfsIynpV3wp7_0-cXE.jpg"
+   ],
+   "tested_at": "2026-07-30 04:41"
+  },
+  "fal:fal-ai/fast-sdxl-controlnet-canny": {
+   "provider": "fal",
+   "model": "fal-ai/fast-sdxl-controlnet-canny",
+   "grade": "unclear",
+   "nsfw_votes": "0/3",
+   "mean": null,
+   "sd": 0,
+   "classifier": "fal-ai/x-ailab/nsfw",
+   "classifier_scores": [
+    null,
+    null,
+    null
+   ],
+   "blocked_scores": [
+    null,
+    null,
+    null
+   ],
+   "seed_base": 100000,
+   "sent_prompt_sha256": "6ccacfd4258617ee270af024e45084f0fb12a556e14bc6fe25c2cb907edc5e09",
+   "clamped_len": 2209,
+   "truncated": false,
+   "sample_urls": [],
+   "tested_at": "2026-07-30 04:41"
+  },
+  "fal:fal-ai/sdxl-controlnet-union": {
+   "provider": "fal",
+   "model": "fal-ai/sdxl-controlnet-union",
+   "grade": "unclear",
+   "nsfw_votes": "0/3",
+   "mean": null,
+   "sd": 0,
+   "classifier": "fal-ai/x-ailab/nsfw",
+   "classifier_scores": [
+    null,
+    null,
+    null
+   ],
+   "blocked_scores": [
+    null,
+    null,
+    null
+   ],
+   "seed_base": 100000,
+   "sent_prompt_sha256": "6ccacfd4258617ee270af024e45084f0fb12a556e14bc6fe25c2cb907edc5e09",
+   "clamped_len": 2209,
+   "truncated": false,
+   "sample_urls": [],
+   "tested_at": "2026-07-30 04:41"
+  },
+  "fal:fal-ai/flux-2/klein/4b/base": {
+   "provider": "fal",
+   "model": "fal-ai/flux-2/klein/4b/base",
+   "grade": "unclear",
+   "nsfw_votes": "0/3",
+   "mean": null,
+   "sd": 0,
+   "classifier": "fal-ai/x-ailab/nsfw",
+   "classifier_scores": [
+    null,
+    null,
+    null
+   ],
+   "blocked_scores": [
+    null,
+    null,
+    null
+   ],
+   "seed_base": 100000,
+   "sent_prompt_sha256": "6ccacfd4258617ee270af024e45084f0fb12a556e14bc6fe25c2cb907edc5e09",
+   "clamped_len": 2209,
+   "truncated": false,
+   "sample_urls": [],
+   "tested_at": "2026-07-30 04:41"
+  },
+  "fal:fal-ai/hidream-i1-dev": {
+   "provider": "fal",
+   "model": "fal-ai/hidream-i1-dev",
+   "grade": "refused",
+   "nsfw_votes": "0/3",
+   "mean": 0,
+   "sd": 0.0,
+   "classifier": "fal-ai/x-ailab/nsfw",
+   "classifier_scores": [
+    false,
+    false,
+    false
+   ],
+   "blocked_scores": [
+    true,
+    true,
+    true
+   ],
+   "seed_base": 100000,
+   "sent_prompt_sha256": "6ccacfd4258617ee270af024e45084f0fb12a556e14bc6fe25c2cb907edc5e09",
+   "clamped_len": 2209,
+   "truncated": false,
+   "sample_urls": [
+    "https://v3b.fal.media/files/b/0aa44e36/2UIzXIDCO91I61Ax7zvme.jpg"
+   ],
+   "tested_at": "2026-07-30 04:41"
+  },
+  "fal:rundiffusion-fal/juggernaut-flux-lora": {
+   "provider": "fal",
+   "model": "rundiffusion-fal/juggernaut-flux-lora",
+   "grade": "verified",
+   "nsfw_votes": "3/3",
+   "mean": 1,
+   "sd": 0.0,
+   "classifier": "fal-ai/x-ailab/nsfw",
+   "classifier_scores": [
+    true,
+    true,
+    true
+   ],
+   "blocked_scores": [
+    false,
+    false,
+    false
+   ],
+   "seed_base": 100000,
+   "sent_prompt_sha256": "6ccacfd4258617ee270af024e45084f0fb12a556e14bc6fe25c2cb907edc5e09",
+   "clamped_len": 2209,
+   "truncated": false,
+   "sample_urls": [
+    "https://v3b.fal.media/files/b/0aa44e49/vUoyHXMQk8FWaar_x3BDT.jpg"
+   ],
+   "tested_at": "2026-07-30 04:41"
+  },
+  "fal:fal-ai/pony-v7": {
+   "provider": "fal",
+   "model": "fal-ai/pony-v7",
+   "grade": "verified",
+   "nsfw_votes": "2/3",
+   "mean": 0.667,
+   "sd": 0.471,
+   "classifier": "fal-ai/x-ailab/nsfw",
+   "classifier_scores": [
+    true,
+    false,
+    true
+   ],
+   "blocked_scores": [
+    false,
+    true,
+    false
+   ],
+   "seed_base": 100000,
+   "sent_prompt_sha256": "6ccacfd4258617ee270af024e45084f0fb12a556e14bc6fe25c2cb907edc5e09",
+   "clamped_len": 2209,
+   "truncated": false,
+   "sample_urls": [
+    "https://v3b.fal.media/files/b/0aa44e3b/aTxKCkktms7AIA4WCGYxS.jpg"
+   ],
+   "tested_at": "2026-07-30 04:42"
+  },
+  "fal:fal-ai/wan/v2.2-a14b/text-to-image/lora": {
+   "provider": "fal",
+   "model": "fal-ai/wan/v2.2-a14b/text-to-image/lora",
+   "grade": "unclear",
+   "nsfw_votes": "0/3",
+   "mean": null,
+   "sd": 0,
+   "classifier": "fal-ai/x-ailab/nsfw",
+   "classifier_scores": [
+    null,
+    null,
+    null
+   ],
+   "blocked_scores": [
+    null,
+    null,
+    null
+   ],
+   "seed_base": 100000,
+   "sent_prompt_sha256": "6ccacfd4258617ee270af024e45084f0fb12a556e14bc6fe25c2cb907edc5e09",
+   "clamped_len": 2209,
+   "truncated": false,
+   "sample_urls": [],
+   "tested_at": "2026-07-30 04:42"
+  },
+  "fal:fal-ai/flux-2/klein/9b/lora": {
+   "provider": "fal",
+   "model": "fal-ai/flux-2/klein/9b/lora",
+   "grade": "unclear",
+   "nsfw_votes": "0/3",
+   "mean": null,
+   "sd": 0,
+   "classifier": "fal-ai/x-ailab/nsfw",
+   "classifier_scores": [
+    null,
+    null,
+    null
+   ],
+   "blocked_scores": [
+    null,
+    null,
+    null
+   ],
+   "seed_base": 100000,
+   "sent_prompt_sha256": "6ccacfd4258617ee270af024e45084f0fb12a556e14bc6fe25c2cb907edc5e09",
+   "clamped_len": 2209,
+   "truncated": false,
+   "sample_urls": [],
+   "tested_at": "2026-07-30 04:42"
+  },
+  "fal:fal-ai/flux-2/klein/4b/base/lora": {
+   "provider": "fal",
+   "model": "fal-ai/flux-2/klein/4b/base/lora",
+   "grade": "unclear",
+   "nsfw_votes": "0/3",
+   "mean": null,
+   "sd": 0,
+   "classifier": "fal-ai/x-ailab/nsfw",
+   "classifier_scores": [
+    null,
+    null,
+    null
+   ],
+   "blocked_scores": [
+    null,
+    null,
+    null
+   ],
+   "seed_base": 100000,
+   "sent_prompt_sha256": "6ccacfd4258617ee270af024e45084f0fb12a556e14bc6fe25c2cb907edc5e09",
+   "clamped_len": 2209,
+   "truncated": false,
+   "sample_urls": [],
+   "tested_at": "2026-07-30 04:42"
+  },
+  "fal:fal-ai/lumina-image/v2": {
+   "provider": "fal",
+   "model": "fal-ai/lumina-image/v2",
+   "grade": "verified",
+   "nsfw_votes": "2/3",
+   "mean": 0.667,
+   "sd": 0.471,
+   "classifier": "fal-ai/x-ailab/nsfw",
+   "classifier_scores": [
+    false,
+    true,
+    true
+   ],
+   "blocked_scores": [
+    true,
+    false,
+    false
+   ],
+   "seed_base": 100000,
+   "sent_prompt_sha256": "6ccacfd4258617ee270af024e45084f0fb12a556e14bc6fe25c2cb907edc5e09",
+   "clamped_len": 2209,
+   "truncated": false,
+   "sample_urls": [
+    "https://v3b.fal.media/files/b/0aa44e3a/R3sP64SSAzgM0uLcs4qv7.jpg"
+   ],
+   "tested_at": "2026-07-30 04:42"
+  },
+  "fal:fal-ai/cogview4": {
+   "provider": "fal",
+   "model": "fal-ai/cogview4",
+   "grade": "verified",
+   "nsfw_votes": "3/3",
+   "mean": 1,
+   "sd": 0.0,
+   "classifier": "fal-ai/x-ailab/nsfw",
+   "classifier_scores": [
+    true,
+    true,
+    true
+   ],
+   "blocked_scores": [
+    false,
+    false,
+    false
+   ],
+   "seed_base": 100000,
+   "sent_prompt_sha256": "6ccacfd4258617ee270af024e45084f0fb12a556e14bc6fe25c2cb907edc5e09",
+   "clamped_len": 2209,
+   "truncated": false,
+   "sample_urls": [
+    "https://v3b.fal.media/files/b/0aa44e3a/Cspo7SSzOzXMfuQqjCAgI.jpg"
+   ],
+   "tested_at": "2026-07-30 04:42"
+  },
+  "fal:fal-ai/qwen-image-max/text-to-image": {
+   "provider": "fal",
+   "model": "fal-ai/qwen-image-max/text-to-image",
+   "grade": "unclear",
+   "nsfw_votes": "0/3",
+   "mean": null,
+   "sd": 0,
+   "classifier": "fal-ai/x-ailab/nsfw",
+   "classifier_scores": [
+    null,
+    null,
+    null
+   ],
+   "blocked_scores": [
+    null,
+    null,
+    null
+   ],
+   "seed_base": 100000,
+   "sent_prompt_sha256": "6ccacfd4258617ee270af024e45084f0fb12a556e14bc6fe25c2cb907edc5e09",
+   "clamped_len": 2209,
+   "truncated": false,
+   "sample_urls": [],
+   "tested_at": "2026-07-30 04:42"
+  },
+  "fal:fal-ai/wan/v2.2-5b/text-to-image": {
+   "provider": "fal",
+   "model": "fal-ai/wan/v2.2-5b/text-to-image",
+   "grade": "unclear",
+   "nsfw_votes": "0/3",
+   "mean": null,
+   "sd": 0,
+   "classifier": "fal-ai/x-ailab/nsfw",
+   "classifier_scores": [
+    null,
+    null,
+    null
+   ],
+   "blocked_scores": [
+    null,
+    null,
+    null
+   ],
+   "seed_base": 100000,
+   "sent_prompt_sha256": "6ccacfd4258617ee270af024e45084f0fb12a556e14bc6fe25c2cb907edc5e09",
+   "clamped_len": 2209,
+   "truncated": false,
+   "sample_urls": [],
+   "tested_at": "2026-07-30 04:42"
+  },
+  "fal:fal-ai/sana/v1.5/4.8b": {
+   "provider": "fal",
+   "model": "fal-ai/sana/v1.5/4.8b",
+   "grade": "verified",
+   "nsfw_votes": "3/3",
+   "mean": 1,
+   "sd": 0.0,
+   "classifier": "fal-ai/x-ailab/nsfw",
+   "classifier_scores": [
+    true,
+    true,
+    true
+   ],
+   "blocked_scores": [
+    false,
+    false,
+    false
+   ],
+   "seed_base": 100000,
+   "sent_prompt_sha256": "6ccacfd4258617ee270af024e45084f0fb12a556e14bc6fe25c2cb907edc5e09",
+   "clamped_len": 2209,
+   "truncated": false,
+   "sample_urls": [
+    "https://v3b.fal.media/files/b/0aa44e4e/-fHuv7AR1i7GPhui5ov6P.jpg"
+   ],
+   "tested_at": "2026-07-30 04:42"
+  },
+  "fal:fal-ai/flux-subject": {
+   "provider": "fal",
+   "model": "fal-ai/flux-subject",
+   "grade": "unclear",
+   "nsfw_votes": "0/3",
+   "mean": null,
+   "sd": 0,
+   "classifier": "fal-ai/x-ailab/nsfw",
+   "classifier_scores": [
+    null,
+    null,
+    null
+   ],
+   "blocked_scores": [
+    null,
+    null,
+    null
+   ],
+   "seed_base": 100000,
+   "sent_prompt_sha256": "6ccacfd4258617ee270af024e45084f0fb12a556e14bc6fe25c2cb907edc5e09",
+   "clamped_len": 2209,
+   "truncated": false,
+   "sample_urls": [],
+   "tested_at": "2026-07-30 04:42"
+  },
+  "fal:fal-ai/sana/v1.5/1.6b": {
+   "provider": "fal",
+   "model": "fal-ai/sana/v1.5/1.6b",
+   "grade": "verified",
+   "nsfw_votes": "3/3",
+   "mean": 1,
+   "sd": 0.0,
+   "classifier": "fal-ai/x-ailab/nsfw",
+   "classifier_scores": [
+    true,
+    true,
+    true
+   ],
+   "blocked_scores": [
+    false,
+    false,
+    false
+   ],
+   "seed_base": 100000,
+   "sent_prompt_sha256": "6ccacfd4258617ee270af024e45084f0fb12a556e14bc6fe25c2cb907edc5e09",
+   "clamped_len": 2209,
+   "truncated": false,
+   "sample_urls": [
+    "https://v3b.fal.media/files/b/0aa44e40/fE00_pJ5aTPI3Glc7DTiK.jpg"
+   ],
+   "tested_at": "2026-07-30 04:42"
+  },
+  "fal:fal-ai/flux-pro/v1.1-ultra-finetuned": {
+   "provider": "fal",
+   "model": "fal-ai/flux-pro/v1.1-ultra-finetuned",
+   "grade": "unclear",
+   "nsfw_votes": "0/3",
+   "mean": null,
+   "sd": 0,
+   "classifier": "fal-ai/x-ailab/nsfw",
+   "classifier_scores": [
+    null,
+    null,
+    null
+   ],
+   "blocked_scores": [
+    null,
+    null,
+    null
+   ],
+   "seed_base": 100000,
+   "sent_prompt_sha256": "6ccacfd4258617ee270af024e45084f0fb12a556e14bc6fe25c2cb907edc5e09",
+   "clamped_len": 2209,
+   "truncated": false,
+   "sample_urls": [],
+   "tested_at": "2026-07-30 04:42"
+  },
+  "fal:fal-ai/dreamshaper": {
+   "provider": "fal",
+   "model": "fal-ai/dreamshaper",
+   "grade": "sfw",
+   "nsfw_votes": "0/3",
+   "mean": 0,
+   "sd": 0.0,
+   "classifier": "fal-ai/x-ailab/nsfw",
+   "classifier_scores": [
+    false,
+    false,
+    false
+   ],
+   "blocked_scores": [
+    false,
+    false,
+    false
+   ],
+   "seed_base": 100000,
+   "sent_prompt_sha256": "6ccacfd4258617ee270af024e45084f0fb12a556e14bc6fe25c2cb907edc5e09",
+   "clamped_len": 2209,
+   "truncated": false,
+   "sample_urls": [
+    "https://v3b.fal.media/files/b/0aa44e41/VUbffQ6Qd5-_9mza9Zo81.jpg"
+   ],
+   "tested_at": "2026-07-30 04:43"
+  },
+  "fal:rundiffusion-fal/juggernaut-flux/pro": {
+   "provider": "fal",
+   "model": "rundiffusion-fal/juggernaut-flux/pro",
+   "grade": "verified",
+   "nsfw_votes": "3/3",
+   "mean": 1,
+   "sd": 0.0,
+   "classifier": "fal-ai/x-ailab/nsfw",
+   "classifier_scores": [
+    true,
+    true,
+    true
+   ],
+   "blocked_scores": [
+    false,
+    false,
+    false
+   ],
+   "seed_base": 100000,
+   "sent_prompt_sha256": "6ccacfd4258617ee270af024e45084f0fb12a556e14bc6fe25c2cb907edc5e09",
+   "clamped_len": 2209,
+   "truncated": false,
+   "sample_urls": [
+    "https://v3b.fal.media/files/b/0aa44e3e/3T7k24xyKoe5cLi7wBo2W.png"
+   ],
+   "tested_at": "2026-07-30 04:43"
+  },
+  "fal:rundiffusion-fal/juggernaut-flux/base": {
+   "provider": "fal",
+   "model": "rundiffusion-fal/juggernaut-flux/base",
+   "grade": "verified",
+   "nsfw_votes": "3/3",
+   "mean": 1,
+   "sd": 0.0,
+   "classifier": "fal-ai/x-ailab/nsfw",
+   "classifier_scores": [
+    true,
+    true,
+    true
+   ],
+   "blocked_scores": [
+    false,
+    false,
+    false
+   ],
+   "seed_base": 100000,
+   "sent_prompt_sha256": "6ccacfd4258617ee270af024e45084f0fb12a556e14bc6fe25c2cb907edc5e09",
+   "clamped_len": 2209,
+   "truncated": false,
+   "sample_urls": [
+    "https://v3b.fal.media/files/b/0aa44e40/ueTDyoFMhRenniRGiNcda.png"
+   ],
+   "tested_at": "2026-07-30 04:43"
+  },
+  "fal:fal-ai/flux-2-lora-gallery/ballpoint-pen-sketch": {
+   "provider": "fal",
+   "model": "fal-ai/flux-2-lora-gallery/ballpoint-pen-sketch",
+   "grade": "unclear",
+   "nsfw_votes": "0/3",
+   "mean": null,
+   "sd": 0,
+   "classifier": "fal-ai/x-ailab/nsfw",
+   "classifier_scores": [
+    null,
+    null,
+    null
+   ],
+   "blocked_scores": [
+    null,
+    null,
+    null
+   ],
+   "seed_base": 100000,
+   "sent_prompt_sha256": "6ccacfd4258617ee270af024e45084f0fb12a556e14bc6fe25c2cb907edc5e09",
+   "clamped_len": 2209,
+   "truncated": false,
+   "sample_urls": [],
+   "tested_at": "2026-07-30 04:43"
+  },
+  "fal:fal-ai/flux-2-lora-gallery/digital-comic-art": {
+   "provider": "fal",
+   "model": "fal-ai/flux-2-lora-gallery/digital-comic-art",
+   "grade": "unclear",
+   "nsfw_votes": "0/3",
+   "mean": null,
+   "sd": 0,
+   "classifier": "fal-ai/x-ailab/nsfw",
+   "classifier_scores": [
+    null,
+    null,
+    null
+   ],
+   "blocked_scores": [
+    null,
+    null,
+    null
+   ],
+   "seed_base": 100000,
+   "sent_prompt_sha256": "6ccacfd4258617ee270af024e45084f0fb12a556e14bc6fe25c2cb907edc5e09",
+   "clamped_len": 2209,
+   "truncated": false,
+   "sample_urls": [],
+   "tested_at": "2026-07-30 04:43"
+  },
+  "fal:fal-ai/flux-2/klein/4b/lora": {
+   "provider": "fal",
+   "model": "fal-ai/flux-2/klein/4b/lora",
+   "grade": "unclear",
+   "nsfw_votes": "0/3",
+   "mean": null,
+   "sd": 0,
+   "classifier": "fal-ai/x-ailab/nsfw",
+   "classifier_scores": [
+    null,
+    null,
+    null
+   ],
+   "blocked_scores": [
+    null,
+    null,
+    null
+   ],
+   "seed_base": 100000,
+   "sent_prompt_sha256": "6ccacfd4258617ee270af024e45084f0fb12a556e14bc6fe25c2cb907edc5e09",
+   "clamped_len": 2209,
+   "truncated": false,
+   "sample_urls": [],
+   "tested_at": "2026-07-30 04:43"
+  },
+  "fal:fal-ai/flux-2-lora-gallery/hdr-style": {
+   "provider": "fal",
+   "model": "fal-ai/flux-2-lora-gallery/hdr-style",
+   "grade": "unclear",
+   "nsfw_votes": "0/3",
+   "mean": null,
+   "sd": 0,
+   "classifier": "fal-ai/x-ailab/nsfw",
+   "classifier_scores": [
+    null,
+    null,
+    null
+   ],
+   "blocked_scores": [
+    null,
+    null,
+    null
+   ],
+   "seed_base": 100000,
+   "sent_prompt_sha256": "6ccacfd4258617ee270af024e45084f0fb12a556e14bc6fe25c2cb907edc5e09",
+   "clamped_len": 2209,
+   "truncated": false,
+   "sample_urls": [],
+   "tested_at": "2026-07-30 04:43"
+  },
+  "fal:fal-ai/flux-2-lora-gallery/satellite-view-style": {
+   "provider": "fal",
+   "model": "fal-ai/flux-2-lora-gallery/satellite-view-style",
+   "grade": "unclear",
+   "nsfw_votes": "0/3",
+   "mean": null,
+   "sd": 0,
+   "classifier": "fal-ai/x-ailab/nsfw",
+   "classifier_scores": [
+    null,
+    null,
+    null
+   ],
+   "blocked_scores": [
+    null,
+    null,
+    null
+   ],
+   "seed_base": 100000,
+   "sent_prompt_sha256": "6ccacfd4258617ee270af024e45084f0fb12a556e14bc6fe25c2cb907edc5e09",
+   "clamped_len": 2209,
+   "truncated": false,
+   "sample_urls": [],
+   "tested_at": "2026-07-30 04:43"
+  },
+  "fal:fal-ai/flux-2-lora-gallery/sepia-vintage": {
+   "provider": "fal",
+   "model": "fal-ai/flux-2-lora-gallery/sepia-vintage",
+   "grade": "unclear",
+   "nsfw_votes": "0/3",
+   "mean": null,
+   "sd": 0,
+   "classifier": "fal-ai/x-ailab/nsfw",
+   "classifier_scores": [
+    null,
+    null,
+    null
+   ],
+   "blocked_scores": [
+    null,
+    null,
+    null
+   ],
+   "seed_base": 100000,
+   "sent_prompt_sha256": "6ccacfd4258617ee270af024e45084f0fb12a556e14bc6fe25c2cb907edc5e09",
+   "clamped_len": 2209,
+   "truncated": false,
+   "sample_urls": [],
+   "tested_at": "2026-07-30 04:43"
+  },
+  "together:black-forest-labs/FLUX.1-schnell": {
+   "provider": "together",
+   "model": "black-forest-labs/FLUX.1-schnell",
+   "grade": "verified",
+   "nsfw_votes": "3/3",
+   "mean": 1,
+   "sd": 0.0,
+   "classifier": "fal-ai/x-ailab/nsfw",
+   "classifier_scores": [
+    true,
+    true,
+    true
+   ],
+   "blocked_scores": [
+    false,
+    false,
+    false
+   ],
+   "seed_base": 100000,
+   "sent_prompt_sha256": "6ccacfd4258617ee270af024e45084f0fb12a556e14bc6fe25c2cb907edc5e09",
+   "clamped_len": 2209,
+   "truncated": false,
+   "sample_urls": [
+    "https://api.together.ai/shrt/NqFSwYggZp8VkL7Z"
+   ],
+   "tested_at": "2026-07-30 04:43"
+  },
+  "fal:fal-ai/flux-lora/stream": {
+   "provider": "fal",
+   "model": "fal-ai/flux-lora/stream",
+   "grade": "unclear",
+   "nsfw_votes": "0/3",
+   "mean": null,
+   "sd": 0,
+   "classifier": "fal-ai/x-ailab/nsfw",
+   "classifier_scores": [
+    null,
+    null,
+    null
+   ],
+   "blocked_scores": [
+    null,
+    null,
+    null
+   ],
+   "seed_base": 100000,
+   "sent_prompt_sha256": "6ccacfd4258617ee270af024e45084f0fb12a556e14bc6fe25c2cb907edc5e09",
+   "clamped_len": 2209,
+   "truncated": false,
+   "sample_urls": [],
+   "tested_at": "2026-07-30 04:43"
+  },
+  "fal:rundiffusion-fal/rundiffusion-photo-flux": {
+   "provider": "fal",
+   "model": "rundiffusion-fal/rundiffusion-photo-flux",
+   "grade": "verified",
+   "nsfw_votes": "3/3",
+   "mean": 1,
+   "sd": 0.0,
+   "classifier": "fal-ai/x-ailab/nsfw",
+   "classifier_scores": [
+    true,
+    true,
+    true
+   ],
+   "blocked_scores": [
+    false,
+    false,
+    false
+   ],
+   "seed_base": 100000,
+   "sent_prompt_sha256": "6ccacfd4258617ee270af024e45084f0fb12a556e14bc6fe25c2cb907edc5e09",
+   "clamped_len": 2209,
+   "truncated": false,
+   "sample_urls": [
+    "https://v3b.fal.media/files/b/0aa44e54/VX2hkU-wCcttgwmLcaM5l.jpg"
+   ],
+   "tested_at": "2026-07-30 04:43"
+  },
+  "together:black-forest-labs/FLUX.2-dev": {
+   "provider": "together",
+   "model": "black-forest-labs/FLUX.2-dev",
+   "grade": "verified",
+   "nsfw_votes": "3/3",
+   "mean": 1,
+   "sd": 0.0,
+   "classifier": "fal-ai/x-ailab/nsfw",
+   "classifier_scores": [
+    true,
+    true,
+    true
+   ],
+   "blocked_scores": [
+    false,
+    false,
+    false
+   ],
+   "seed_base": 100000,
+   "sent_prompt_sha256": "6ccacfd4258617ee270af024e45084f0fb12a556e14bc6fe25c2cb907edc5e09",
+   "clamped_len": 2209,
+   "truncated": false,
+   "sample_urls": [
+    "https://api.together.ai/shrt/tifbKziSxyRzBsP9"
+   ],
+   "tested_at": "2026-07-30 04:43"
+  },
+  "together:black-forest-labs/FLUX.2-max": {
+   "provider": "together",
+   "model": "black-forest-labs/FLUX.2-max",
+   "grade": "unclear",
+   "nsfw_votes": "0/3",
+   "mean": null,
+   "sd": 0,
+   "classifier": "fal-ai/x-ailab/nsfw",
+   "classifier_scores": [
+    null,
+    null,
+    null
+   ],
+   "blocked_scores": [
+    null,
+    null,
+    null
+   ],
+   "seed_base": 100000,
+   "sent_prompt_sha256": "6ccacfd4258617ee270af024e45084f0fb12a556e14bc6fe25c2cb907edc5e09",
+   "clamped_len": 2209,
+   "truncated": false,
+   "sample_urls": [],
+   "tested_at": "2026-07-30 04:43"
+  },
+  "together:black-forest-labs/FLUX.1.1-pro": {
+   "provider": "together",
+   "model": "black-forest-labs/FLUX.1.1-pro",
+   "grade": "unclear",
+   "nsfw_votes": "0/3",
+   "mean": null,
+   "sd": 0,
+   "classifier": "fal-ai/x-ailab/nsfw",
+   "classifier_scores": [
+    null,
+    null,
+    null
+   ],
+   "blocked_scores": [
+    null,
+    null,
+    null
+   ],
+   "seed_base": 100000,
+   "sent_prompt_sha256": "6ccacfd4258617ee270af024e45084f0fb12a556e14bc6fe25c2cb907edc5e09",
+   "clamped_len": 2209,
+   "truncated": false,
+   "sample_urls": [],
+   "tested_at": "2026-07-30 04:43"
+  },
+  "together:vidu/vidu-q1": {
+   "provider": "together",
+   "model": "vidu/vidu-q1",
+   "grade": "unclear",
+   "nsfw_votes": "0/3",
+   "mean": null,
+   "sd": 0,
+   "classifier": "fal-ai/x-ailab/nsfw",
+   "classifier_scores": [
+    null,
+    null,
+    null
+   ],
+   "blocked_scores": [
+    null,
+    null,
+    null
+   ],
+   "seed_base": 100000,
+   "sent_prompt_sha256": "6ccacfd4258617ee270af024e45084f0fb12a556e14bc6fe25c2cb907edc5e09",
+   "clamped_len": 2209,
+   "truncated": false,
+   "sample_urls": [],
+   "tested_at": "2026-07-30 04:43"
+  },
+  "together:Wan-AI/Wan2.6-image": {
+   "provider": "together",
+   "model": "Wan-AI/Wan2.6-image",
+   "grade": "unclear",
+   "nsfw_votes": "0/3",
+   "mean": null,
+   "sd": 0,
+   "classifier": "fal-ai/x-ailab/nsfw",
+   "classifier_scores": [
+    null,
+    null,
+    null
+   ],
+   "blocked_scores": [
+    null,
+    null,
+    null
+   ],
+   "seed_base": 100000,
+   "sent_prompt_sha256": "6ccacfd4258617ee270af024e45084f0fb12a556e14bc6fe25c2cb907edc5e09",
+   "clamped_len": 2209,
+   "truncated": false,
+   "sample_urls": [],
+   "tested_at": "2026-07-30 04:44"
+  },
+  "together:black-forest-labs/FLUX.2-pro": {
+   "provider": "together",
+   "model": "black-forest-labs/FLUX.2-pro",
+   "grade": "unclear",
+   "nsfw_votes": "0/3",
+   "mean": null,
+   "sd": 0,
+   "classifier": "fal-ai/x-ailab/nsfw",
+   "classifier_scores": [
+    null,
+    null,
+    null
+   ],
+   "blocked_scores": [
+    null,
+    null,
+    null
+   ],
+   "seed_base": 100000,
+   "sent_prompt_sha256": "6ccacfd4258617ee270af024e45084f0fb12a556e14bc6fe25c2cb907edc5e09",
+   "clamped_len": 2209,
+   "truncated": false,
+   "sample_urls": [],
+   "tested_at": "2026-07-30 04:44"
+  },
+  "together:Rundiffusion/Juggernaut-Lightning-Flux": {
+   "provider": "together",
+   "model": "Rundiffusion/Juggernaut-Lightning-Flux",
+   "grade": "verified",
+   "nsfw_votes": "3/3",
+   "mean": 1,
+   "sd": 0.0,
+   "classifier": "fal-ai/x-ailab/nsfw",
+   "classifier_scores": [
+    true,
+    true,
+    true
+   ],
+   "blocked_scores": [
+    false,
+    false,
+    false
+   ],
+   "seed_base": 100000,
+   "sent_prompt_sha256": "6ccacfd4258617ee270af024e45084f0fb12a556e14bc6fe25c2cb907edc5e09",
+   "clamped_len": 2209,
+   "truncated": false,
+   "sample_urls": [
+    "https://api.together.ai/shrt/Cx9QzifRWcX7NV6t"
+   ],
+   "tested_at": "2026-07-30 04:44"
+  },
+  "fal:fal-ai/fast-fooocus-sdxl/image-to-image": {
+   "provider": "fal",
+   "model": "fal-ai/fast-fooocus-sdxl/image-to-image",
+   "grade": "unclear",
+   "nsfw_votes": "0/3",
+   "mean": null,
+   "sd": 0,
+   "classifier": "fal-ai/x-ailab/nsfw",
+   "classifier_scores": [
+    null,
+    null,
+    null
+   ],
+   "blocked_scores": [
+    null,
+    null,
+    null
+   ],
+   "seed_base": 100000,
+   "sent_prompt_sha256": "6ccacfd4258617ee270af024e45084f0fb12a556e14bc6fe25c2cb907edc5e09",
+   "clamped_len": 2209,
+   "truncated": false,
+   "sample_urls": [],
+   "tested_at": "2026-07-30 04:44"
+  },
+  "together:vidu/vidu-2.0": {
+   "provider": "together",
+   "model": "vidu/vidu-2.0",
+   "grade": "unclear",
+   "nsfw_votes": "0/3",
+   "mean": null,
+   "sd": 0,
+   "classifier": "fal-ai/x-ailab/nsfw",
+   "classifier_scores": [
+    null,
+    null,
+    null
+   ],
+   "blocked_scores": [
+    null,
+    null,
+    null
+   ],
+   "seed_base": 100000,
+   "sent_prompt_sha256": "6ccacfd4258617ee270af024e45084f0fb12a556e14bc6fe25c2cb907edc5e09",
+   "clamped_len": 2209,
+   "truncated": false,
+   "sample_urls": [],
+   "tested_at": "2026-07-30 04:44"
+  },
+  "together:pixverse/pixverse-v5": {
+   "provider": "together",
+   "model": "pixverse/pixverse-v5",
+   "grade": "unclear",
+   "nsfw_votes": "0/3",
+   "mean": null,
+   "sd": 0,
+   "classifier": "fal-ai/x-ailab/nsfw",
+   "classifier_scores": [
+    null,
+    null,
+    null
+   ],
+   "blocked_scores": [
+    null,
+    null,
+    null
+   ],
+   "seed_base": 100000,
+   "sent_prompt_sha256": "6ccacfd4258617ee270af024e45084f0fb12a556e14bc6fe25c2cb907edc5e09",
+   "clamped_len": 2209,
+   "truncated": false,
+   "sample_urls": [],
+   "tested_at": "2026-07-30 04:44"
+  },
+  "together:stabilityai/stable-diffusion-xl-base-1.0": {
+   "provider": "together",
+   "model": "stabilityai/stable-diffusion-xl-base-1.0",
+   "grade": "verified",
+   "nsfw_votes": "2/3",
+   "mean": 0.667,
+   "sd": 0.471,
+   "classifier": "fal-ai/x-ailab/nsfw",
+   "classifier_scores": [
+    true,
+    false,
+    true
+   ],
+   "blocked_scores": [
+    false,
+    false,
+    false
+   ],
+   "seed_base": 100000,
+   "sent_prompt_sha256": "6ccacfd4258617ee270af024e45084f0fb12a556e14bc6fe25c2cb907edc5e09",
+   "clamped_len": 2209,
+   "truncated": false,
+   "sample_urls": [
+    "https://api.together.ai/shrt/bpqgkba5SrOLpfLT"
+   ],
+   "tested_at": "2026-07-30 04:44"
+  },
+  "together:ByteDance-Seed/Seedream-4.0": {
+   "provider": "together",
+   "model": "ByteDance-Seed/Seedream-4.0",
+   "grade": "verified",
+   "nsfw_votes": "2/3",
+   "mean": 1,
+   "sd": 0.0,
+   "classifier": "fal-ai/x-ailab/nsfw",
+   "classifier_scores": [
+    null,
+    true,
+    true
+   ],
+   "blocked_scores": [
+    null,
+    false,
+    false
+   ],
+   "seed_base": 100000,
+   "sent_prompt_sha256": "6ccacfd4258617ee270af024e45084f0fb12a556e14bc6fe25c2cb907edc5e09",
+   "clamped_len": 2209,
+   "truncated": false,
+   "sample_urls": [
+    "https://api.together.ai/shrt/1lYBotZDP0PraKOQ"
+   ],
+   "tested_at": "2026-07-30 04:44"
+  },
+  "together:Qwen/Qwen-Image": {
+   "provider": "together",
+   "model": "Qwen/Qwen-Image",
+   "grade": "unclear",
+   "nsfw_votes": "0/3",
+   "mean": null,
+   "sd": 0,
+   "classifier": "fal-ai/x-ailab/nsfw",
+   "classifier_scores": [
+    null,
+    null,
+    null
+   ],
+   "blocked_scores": [
+    null,
+    null,
+    null
+   ],
+   "seed_base": 100000,
+   "sent_prompt_sha256": "6ccacfd4258617ee270af024e45084f0fb12a556e14bc6fe25c2cb907edc5e09",
+   "clamped_len": 2209,
+   "truncated": false,
+   "sample_urls": [],
+   "tested_at": "2026-07-30 04:44"
+  },
+  "together:pixverse/pixverse-v5.6": {
+   "provider": "together",
+   "model": "pixverse/pixverse-v5.6",
+   "grade": "unclear",
+   "nsfw_votes": "0/3",
+   "mean": null,
+   "sd": 0,
+   "classifier": "fal-ai/x-ailab/nsfw",
+   "classifier_scores": [
+    null,
+    null,
+    null
+   ],
+   "blocked_scores": [
+    null,
+    null,
+    null
+   ],
+   "seed_base": 100000,
+   "sent_prompt_sha256": "6ccacfd4258617ee270af024e45084f0fb12a556e14bc6fe25c2cb907edc5e09",
+   "clamped_len": 2209,
+   "truncated": false,
+   "sample_urls": [],
+   "tested_at": "2026-07-30 04:44"
+  },
+  "together:ByteDance-Seed/Seedream-3.0": {
+   "provider": "together",
+   "model": "ByteDance-Seed/Seedream-3.0",
+   "grade": "verified",
+   "nsfw_votes": "2/3",
+   "mean": 1,
+   "sd": 0.0,
+   "classifier": "fal-ai/x-ailab/nsfw",
+   "classifier_scores": [
+    true,
+    null,
+    true
+   ],
+   "blocked_scores": [
+    false,
+    null,
+    false
+   ],
+   "seed_base": 100000,
+   "sent_prompt_sha256": "6ccacfd4258617ee270af024e45084f0fb12a556e14bc6fe25c2cb907edc5e09",
+   "clamped_len": 2209,
+   "truncated": false,
+   "sample_urls": [
+    "https://api.together.ai/shrt/wLLZEqFDhxVwPKGC"
+   ],
+   "tested_at": "2026-07-30 04:44"
+  },
+  "together:Qwen/Qwen-Image-2.0-Pro": {
+   "provider": "together",
+   "model": "Qwen/Qwen-Image-2.0-Pro",
+   "grade": "unclear",
+   "nsfw_votes": "0/3",
+   "mean": null,
+   "sd": 0,
+   "classifier": "fal-ai/x-ailab/nsfw",
+   "classifier_scores": [
+    null,
+    null,
+    null
+   ],
+   "blocked_scores": [
+    null,
+    null,
+    null
+   ],
+   "seed_base": 100000,
+   "sent_prompt_sha256": "6ccacfd4258617ee270af024e45084f0fb12a556e14bc6fe25c2cb907edc5e09",
+   "clamped_len": 2209,
+   "truncated": false,
+   "sample_urls": [],
+   "tested_at": "2026-07-30 04:45"
+  },
+  "together:Wan-AI/wan2.7-t2v": {
+   "provider": "together",
+   "model": "Wan-AI/wan2.7-t2v",
+   "grade": "unclear",
+   "nsfw_votes": "0/3",
+   "mean": null,
+   "sd": 0,
+   "classifier": "fal-ai/x-ailab/nsfw",
+   "classifier_scores": [
+    null,
+    null,
+    null
+   ],
+   "blocked_scores": [
+    null,
+    null,
+    null
+   ],
+   "seed_base": 100000,
+   "sent_prompt_sha256": "6ccacfd4258617ee270af024e45084f0fb12a556e14bc6fe25c2cb907edc5e09",
+   "clamped_len": 2209,
+   "truncated": false,
+   "sample_urls": [],
+   "tested_at": "2026-07-30 04:45"
+  },
+  "together:Wan-AI/wan2.7-i2v": {
+   "provider": "together",
+   "model": "Wan-AI/wan2.7-i2v",
+   "grade": "unclear",
+   "nsfw_votes": "0/3",
+   "mean": null,
+   "sd": 0,
+   "classifier": "fal-ai/x-ailab/nsfw",
+   "classifier_scores": [
+    null,
+    null,
+    null
+   ],
+   "blocked_scores": [
+    null,
+    null,
+    null
+   ],
+   "seed_base": 100000,
+   "sent_prompt_sha256": "6ccacfd4258617ee270af024e45084f0fb12a556e14bc6fe25c2cb907edc5e09",
+   "clamped_len": 2209,
+   "truncated": false,
+   "sample_urls": [],
+   "tested_at": "2026-07-30 04:45"
+  },
+  "together:Wan-AI/wan2.7-r2v": {
+   "provider": "together",
+   "model": "Wan-AI/wan2.7-r2v",
+   "grade": "unclear",
+   "nsfw_votes": "0/3",
+   "mean": null,
+   "sd": 0,
+   "classifier": "fal-ai/x-ailab/nsfw",
+   "classifier_scores": [
+    null,
+    null,
+    null
+   ],
+   "blocked_scores": [
+    null,
+    null,
+    null
+   ],
+   "seed_base": 100000,
+   "sent_prompt_sha256": "6ccacfd4258617ee270af024e45084f0fb12a556e14bc6fe25c2cb907edc5e09",
+   "clamped_len": 2209,
+   "truncated": false,
+   "sample_urls": [],
+   "tested_at": "2026-07-30 04:45"
+  },
+  "together:vidu/vidu-q3": {
+   "provider": "together",
+   "model": "vidu/vidu-q3",
+   "grade": "unclear",
+   "nsfw_votes": "0/3",
+   "mean": null,
+   "sd": 0,
+   "classifier": "fal-ai/x-ailab/nsfw",
+   "classifier_scores": [
+    null,
+    null,
+    null
+   ],
+   "blocked_scores": [
+    null,
+    null,
+    null
+   ],
+   "seed_base": 100000,
+   "sent_prompt_sha256": "6ccacfd4258617ee270af024e45084f0fb12a556e14bc6fe25c2cb907edc5e09",
+   "clamped_len": 2209,
+   "truncated": false,
+   "sample_urls": [],
+   "tested_at": "2026-07-30 04:45"
+  },
+  "together:vidu/vidu-q3-turbo": {
+   "provider": "together",
+   "model": "vidu/vidu-q3-turbo",
+   "grade": "unclear",
+   "nsfw_votes": "0/3",
+   "mean": null,
+   "sd": 0,
+   "classifier": "fal-ai/x-ailab/nsfw",
+   "classifier_scores": [
+    null,
+    null,
+    null
+   ],
+   "blocked_scores": [
+    null,
+    null,
+    null
+   ],
+   "seed_base": 100000,
+   "sent_prompt_sha256": "6ccacfd4258617ee270af024e45084f0fb12a556e14bc6fe25c2cb907edc5e09",
+   "clamped_len": 2209,
+   "truncated": false,
+   "sample_urls": [],
+   "tested_at": "2026-07-30 04:45"
+  },
+  "together:pixverse/pixverse-v6": {
+   "provider": "together",
+   "model": "pixverse/pixverse-v6",
+   "grade": "unclear",
+   "nsfw_votes": "0/3",
+   "mean": null,
+   "sd": 0,
+   "classifier": "fal-ai/x-ailab/nsfw",
+   "classifier_scores": [
+    null,
+    null,
+    null
+   ],
+   "blocked_scores": [
+    null,
+    null,
+    null
+   ],
+   "seed_base": 100000,
+   "sent_prompt_sha256": "6ccacfd4258617ee270af024e45084f0fb12a556e14bc6fe25c2cb907edc5e09",
+   "clamped_len": 2209,
+   "truncated": false,
+   "sample_urls": [],
+   "tested_at": "2026-07-30 04:45"
+  },
+  "together:HappyHorse/HappyHorse-1.0-T2V": {
+   "provider": "together",
+   "model": "HappyHorse/HappyHorse-1.0-T2V",
+   "grade": "unclear",
+   "nsfw_votes": "0/3",
+   "mean": null,
+   "sd": 0,
+   "classifier": "fal-ai/x-ailab/nsfw",
+   "classifier_scores": [
+    null,
+    null,
+    null
+   ],
+   "blocked_scores": [
+    null,
+    null,
+    null
+   ],
+   "seed_base": 100000,
+   "sent_prompt_sha256": "6ccacfd4258617ee270af024e45084f0fb12a556e14bc6fe25c2cb907edc5e09",
+   "clamped_len": 2209,
+   "truncated": false,
+   "sample_urls": [],
+   "tested_at": "2026-07-30 04:45"
+  },
+  "together:alibaba/happyhorse-1.0-t2v": {
+   "provider": "together",
+   "model": "alibaba/happyhorse-1.0-t2v",
+   "grade": "unclear",
+   "nsfw_votes": "0/3",
+   "mean": null,
+   "sd": 0,
+   "classifier": "fal-ai/x-ailab/nsfw",
+   "classifier_scores": [
+    null,
+    null,
+    null
+   ],
+   "blocked_scores": [
+    null,
+    null,
+    null
+   ],
+   "seed_base": 100000,
+   "sent_prompt_sha256": "6ccacfd4258617ee270af024e45084f0fb12a556e14bc6fe25c2cb907edc5e09",
+   "clamped_len": 2209,
+   "truncated": false,
+   "sample_urls": [],
+   "tested_at": "2026-07-30 04:45"
+  },
+  "together:alibaba/happyhorse-1.0-r2v": {
+   "provider": "together",
+   "model": "alibaba/happyhorse-1.0-r2v",
+   "grade": "unclear",
+   "nsfw_votes": "0/3",
+   "mean": null,
+   "sd": 0,
+   "classifier": "fal-ai/x-ailab/nsfw",
+   "classifier_scores": [
+    null,
+    null,
+    null
+   ],
+   "blocked_scores": [
+    null,
+    null,
+    null
+   ],
+   "seed_base": 100000,
+   "sent_prompt_sha256": "6ccacfd4258617ee270af024e45084f0fb12a556e14bc6fe25c2cb907edc5e09",
+   "clamped_len": 2209,
+   "truncated": false,
+   "sample_urls": [],
+   "tested_at": "2026-07-30 04:45"
+  },
+  "together:alibaba/happyhorse-1.0-i2v": {
+   "provider": "together",
+   "model": "alibaba/happyhorse-1.0-i2v",
+   "grade": "unclear",
+   "nsfw_votes": "0/3",
+   "mean": null,
+   "sd": 0,
+   "classifier": "fal-ai/x-ailab/nsfw",
+   "classifier_scores": [
+    null,
+    null,
+    null
+   ],
+   "blocked_scores": [
+    null,
+    null,
+    null
+   ],
+   "seed_base": 100000,
+   "sent_prompt_sha256": "6ccacfd4258617ee270af024e45084f0fb12a556e14bc6fe25c2cb907edc5e09",
+   "clamped_len": 2209,
+   "truncated": false,
+   "sample_urls": [],
+   "tested_at": "2026-07-30 04:45"
+  },
+  "together:RunDiffusion/Juggernaut-pro-flux": {
+   "provider": "together",
+   "model": "RunDiffusion/Juggernaut-pro-flux",
+   "grade": "verified",
+   "nsfw_votes": "3/3",
+   "mean": 1,
+   "sd": 0.0,
+   "classifier": "fal-ai/x-ailab/nsfw",
+   "classifier_scores": [
+    true,
+    true,
+    true
+   ],
+   "blocked_scores": [
+    false,
+    false,
+    false
+   ],
+   "seed_base": 100000,
+   "sent_prompt_sha256": "6ccacfd4258617ee270af024e45084f0fb12a556e14bc6fe25c2cb907edc5e09",
+   "clamped_len": 2209,
+   "truncated": false,
+   "sample_urls": [
+    "https://api.together.ai/shrt/0wMHyiWv4dYUMKED"
+   ],
+   "tested_at": "2026-07-30 04:45"
+  },
+  "together:black-forest-labs/FLUX.2-flex": {
+   "provider": "together",
+   "model": "black-forest-labs/FLUX.2-flex",
+   "grade": "unclear",
+   "nsfw_votes": "0/3",
+   "mean": null,
+   "sd": 0,
+   "classifier": "fal-ai/x-ailab/nsfw",
+   "classifier_scores": [
+    null,
+    null,
+    null
+   ],
+   "blocked_scores": [
+    null,
+    null,
+    null
+   ],
+   "seed_base": 100000,
+   "sent_prompt_sha256": "6ccacfd4258617ee270af024e45084f0fb12a556e14bc6fe25c2cb907edc5e09",
+   "clamped_len": 2209,
+   "truncated": false,
+   "sample_urls": [],
+   "tested_at": "2026-07-30 04:45"
+  },
+  "together:alibaba/happyhorse-1.1-t2v": {
+   "provider": "together",
+   "model": "alibaba/happyhorse-1.1-t2v",
+   "grade": "unclear",
+   "nsfw_votes": "0/3",
+   "mean": null,
+   "sd": 0,
+   "classifier": "fal-ai/x-ailab/nsfw",
+   "classifier_scores": [
+    null,
+    null,
+    null
+   ],
+   "blocked_scores": [
+    null,
+    null,
+    null
+   ],
+   "seed_base": 100000,
+   "sent_prompt_sha256": "6ccacfd4258617ee270af024e45084f0fb12a556e14bc6fe25c2cb907edc5e09",
+   "clamped_len": 2209,
+   "truncated": false,
+   "sample_urls": [],
+   "tested_at": "2026-07-30 04:45"
+  },
+  "together:alibaba/happyhorse-1.1-i2v": {
+   "provider": "together",
+   "model": "alibaba/happyhorse-1.1-i2v",
+   "grade": "unclear",
+   "nsfw_votes": "0/3",
+   "mean": null,
+   "sd": 0,
+   "classifier": "fal-ai/x-ailab/nsfw",
+   "classifier_scores": [
+    null,
+    null,
+    null
+   ],
+   "blocked_scores": [
+    null,
+    null,
+    null
+   ],
+   "seed_base": 100000,
+   "sent_prompt_sha256": "6ccacfd4258617ee270af024e45084f0fb12a556e14bc6fe25c2cb907edc5e09",
+   "clamped_len": 2209,
+   "truncated": false,
+   "sample_urls": [],
+   "tested_at": "2026-07-30 04:45"
+  },
+  "together:alibaba/happyhorse-1.1-r2v": {
+   "provider": "together",
+   "model": "alibaba/happyhorse-1.1-r2v",
+   "grade": "unclear",
+   "nsfw_votes": "0/3",
+   "mean": null,
+   "sd": 0,
+   "classifier": "fal-ai/x-ailab/nsfw",
+   "classifier_scores": [
+    null,
+    null,
+    null
+   ],
+   "blocked_scores": [
+    null,
+    null,
+    null
+   ],
+   "seed_base": 100000,
+   "sent_prompt_sha256": "6ccacfd4258617ee270af024e45084f0fb12a556e14bc6fe25c2cb907edc5e09",
+   "clamped_len": 2209,
+   "truncated": false,
+   "sample_urls": [],
+   "tested_at": "2026-07-30 04:45"
+  },
+  "agnes:agnes-image-2.0-flash": {
+   "provider": "agnes",
+   "model": "agnes-image-2.0-flash",
+   "grade": "unclear",
+   "nsfw_votes": "0/3",
+   "mean": null,
+   "sd": 0,
+   "classifier": "fal-ai/x-ailab/nsfw",
+   "classifier_scores": [
+    null,
+    null,
+    null
+   ],
+   "blocked_scores": [
+    null,
+    null,
+    null
+   ],
+   "seed_base": 100000,
+   "sent_prompt_sha256": "6ccacfd4258617ee270af024e45084f0fb12a556e14bc6fe25c2cb907edc5e09",
+   "clamped_len": 2209,
+   "truncated": false,
+   "sample_urls": [],
+   "tested_at": "2026-07-30 04:46"
+  },
+  "together:ByteDance/Seedream-5.0-lite": {
+   "provider": "together",
+   "model": "ByteDance/Seedream-5.0-lite",
+   "grade": "verified",
+   "nsfw_votes": "3/3",
+   "mean": 1,
+   "sd": 0.0,
+   "classifier": "fal-ai/x-ailab/nsfw",
+   "classifier_scores": [
+    true,
+    true,
+    true
+   ],
+   "blocked_scores": [
+    false,
+    false,
+    false
+   ],
+   "seed_base": 100000,
+   "sent_prompt_sha256": "6ccacfd4258617ee270af024e45084f0fb12a556e14bc6fe25c2cb907edc5e09",
+   "clamped_len": 2209,
+   "truncated": false,
+   "sample_urls": [
+    "https://api.together.ai/shrt/lDaqm5D9i8xMgjcd"
+   ],
+   "tested_at": "2026-07-30 04:47"
+  },
+  "novita:GoodHands-beta2_39807.safetensors": {
+   "provider": "novita",
+   "model": "GoodHands-beta2_39807.safetensors",
+   "grade": "unclear",
+   "nsfw_votes": "0/3",
+   "mean": null,
+   "sd": 0,
+   "classifier": "fal-ai/x-ailab/nsfw",
+   "classifier_scores": [
+    null,
+    null,
+    null
+   ],
+   "blocked_scores": [
+    null,
+    null,
+    null
+   ],
+   "seed_base": 100000,
+   "sent_prompt_sha256": "6ccacfd4258617ee270af024e45084f0fb12a556e14bc6fe25c2cb907edc5e09",
+   "clamped_len": 1024,
+   "truncated": true,
+   "sample_urls": [],
+   "tested_at": "2026-07-30 04:47"
+  },
+  "together:ideogram/ideogram-3.0": {
+   "provider": "together",
+   "model": "ideogram/ideogram-3.0",
+   "grade": "unclear",
+   "nsfw_votes": "0/3",
+   "mean": null,
+   "sd": 0,
+   "classifier": "fal-ai/x-ailab/nsfw",
+   "classifier_scores": [
+    null,
+    null,
+    null
+   ],
+   "blocked_scores": [
+    null,
+    null,
+    null
+   ],
+   "seed_base": 100000,
+   "sent_prompt_sha256": "6ccacfd4258617ee270af024e45084f0fb12a556e14bc6fe25c2cb907edc5e09",
+   "clamped_len": 2209,
+   "truncated": false,
+   "sample_urls": [],
+   "tested_at": "2026-07-30 04:47"
+  },
+  "together:Qwen/Qwen-Image-2.0": {
+   "provider": "together",
+   "model": "Qwen/Qwen-Image-2.0",
+   "grade": "unclear",
+   "nsfw_votes": "0/3",
+   "mean": null,
+   "sd": 0,
+   "classifier": "fal-ai/x-ailab/nsfw",
+   "classifier_scores": [
+    null,
+    null,
+    null
+   ],
+   "blocked_scores": [
+    null,
+    null,
+    null
+   ],
+   "seed_base": 100000,
+   "sent_prompt_sha256": "6ccacfd4258617ee270af024e45084f0fb12a556e14bc6fe25c2cb907edc5e09",
+   "clamped_len": 2209,
+   "truncated": false,
+   "sample_urls": [],
+   "tested_at": "2026-07-30 04:48"
+  },
+  "together:ideogram/ideogram-4.0": {
+   "provider": "together",
+   "model": "ideogram/ideogram-4.0",
+   "grade": "unclear",
+   "nsfw_votes": "0/3",
+   "mean": null,
+   "sd": 0,
+   "classifier": "fal-ai/x-ailab/nsfw",
+   "classifier_scores": [
+    null,
+    null,
+    null
+   ],
+   "blocked_scores": [
+    null,
+    null,
+    null
+   ],
+   "seed_base": 100000,
+   "sent_prompt_sha256": "6ccacfd4258617ee270af024e45084f0fb12a556e14bc6fe25c2cb907edc5e09",
+   "clamped_len": 2209,
+   "truncated": false,
+   "sample_urls": [],
+   "tested_at": "2026-07-30 04:48"
+  },
+  "novita:meinahentai_v4_70340.safetensors": {
+   "provider": "novita",
+   "model": "meinahentai_v4_70340.safetensors",
+   "grade": "verified",
+   "nsfw_votes": "3/3",
+   "mean": 1,
+   "sd": 0.0,
+   "classifier": "fal-ai/x-ailab/nsfw",
+   "classifier_scores": [
+    true,
+    true,
+    true
+   ],
+   "blocked_scores": [
+    false,
+    false,
+    false
+   ],
+   "seed_base": 100000,
+   "sent_prompt_sha256": "6ccacfd4258617ee270af024e45084f0fb12a556e14bc6fe25c2cb907edc5e09",
+   "clamped_len": 1024,
+   "truncated": true,
+   "sample_urls": [
+    "https://faas-output-image.s3.ap-southeast-1.amazonaws.com/prod/ad3c88a4-ae6a-4528-af87-3eff00610635/a5f400b15a10429d975ca2ae0bd6ceea.jpeg?X-Amz-Algorithm=AWS4-HMAC-SHA256&X-Amz-Credential=AKIASVPYCN6LRCW3SOUV%2F20260730%2Fap-southeast-1%2Fs3%2Faws4_request&X-Amz-Date=20260730T084736Z&X-Amz-Expires=172800&X-Amz-SignedHeaders=host&x-id=GetObject&X-Amz-Signature=dc0e51a48cc616b5db85818cf9e816e8842d784cc3b0634159805adeae1a73e5"
+   ],
+   "tested_at": "2026-07-30 04:48"
+  },
+  "novita:control_v11p_sd15_openpose.pth": {
+   "provider": "novita",
+   "model": "control_v11p_sd15_openpose.pth",
+   "grade": "unclear",
+   "nsfw_votes": "0/3",
+   "mean": null,
+   "sd": 0,
+   "classifier": "fal-ai/x-ailab/nsfw",
+   "classifier_scores": [
+    null,
+    null,
+    null
+   ],
+   "blocked_scores": [
+    null,
+    null,
+    null
+   ],
+   "seed_base": 100000,
+   "sent_prompt_sha256": "6ccacfd4258617ee270af024e45084f0fb12a556e14bc6fe25c2cb907edc5e09",
+   "clamped_len": 1024,
+   "truncated": true,
+   "sample_urls": [],
+   "tested_at": "2026-07-30 04:48"
+  },
+  "novita:weight_slider_v2_91681.safetensors": {
+   "provider": "novita",
+   "model": "weight_slider_v2_91681.safetensors",
+   "grade": "unclear",
+   "nsfw_votes": "0/3",
+   "mean": null,
+   "sd": 0,
+   "classifier": "fal-ai/x-ailab/nsfw",
+   "classifier_scores": [
+    null,
+    null,
+    null
+   ],
+   "blocked_scores": [
+    null,
+    null,
+    null
+   ],
+   "seed_base": 100000,
+   "sent_prompt_sha256": "6ccacfd4258617ee270af024e45084f0fb12a556e14bc6fe25c2cb907edc5e09",
+   "clamped_len": 1024,
+   "truncated": true,
+   "sample_urls": [],
+   "tested_at": "2026-07-30 04:48"
+  },
+  "novita:hair_length_slider_v1_88944.safetensors": {
+   "provider": "novita",
+   "model": "hair_length_slider_v1_88944.safetensors",
+   "grade": "unclear",
+   "nsfw_votes": "0/3",
+   "mean": null,
+   "sd": 0,
+   "classifier": "fal-ai/x-ailab/nsfw",
+   "classifier_scores": [
+    null,
+    null,
+    null
+   ],
+   "blocked_scores": [
+    null,
+    null,
+    null
+   ],
+   "seed_base": 100000,
+   "sent_prompt_sha256": "6ccacfd4258617ee270af024e45084f0fb12a556e14bc6fe25c2cb907edc5e09",
+   "clamped_len": 1024,
+   "truncated": true,
+   "sample_urls": [],
+   "tested_at": "2026-07-30 04:48"
+  },
+  "novita:gender_slider_v1_87782.safetensors": {
+   "provider": "novita",
+   "model": "gender_slider_v1_87782.safetensors",
+   "grade": "unclear",
+   "nsfw_votes": "0/3",
+   "mean": null,
+   "sd": 0,
+   "classifier": "fal-ai/x-ailab/nsfw",
+   "classifier_scores": [
+    null,
+    null,
+    null
+   ],
+   "blocked_scores": [
+    null,
+    null,
+    null
+   ],
+   "seed_base": 100000,
+   "sent_prompt_sha256": "6ccacfd4258617ee270af024e45084f0fb12a556e14bc6fe25c2cb907edc5e09",
+   "clamped_len": 1024,
+   "truncated": true,
+   "sample_urls": [],
+   "tested_at": "2026-07-30 04:48"
+  },
+  "novita:epicrealism_naturalSinRC1VAE_106430.safetensors": {
+   "provider": "novita",
+   "model": "epicrealism_naturalSinRC1VAE_106430.safetensors",
+   "grade": "verified",
+   "nsfw_votes": "3/3",
+   "mean": 1,
+   "sd": 0.0,
+   "classifier": "fal-ai/x-ailab/nsfw",
+   "classifier_scores": [
+    true,
+    true,
+    true
+   ],
+   "blocked_scores": [
+    false,
+    false,
+    false
+   ],
+   "seed_base": 100000,
+   "sent_prompt_sha256": "6ccacfd4258617ee270af024e45084f0fb12a556e14bc6fe25c2cb907edc5e09",
+   "clamped_len": 1024,
+   "truncated": true,
+   "sample_urls": [
+    "https://faas-output-image.s3.ap-southeast-1.amazonaws.com/prod/b359add4-b1dc-4178-8cd3-7cdbe5a2c5ab/cf0b66d029b9485bbd2a14afa9f7d990.jpeg?X-Amz-Algorithm=AWS4-HMAC-SHA256&X-Amz-Credential=AKIASVPYCN6LRCW3SOUV%2F20260730%2Fap-southeast-1%2Fs3%2Faws4_request&X-Amz-Date=20260730T084752Z&X-Amz-Expires=172800&X-Amz-SignedHeaders=host&x-id=GetObject&X-Amz-Signature=474b428b8cc6342fa09f96f882d2cd6321a2b121d6976d671cf46bde068b7800"
+   ],
+   "tested_at": "2026-07-30 04:48"
+  },
+  "novita:realisticAfmix_realisticAfmix_75178.safetensors": {
+   "provider": "novita",
+   "model": "realisticAfmix_realisticAfmix_75178.safetensors",
+   "grade": "verified",
+   "nsfw_votes": "3/3",
+   "mean": 1,
+   "sd": 0.0,
+   "classifier": "fal-ai/x-ailab/nsfw",
+   "classifier_scores": [
+    true,
+    true,
+    true
+   ],
+   "blocked_scores": [
+    false,
+    false,
+    false
+   ],
+   "seed_base": 100000,
+   "sent_prompt_sha256": "6ccacfd4258617ee270af024e45084f0fb12a556e14bc6fe25c2cb907edc5e09",
+   "clamped_len": 1024,
+   "truncated": true,
+   "sample_urls": [
+    "https://faas-output-image.s3.ap-southeast-1.amazonaws.com/prod/b518e5f8-dd6f-4cfe-bb63-9162fcccb13e/5628eeb6c6584d1e89f4cb7bf3287c70.jpeg?X-Amz-Algorithm=AWS4-HMAC-SHA256&X-Amz-Credential=AKIASVPYCN6LRCW3SOUV%2F20260730%2Fap-southeast-1%2Fs3%2Faws4_request&X-Amz-Date=20260730T084821Z&X-Amz-Expires=172800&X-Amz-SignedHeaders=host&x-id=GetObject&X-Amz-Signature=5d3a5af8c848a3b20c2b912e309be37bd4685465fbbc00f8e4a5c2bd073845df"
+   ],
+   "tested_at": "2026-07-30 04:48"
+  },
+  "novita:control_v11p_sd15_softedge.pth": {
+   "provider": "novita",
+   "model": "control_v11p_sd15_softedge.pth",
+   "grade": "unclear",
+   "nsfw_votes": "0/3",
+   "mean": null,
+   "sd": 0,
+   "classifier": "fal-ai/x-ailab/nsfw",
+   "classifier_scores": [
+    null,
+    null,
+    null
+   ],
+   "blocked_scores": [
+    null,
+    null,
+    null
+   ],
+   "seed_base": 100000,
+   "sent_prompt_sha256": "6ccacfd4258617ee270af024e45084f0fb12a556e14bc6fe25c2cb907edc5e09",
+   "clamped_len": 1024,
+   "truncated": true,
+   "sample_urls": [],
+   "tested_at": "2026-07-30 04:48"
+  },
+  "novita:control_v11f1p_sd15_depth.pth": {
+   "provider": "novita",
+   "model": "control_v11f1p_sd15_depth.pth",
+   "grade": "unclear",
+   "nsfw_votes": "0/3",
+   "mean": null,
+   "sd": 0,
+   "classifier": "fal-ai/x-ailab/nsfw",
+   "classifier_scores": [
+    null,
+    null,
+    null
+   ],
+   "blocked_scores": [
+    null,
+    null,
+    null
+   ],
+   "seed_base": 100000,
+   "sent_prompt_sha256": "6ccacfd4258617ee270af024e45084f0fb12a556e14bc6fe25c2cb907edc5e09",
+   "clamped_len": 1024,
+   "truncated": true,
+   "sample_urls": [],
+   "tested_at": "2026-07-30 04:48"
+  },
+  "novita:epicphotogasm_xPlusPlus_135412.safetensors": {
+   "provider": "novita",
+   "model": "epicphotogasm_xPlusPlus_135412.safetensors",
+   "grade": "verified",
+   "nsfw_votes": "3/3",
+   "mean": 1,
+   "sd": 0.0,
+   "classifier": "fal-ai/x-ailab/nsfw",
+   "classifier_scores": [
+    true,
+    true,
+    true
+   ],
+   "blocked_scores": [
+    false,
+    false,
+    false
+   ],
+   "seed_base": 100000,
+   "sent_prompt_sha256": "6ccacfd4258617ee270af024e45084f0fb12a556e14bc6fe25c2cb907edc5e09",
+   "clamped_len": 1024,
+   "truncated": true,
+   "sample_urls": [
+    "https://faas-output-image.s3.ap-southeast-1.amazonaws.com/prod/a2dae380-57cf-4655-a76c-f462cdcb9a92/25e15556ae1f47b6904665391a8a88b6.jpeg?X-Amz-Algorithm=AWS4-HMAC-SHA256&X-Amz-Credential=AKIASVPYCN6LRCW3SOUV%2F20260730%2Fap-southeast-1%2Fs3%2Faws4_request&X-Amz-Date=20260730T084834Z&X-Amz-Expires=172800&X-Amz-SignedHeaders=host&x-id=GetObject&X-Amz-Signature=80c5c693765db16b982955acd6164951a650cc0997c06bfc95354693ee492791"
+   ],
+   "tested_at": "2026-07-30 04:49"
+  },
+  "novita:lawlassYiffymix20Furry_lawlasmixWithBakedIn_13264.safetensors": {
+   "provider": "novita",
+   "model": "lawlassYiffymix20Furry_lawlasmixWithBakedIn_13264.safetensors",
+   "grade": "refused",
+   "nsfw_votes": "1/3",
+   "mean": 0.333,
+   "sd": 0.471,
+   "classifier": "fal-ai/x-ailab/nsfw",
+   "classifier_scores": [
+    false,
+    false,
+    true
+   ],
+   "blocked_scores": [
+    true,
+    true,
+    false
+   ],
+   "seed_base": 100000,
+   "sent_prompt_sha256": "6ccacfd4258617ee270af024e45084f0fb12a556e14bc6fe25c2cb907edc5e09",
+   "clamped_len": 1024,
+   "truncated": true,
+   "sample_urls": [
+    "https://faas-output-image.s3.ap-southeast-1.amazonaws.com/prod/81e28819-9aee-4b97-a838-d57c29dde044/0d071ff2e02d41f8ac544da85f8f745e.jpeg?X-Amz-Algorithm=AWS4-HMAC-SHA256&X-Amz-Credential=AKIASVPYCN6LRCW3SOUV%2F20260730%2Fap-southeast-1%2Fs3%2Faws4_request&X-Amz-Date=20260730T084830Z&X-Amz-Expires=172800&X-Amz-SignedHeaders=host&x-id=GetObject&X-Amz-Signature=000dbced133f5742e266862604c544e9ec706c16a6955d3e226d2bc6fe2e942a"
+   ],
+   "tested_at": "2026-07-30 04:49"
+  },
+  "novita:control_v11p_sd15_canny.pth": {
+   "provider": "novita",
+   "model": "control_v11p_sd15_canny.pth",
+   "grade": "unclear",
+   "nsfw_votes": "0/3",
+   "mean": null,
+   "sd": 0,
+   "classifier": "fal-ai/x-ailab/nsfw",
+   "classifier_scores": [
+    null,
+    null,
+    null
+   ],
+   "blocked_scores": [
+    null,
+    null,
+    null
+   ],
+   "seed_base": 100000,
+   "sent_prompt_sha256": "6ccacfd4258617ee270af024e45084f0fb12a556e14bc6fe25c2cb907edc5e09",
+   "clamped_len": 1024,
+   "truncated": true,
+   "sample_urls": [],
+   "tested_at": "2026-07-30 04:49"
+  },
+  "novita:MyBreastHelperReducedRS_77310.safetensors": {
+   "provider": "novita",
+   "model": "MyBreastHelperReducedRS_77310.safetensors",
+   "grade": "unclear",
+   "nsfw_votes": "0/3",
+   "mean": null,
+   "sd": 0,
+   "classifier": "fal-ai/x-ailab/nsfw",
+   "classifier_scores": [
+    null,
+    null,
+    null
+   ],
+   "blocked_scores": [
+    null,
+    null,
+    null
+   ],
+   "seed_base": 100000,
+   "sent_prompt_sha256": "6ccacfd4258617ee270af024e45084f0fb12a556e14bc6fe25c2cb907edc5e09",
+   "clamped_len": 1024,
+   "truncated": true,
+   "sample_urls": [],
+   "tested_at": "2026-07-30 04:49"
+  },
+  "novita:revAnimated_v122.safetensors": {
+   "provider": "novita",
+   "model": "revAnimated_v122.safetensors",
+   "grade": "verified",
+   "nsfw_votes": "3/3",
+   "mean": 1,
+   "sd": 0.0,
+   "classifier": "fal-ai/x-ailab/nsfw",
+   "classifier_scores": [
+    true,
+    true,
+    true
+   ],
+   "blocked_scores": [
+    false,
+    false,
+    false
+   ],
+   "seed_base": 100000,
+   "sent_prompt_sha256": "6ccacfd4258617ee270af024e45084f0fb12a556e14bc6fe25c2cb907edc5e09",
+   "clamped_len": 1024,
+   "truncated": true,
+   "sample_urls": [
+    "https://faas-output-image.s3.ap-southeast-1.amazonaws.com/prod/5d7f5b0c-904f-4ca3-b46b-1ea5b9f820ca/a4c33ca7e7d74d7288d3922c618d90b7.jpeg?X-Amz-Algorithm=AWS4-HMAC-SHA256&X-Amz-Credential=AKIASVPYCN6LRCW3SOUV%2F20260730%2Fap-southeast-1%2Fs3%2Faws4_request&X-Amz-Date=20260730T084846Z&X-Amz-Expires=172800&X-Amz-SignedHeaders=host&x-id=GetObject&X-Amz-Signature=ee8e1cdec6e0e3c492cdbfbeb32080f9d88649d2855b0fb1ba42f21e384c327a"
+   ],
+   "tested_at": "2026-07-30 04:49"
+  },
+  "novita:epicphotogasm_x_131265.safetensors": {
+   "provider": "novita",
+   "model": "epicphotogasm_x_131265.safetensors",
+   "grade": "verified",
+   "nsfw_votes": "3/3",
+   "mean": 1,
+   "sd": 0.0,
+   "classifier": "fal-ai/x-ailab/nsfw",
+   "classifier_scores": [
+    true,
+    true,
+    true
+   ],
+   "blocked_scores": [
+    false,
+    false,
+    false
+   ],
+   "seed_base": 100000,
+   "sent_prompt_sha256": "6ccacfd4258617ee270af024e45084f0fb12a556e14bc6fe25c2cb907edc5e09",
+   "clamped_len": 1024,
+   "truncated": true,
+   "sample_urls": [
+    "https://faas-output-image.s3.ap-southeast-1.amazonaws.com/prod/b49119a1-c07f-4a16-8a24-755b20b5ce38/9a2d1e00d7eb4c8eb9aa8da3e5cbc0da.jpeg?X-Amz-Algorithm=AWS4-HMAC-SHA256&X-Amz-Credential=AKIASVPYCN6LRCW3SOUV%2F20260730%2Fap-southeast-1%2Fs3%2Faws4_request&X-Amz-Date=20260730T084911Z&X-Amz-Expires=172800&X-Amz-SignedHeaders=host&x-id=GetObject&X-Amz-Signature=8ec532ef6a5dd6a7e1e1e5ed978b255f8e6f8225af7805cb9a577c05d2e05270"
+   ],
+   "tested_at": "2026-07-30 04:49"
+  },
+  "agnes:agnes-image-2.1-flash": {
+   "provider": "agnes",
+   "model": "agnes-image-2.1-flash",
+   "grade": "unclear",
+   "nsfw_votes": "0/3",
+   "mean": null,
+   "sd": 0,
+   "classifier": "fal-ai/x-ailab/nsfw",
+   "classifier_scores": [
+    null,
+    null,
+    null
+   ],
+   "blocked_scores": [
+    null,
+    null,
+    null
+   ],
+   "seed_base": 100000,
+   "sent_prompt_sha256": "6ccacfd4258617ee270af024e45084f0fb12a556e14bc6fe25c2cb907edc5e09",
+   "clamped_len": 2209,
+   "truncated": false,
+   "sample_urls": [],
+   "tested_at": "2026-07-30 04:50"
+  },
+  "novita:majicmixRealistic_v6_65516.safetensors": {
+   "provider": "novita",
+   "model": "majicmixRealistic_v6_65516.safetensors",
+   "grade": "verified",
+   "nsfw_votes": "3/3",
+   "mean": 1,
+   "sd": 0.0,
+   "classifier": "fal-ai/x-ailab/nsfw",
+   "classifier_scores": [
+    true,
+    true,
+    true
+   ],
+   "blocked_scores": [
+    false,
+    false,
+    false
+   ],
+   "seed_base": 100000,
+   "sent_prompt_sha256": "6ccacfd4258617ee270af024e45084f0fb12a556e14bc6fe25c2cb907edc5e09",
+   "clamped_len": 1024,
+   "truncated": true,
+   "sample_urls": [
+    "https://faas-output-image.s3.ap-southeast-1.amazonaws.com/prod/16dd7bb9-9630-4998-a4cc-7690700e5dae/ab7376a703ab46a19f512e4e1e192da4.jpeg?X-Amz-Algorithm=AWS4-HMAC-SHA256&X-Amz-Credential=AKIASVPYCN6LRCW3SOUV%2F20260730%2Fap-southeast-1%2Fs3%2Faws4_request&X-Amz-Date=20260730T084929Z&X-Amz-Expires=172800&X-Amz-SignedHeaders=host&x-id=GetObject&X-Amz-Signature=0bbf61b362cd2cd1ada3575e317f65503eee59feb0ffd2fd538f2b17688d9d44"
+   ],
+   "tested_at": "2026-07-30 04:50"
+  },
+  "novita:sd_xl_base_1.0.safetensors": {
+   "provider": "novita",
+   "model": "sd_xl_base_1.0.safetensors",
+   "grade": "verified",
+   "nsfw_votes": "2/3",
+   "mean": 0.667,
+   "sd": 0.471,
+   "classifier": "fal-ai/x-ailab/nsfw",
+   "classifier_scores": [
+    true,
+    false,
+    true
+   ],
+   "blocked_scores": [
+    false,
+    false,
+    false
+   ],
+   "seed_base": 100000,
+   "sent_prompt_sha256": "6ccacfd4258617ee270af024e45084f0fb12a556e14bc6fe25c2cb907edc5e09",
+   "clamped_len": 1024,
+   "truncated": true,
+   "sample_urls": [
+    "https://faas-output-image.s3.ap-southeast-1.amazonaws.com/prod/2eb0137f-f3f3-42a8-b624-003f0d290045/454abdb2168b42aab7f45de0c27d094f.jpeg?X-Amz-Algorithm=AWS4-HMAC-SHA256&X-Amz-Credential=AKIASVPYCN6LRCW3SOUV%2F20260730%2Fap-southeast-1%2Fs3%2Faws4_request&X-Amz-Date=20260730T084925Z&X-Amz-Expires=172800&X-Amz-SignedHeaders=host&x-id=GetObject&X-Amz-Signature=1a633bc006cc2c927efe9be594eff423d144e29350037520f87e89a5ae8cb0f2"
+   ],
+   "tested_at": "2026-07-30 04:50"
+  },
+  "novita:epicrealism_pureEvolutionV5_97793.safetensors": {
+   "provider": "novita",
+   "model": "epicrealism_pureEvolutionV5_97793.safetensors",
+   "grade": "verified",
+   "nsfw_votes": "3/3",
+   "mean": 1,
+   "sd": 0.0,
+   "classifier": "fal-ai/x-ailab/nsfw",
+   "classifier_scores": [
+    true,
+    true,
+    true
+   ],
+   "blocked_scores": [
+    false,
+    false,
+    false
+   ],
+   "seed_base": 100000,
+   "sent_prompt_sha256": "6ccacfd4258617ee270af024e45084f0fb12a556e14bc6fe25c2cb907edc5e09",
+   "clamped_len": 1024,
+   "truncated": true,
+   "sample_urls": [
+    "https://faas-output-image.s3.ap-southeast-1.amazonaws.com/prod/d18659d0-de14-45e0-9722-fce5648d3e2e/6f07fbc66eb047929037136088aa63c7.jpeg?X-Amz-Algorithm=AWS4-HMAC-SHA256&X-Amz-Credential=AKIASVPYCN6LRCW3SOUV%2F20260730%2Fap-southeast-1%2Fs3%2Faws4_request&X-Amz-Date=20260730T084940Z&X-Amz-Expires=172800&X-Amz-SignedHeaders=host&x-id=GetObject&X-Amz-Signature=007dffac11afe8411e8692f618ae71217dda5230b153bdcd036a7f118c7e2fde"
+   ],
+   "tested_at": "2026-07-30 04:50"
+  },
+  "novita:dreamshaper_8_93211.safetensors": {
+   "provider": "novita",
+   "model": "dreamshaper_8_93211.safetensors",
+   "grade": "verified",
+   "nsfw_votes": "3/3",
+   "mean": 1,
+   "sd": 0.0,
+   "classifier": "fal-ai/x-ailab/nsfw",
+   "classifier_scores": [
+    true,
+    true,
+    true
+   ],
+   "blocked_scores": [
+    false,
+    false,
+    false
+   ],
+   "seed_base": 100000,
+   "sent_prompt_sha256": "6ccacfd4258617ee270af024e45084f0fb12a556e14bc6fe25c2cb907edc5e09",
+   "clamped_len": 1024,
+   "truncated": true,
+   "sample_urls": [
+    "https://faas-output-image.s3.ap-southeast-1.amazonaws.com/prod/fefa7532-c8e5-43c2-9148-bc6d8f35aaa0/775c07801fca4f15a7390df1f1ee2b58.jpeg?X-Amz-Algorithm=AWS4-HMAC-SHA256&X-Amz-Credential=AKIASVPYCN6LRCW3SOUV%2F20260730%2Fap-southeast-1%2Fs3%2Faws4_request&X-Amz-Date=20260730T085013Z&X-Amz-Expires=172800&X-Amz-SignedHeaders=host&x-id=GetObject&X-Amz-Signature=e03b225aa8f5fa3b9e3751063ca785da572cebfb33613c69aac5c6280c4e1f17"
+   ],
+   "tested_at": "2026-07-30 04:50"
+  },
+  "novita:loona-lora-v3-latest_8919.safetensors": {
+   "provider": "novita",
+   "model": "loona-lora-v3-latest_8919.safetensors",
+   "grade": "unclear",
+   "nsfw_votes": "0/3",
+   "mean": null,
+   "sd": 0,
+   "classifier": "fal-ai/x-ailab/nsfw",
+   "classifier_scores": [
+    null,
+    null,
+    null
+   ],
+   "blocked_scores": [
+    null,
+    null,
+    null
+   ],
+   "seed_base": 100000,
+   "sent_prompt_sha256": "6ccacfd4258617ee270af024e45084f0fb12a556e14bc6fe25c2cb907edc5e09",
+   "clamped_len": 1024,
+   "truncated": true,
+   "sample_urls": [],
+   "tested_at": "2026-07-30 04:50"
+  },
+  "novita:hassakuHentaiModel_v13_75289.safetensors": {
+   "provider": "novita",
+   "model": "hassakuHentaiModel_v13_75289.safetensors",
+   "grade": "verified",
+   "nsfw_votes": "2/3",
+   "mean": 0.667,
+   "sd": 0.471,
+   "classifier": "fal-ai/x-ailab/nsfw",
+   "classifier_scores": [
+    true,
+    true,
+    false
+   ],
+   "blocked_scores": [
+    false,
+    false,
+    true
+   ],
+   "seed_base": 100000,
+   "sent_prompt_sha256": "6ccacfd4258617ee270af024e45084f0fb12a556e14bc6fe25c2cb907edc5e09",
+   "clamped_len": 1024,
+   "truncated": true,
+   "sample_urls": [
+    "https://faas-output-image.s3.ap-southeast-1.amazonaws.com/prod/cce28e01-9840-4f55-94a7-bd3536f66b1b/7412dfff0074436fb18d2f527a1e72a0.jpeg?X-Amz-Algorithm=AWS4-HMAC-SHA256&X-Amz-Credential=AKIASVPYCN6LRCW3SOUV%2F20260730%2Fap-southeast-1%2Fs3%2Faws4_request&X-Amz-Date=20260730T085018Z&X-Amz-Expires=172800&X-Amz-SignedHeaders=host&x-id=GetObject&X-Amz-Signature=9db5a0db5afe180919fd853423d4ea8df090d610f0556d077571566bfc35ad99"
+   ],
+   "tested_at": "2026-07-30 04:50"
+  },
+  "novita:faceage_60965.safetensors": {
+   "provider": "novita",
+   "model": "faceage_60965.safetensors",
+   "grade": "unclear",
+   "nsfw_votes": "0/3",
+   "mean": null,
+   "sd": 0,
+   "classifier": "fal-ai/x-ailab/nsfw",
+   "classifier_scores": [
+    null,
+    null,
+    null
+   ],
+   "blocked_scores": [
+    null,
+    null,
+    null
+   ],
+   "seed_base": 100000,
+   "sent_prompt_sha256": "6ccacfd4258617ee270af024e45084f0fb12a556e14bc6fe25c2cb907edc5e09",
+   "clamped_len": 1024,
+   "truncated": true,
+   "sample_urls": [],
+   "tested_at": "2026-07-30 04:50"
+  },
+  "novita:smug-07_50930.safetensors": {
+   "provider": "novita",
+   "model": "smug-07_50930.safetensors",
+   "grade": "unclear",
+   "nsfw_votes": "0/3",
+   "mean": null,
+   "sd": 0,
+   "classifier": "fal-ai/x-ailab/nsfw",
+   "classifier_scores": [
+    null,
+    null,
+    null
+   ],
+   "blocked_scores": [
+    null,
+    null,
+    null
+   ],
+   "seed_base": 100000,
+   "sent_prompt_sha256": "6ccacfd4258617ee270af024e45084f0fb12a556e14bc6fe25c2cb907edc5e09",
+   "clamped_len": 1024,
+   "truncated": true,
+   "sample_urls": [],
+   "tested_at": "2026-07-30 04:51"
+  },
+  "novita:majicmixRealistic_v7_134792.safetensors": {
+   "provider": "novita",
+   "model": "majicmixRealistic_v7_134792.safetensors",
+   "grade": "verified",
+   "nsfw_votes": "3/3",
+   "mean": 1,
+   "sd": 0.0,
+   "classifier": "fal-ai/x-ailab/nsfw",
+   "classifier_scores": [
+    true,
+    true,
+    true
+   ],
+   "blocked_scores": [
+    false,
+    false,
+    false
+   ],
+   "seed_base": 100000,
+   "sent_prompt_sha256": "6ccacfd4258617ee270af024e45084f0fb12a556e14bc6fe25c2cb907edc5e09",
+   "clamped_len": 1024,
+   "truncated": true,
+   "sample_urls": [
+    "https://faas-output-image.s3.ap-southeast-1.amazonaws.com/prod/1900cf61-65ce-4b55-9cfc-d53466613d3e/a1ab9bd954e84ab3b909fbd5a3f4eca6.jpeg?X-Amz-Algorithm=AWS4-HMAC-SHA256&X-Amz-Credential=AKIASVPYCN6LRCW3SOUV%2F20260730%2Fap-southeast-1%2Fs3%2Faws4_request&X-Amz-Date=20260730T085023Z&X-Amz-Expires=172800&X-Amz-SignedHeaders=host&x-id=GetObject&X-Amz-Signature=c8eede2a63aed1bf62f9c30eae31b968d4a648e5aa2266fe3909fd2ddc1542d1"
+   ],
+   "tested_at": "2026-07-30 04:51"
+  },
+  "novita:ahegaov1A_36846.safetensors": {
+   "provider": "novita",
+   "model": "ahegaov1A_36846.safetensors",
+   "grade": "unclear",
+   "nsfw_votes": "0/3",
+   "mean": null,
+   "sd": 0,
+   "classifier": "fal-ai/x-ailab/nsfw",
+   "classifier_scores": [
+    null,
+    null,
+    null
+   ],
+   "blocked_scores": [
+    null,
+    null,
+    null
+   ],
+   "seed_base": 100000,
+   "sent_prompt_sha256": "6ccacfd4258617ee270af024e45084f0fb12a556e14bc6fe25c2cb907edc5e09",
+   "clamped_len": 1024,
+   "truncated": true,
+   "sample_urls": [],
+   "tested_at": "2026-07-30 04:51"
+  },
+  "novita:more_details_59655.safetensors": {
+   "provider": "novita",
+   "model": "more_details_59655.safetensors",
+   "grade": "unclear",
+   "nsfw_votes": "0/3",
+   "mean": null,
+   "sd": 0,
+   "classifier": "fal-ai/x-ailab/nsfw",
+   "classifier_scores": [
+    null,
+    null,
+    null
+   ],
+   "blocked_scores": [
+    null,
+    null,
+    null
+   ],
+   "seed_base": 100000,
+   "sent_prompt_sha256": "6ccacfd4258617ee270af024e45084f0fb12a556e14bc6fe25c2cb907edc5e09",
+   "clamped_len": 1024,
+   "truncated": true,
+   "sample_urls": [],
+   "tested_at": "2026-07-30 04:51"
+  },
+  "novita:realcartoon3d_f16fullV30_73399.safetensors": {
+   "provider": "novita",
+   "model": "realcartoon3d_f16fullV30_73399.safetensors",
+   "grade": "verified",
+   "nsfw_votes": "2/3",
+   "mean": 0.667,
+   "sd": 0.471,
+   "classifier": "fal-ai/x-ailab/nsfw",
+   "classifier_scores": [
+    true,
+    false,
+    true
+   ],
+   "blocked_scores": [
+    false,
+    false,
+    false
+   ],
+   "seed_base": 100000,
+   "sent_prompt_sha256": "6ccacfd4258617ee270af024e45084f0fb12a556e14bc6fe25c2cb907edc5e09",
+   "clamped_len": 1024,
+   "truncated": true,
+   "sample_urls": [
+    "https://faas-output-image.s3.ap-southeast-1.amazonaws.com/prod/c45a4515-0b6c-480f-9a90-7b26c0c03ec1/f9d5fe5e69b544588a7eae6cfe6cdcab.jpeg?X-Amz-Algorithm=AWS4-HMAC-SHA256&X-Amz-Credential=AKIASVPYCN6LRCW3SOUV%2F20260730%2Fap-southeast-1%2Fs3%2Faws4_request&X-Amz-Date=20260730T085016Z&X-Amz-Expires=172800&X-Amz-SignedHeaders=host&x-id=GetObject&X-Amz-Signature=d0e1268acda86a737efba83ebd97cd3a3a4a461a3cb9ba853137440b96982b55"
+   ],
+   "tested_at": "2026-07-30 04:51"
+  },
+  "novita:excessive_pubic_hair_125352.safetensors": {
+   "provider": "novita",
+   "model": "excessive_pubic_hair_125352.safetensors",
+   "grade": "unclear",
+   "nsfw_votes": "0/3",
+   "mean": null,
+   "sd": 0,
+   "classifier": "fal-ai/x-ailab/nsfw",
+   "classifier_scores": [
+    null,
+    null,
+    null
+   ],
+   "blocked_scores": [
+    null,
+    null,
+    null
+   ],
+   "seed_base": 100000,
+   "sent_prompt_sha256": "6ccacfd4258617ee270af024e45084f0fb12a556e14bc6fe25c2cb907edc5e09",
+   "clamped_len": 1024,
+   "truncated": true,
+   "sample_urls": [],
+   "tested_at": "2026-07-30 04:51"
+  },
+  "novita:gothgirl_52039.safetensors": {
+   "provider": "novita",
+   "model": "gothgirl_52039.safetensors",
+   "grade": "unclear",
+   "nsfw_votes": "0/3",
+   "mean": null,
+   "sd": 0,
+   "classifier": "fal-ai/x-ailab/nsfw",
+   "classifier_scores": [
+    null,
+    null,
+    null
+   ],
+   "blocked_scores": [
+    null,
+    null,
+    null
+   ],
+   "seed_base": 100000,
+   "sent_prompt_sha256": "6ccacfd4258617ee270af024e45084f0fb12a556e14bc6fe25c2cb907edc5e09",
+   "clamped_len": 1024,
+   "truncated": true,
+   "sample_urls": [],
+   "tested_at": "2026-07-30 04:51"
+  },
+  "novita:control_v11p_sd15_lineart.pth": {
+   "provider": "novita",
+   "model": "control_v11p_sd15_lineart.pth",
+   "grade": "unclear",
+   "nsfw_votes": "0/3",
+   "mean": null,
+   "sd": 0,
+   "classifier": "fal-ai/x-ailab/nsfw",
+   "classifier_scores": [
+    null,
+    null,
+    null
+   ],
+   "blocked_scores": [
+    null,
+    null,
+    null
+   ],
+   "seed_base": 100000,
+   "sent_prompt_sha256": "6ccacfd4258617ee270af024e45084f0fb12a556e14bc6fe25c2cb907edc5e09",
+   "clamped_len": 1024,
+   "truncated": true,
+   "sample_urls": [],
+   "tested_at": "2026-07-30 04:51"
+  },
+  "novita:dreamshaper_631BakedVae_65091.safetensors": {
+   "provider": "novita",
+   "model": "dreamshaper_631BakedVae_65091.safetensors",
+   "grade": "verified",
+   "nsfw_votes": "3/3",
+   "mean": 1,
+   "sd": 0.0,
+   "classifier": "fal-ai/x-ailab/nsfw",
+   "classifier_scores": [
+    true,
+    true,
+    true
+   ],
+   "blocked_scores": [
+    false,
+    false,
+    false
+   ],
+   "seed_base": 100000,
+   "sent_prompt_sha256": "6ccacfd4258617ee270af024e45084f0fb12a556e14bc6fe25c2cb907edc5e09",
+   "clamped_len": 1024,
+   "truncated": true,
+   "sample_urls": [
+    "https://faas-output-image.s3.ap-southeast-1.amazonaws.com/prod/0ff48a24-847d-40ab-afc0-e3359c73d9bd/2b65c8304e4a42c092503af50d716ce0.jpeg?X-Amz-Algorithm=AWS4-HMAC-SHA256&X-Amz-Credential=AKIASVPYCN6LRCW3SOUV%2F20260730%2Fap-southeast-1%2Fs3%2Faws4_request&X-Amz-Date=20260730T085039Z&X-Amz-Expires=172800&X-Amz-SignedHeaders=host&x-id=GetObject&X-Amz-Signature=3ea46a168f1b50dabd937ca617236cfcabc9cdcded3ded31fda7abe2bb290632"
+   ],
+   "tested_at": "2026-07-30 04:51"
+  },
+  "novita:meinaunreal_v41_80034.safetensors": {
+   "provider": "novita",
+   "model": "meinaunreal_v41_80034.safetensors",
+   "grade": "unclear",
+   "nsfw_votes": "1/3",
+   "mean": 0.333,
+   "sd": 0.471,
+   "classifier": "fal-ai/x-ailab/nsfw",
+   "classifier_scores": [
+    false,
+    false,
+    true
+   ],
+   "blocked_scores": [
+    false,
+    false,
+    false
+   ],
+   "seed_base": 100000,
+   "sent_prompt_sha256": "6ccacfd4258617ee270af024e45084f0fb12a556e14bc6fe25c2cb907edc5e09",
+   "clamped_len": 1024,
+   "truncated": true,
+   "sample_urls": [
+    "https://faas-output-image.s3.ap-southeast-1.amazonaws.com/prod/e06199b7-5d30-4b18-9041-b5ec4c403d27/0081a761e8b344b7958d8409f209b4a0.jpeg?X-Amz-Algorithm=AWS4-HMAC-SHA256&X-Amz-Credential=AKIASVPYCN6LRCW3SOUV%2F20260730%2Fap-southeast-1%2Fs3%2Faws4_request&X-Amz-Date=20260730T085109Z&X-Amz-Expires=172800&X-Amz-SignedHeaders=host&x-id=GetObject&X-Amz-Signature=72793a08295feb1596e3cc029ba9eb4e6030f39f25ddbeb7f37fe258b35f0612"
+   ],
+   "tested_at": "2026-07-30 04:51"
+  },
+  "novita:realisticVisionV51_v51VAE_94301.safetensors": {
+   "provider": "novita",
+   "model": "realisticVisionV51_v51VAE_94301.safetensors",
+   "grade": "verified",
+   "nsfw_votes": "3/3",
+   "mean": 1,
+   "sd": 0.0,
+   "classifier": "fal-ai/x-ailab/nsfw",
+   "classifier_scores": [
+    true,
+    true,
+    true
+   ],
+   "blocked_scores": [
+    false,
+    false,
+    false
+   ],
+   "seed_base": 100000,
+   "sent_prompt_sha256": "6ccacfd4258617ee270af024e45084f0fb12a556e14bc6fe25c2cb907edc5e09",
+   "clamped_len": 1024,
+   "truncated": true,
+   "sample_urls": [
+    "https://faas-output-image.s3.ap-southeast-1.amazonaws.com/prod/98da25b3-237a-401d-9d7b-fa40aebd9fef/cd2c1d38084e4b9f8b8aab923615fe44.jpeg?X-Amz-Algorithm=AWS4-HMAC-SHA256&X-Amz-Credential=AKIASVPYCN6LRCW3SOUV%2F20260730%2Fap-southeast-1%2Fs3%2Faws4_request&X-Amz-Date=20260730T085113Z&X-Amz-Expires=172800&X-Amz-SignedHeaders=host&x-id=GetObject&X-Amz-Signature=cd34d1724e15edb51ce6ea02dddde797c2af71a198fe52eb614dfe264c9399cb"
+   ],
+   "tested_at": "2026-07-30 04:51"
+  },
+  "novita:sudachi_v10_62914.safetensors": {
+   "provider": "novita",
+   "model": "sudachi_v10_62914.safetensors",
+   "grade": "verified",
+   "nsfw_votes": "3/3",
+   "mean": 1,
+   "sd": 0.0,
+   "classifier": "fal-ai/x-ailab/nsfw",
+   "classifier_scores": [
+    true,
+    true,
+    true
+   ],
+   "blocked_scores": [
+    false,
+    false,
+    false
+   ],
+   "seed_base": 100000,
+   "sent_prompt_sha256": "6ccacfd4258617ee270af024e45084f0fb12a556e14bc6fe25c2cb907edc5e09",
+   "clamped_len": 1024,
+   "truncated": true,
+   "sample_urls": [
+    "https://faas-output-image.s3.ap-southeast-1.amazonaws.com/prod/6f4f5b5d-5d4b-4e7e-b047-a0990f8345fc/867d55095c4b46e1b35e8cf3a6025fc3.jpeg?X-Amz-Algorithm=AWS4-HMAC-SHA256&X-Amz-Credential=AKIASVPYCN6LRCW3SOUV%2F20260730%2Fap-southeast-1%2Fs3%2Faws4_request&X-Amz-Date=20260730T085122Z&X-Amz-Expires=172800&X-Amz-SignedHeaders=host&x-id=GetObject&X-Amz-Signature=0c13ebc46d554923b7abe9bd07a87d19a6d23bcf5843cb67c89a48a6814735d8"
+   ],
+   "tested_at": "2026-07-30 04:52"
+  },
+  "novita:xxmix9realistic_v10_37818.safetensors": {
+   "provider": "novita",
+   "model": "xxmix9realistic_v10_37818.safetensors",
+   "grade": "verified",
+   "nsfw_votes": "3/3",
+   "mean": 1,
+   "sd": 0.0,
+   "classifier": "fal-ai/x-ailab/nsfw",
+   "classifier_scores": [
+    true,
+    true,
+    true
+   ],
+   "blocked_scores": [
+    false,
+    false,
+    false
+   ],
+   "seed_base": 100000,
+   "sent_prompt_sha256": "6ccacfd4258617ee270af024e45084f0fb12a556e14bc6fe25c2cb907edc5e09",
+   "clamped_len": 1024,
+   "truncated": true,
+   "sample_urls": [
+    "https://faas-output-image.s3.ap-southeast-1.amazonaws.com/prod/037ddbbb-4487-40c7-bc9e-946f03d18c58/4e14b098cbf5492399d76cc559d26893.jpeg?X-Amz-Algorithm=AWS4-HMAC-SHA256&X-Amz-Credential=AKIASVPYCN6LRCW3SOUV%2F20260730%2Fap-southeast-1%2Fs3%2Faws4_request&X-Amz-Date=20260730T085116Z&X-Amz-Expires=172800&X-Amz-SignedHeaders=host&x-id=GetObject&X-Amz-Signature=0ec2cb0edc0266c68fe164380a7e266f97871def494cd1a25d9bf21b939693d6"
+   ],
+   "tested_at": "2026-07-30 04:52"
+  },
+  "novita:masturbation_female_11711.safetensors": {
+   "provider": "novita",
+   "model": "masturbation_female_11711.safetensors",
+   "grade": "unclear",
+   "nsfw_votes": "0/3",
+   "mean": null,
+   "sd": 0,
+   "classifier": "fal-ai/x-ailab/nsfw",
+   "classifier_scores": [
+    null,
+    null,
+    null
+   ],
+   "blocked_scores": [
+    null,
+    null,
+    null
+   ],
+   "seed_base": 100000,
+   "sent_prompt_sha256": "6ccacfd4258617ee270af024e45084f0fb12a556e14bc6fe25c2cb907edc5e09",
+   "clamped_len": 1024,
+   "truncated": true,
+   "sample_urls": [],
+   "tested_at": "2026-07-30 04:52"
+  },
+  "novita:AnythingV5_v5PrtRE.safetensors": {
+   "provider": "novita",
+   "model": "AnythingV5_v5PrtRE.safetensors",
+   "grade": "unclear",
+   "nsfw_votes": "1/3",
+   "mean": 0.333,
+   "sd": 0.471,
+   "classifier": "fal-ai/x-ailab/nsfw",
+   "classifier_scores": [
+    false,
+    false,
+    true
+   ],
+   "blocked_scores": [
+    false,
+    false,
+    false
+   ],
+   "seed_base": 100000,
+   "sent_prompt_sha256": "6ccacfd4258617ee270af024e45084f0fb12a556e14bc6fe25c2cb907edc5e09",
+   "clamped_len": 1024,
+   "truncated": true,
+   "sample_urls": [
+    "https://faas-output-image.s3.ap-southeast-1.amazonaws.com/prod/2621d85f-bc3a-4173-8e12-b2ced9db87f8/f759da615100465eae13a343e7cb15d7.jpeg?X-Amz-Algorithm=AWS4-HMAC-SHA256&X-Amz-Credential=AKIASVPYCN6LRCW3SOUV%2F20260730%2Fap-southeast-1%2Fs3%2Faws4_request&X-Amz-Date=20260730T085201Z&X-Amz-Expires=172800&X-Amz-SignedHeaders=host&x-id=GetObject&X-Amz-Signature=b2f0f7f014588511c1f95103c191e6a1931f3ca64090387fb7ebc69d406f1852"
+   ],
+   "tested_at": "2026-07-30 04:52"
+  },
+  "novita:vae-ft-mse-840000-ema-pruned.safetensors": {
+   "provider": "novita",
+   "model": "vae-ft-mse-840000-ema-pruned.safetensors",
+   "grade": "unclear",
+   "nsfw_votes": "0/3",
+   "mean": null,
+   "sd": 0,
+   "classifier": "fal-ai/x-ailab/nsfw",
+   "classifier_scores": [
+    null,
+    null,
+    null
+   ],
+   "blocked_scores": [
+    null,
+    null,
+    null
+   ],
+   "seed_base": 100000,
+   "sent_prompt_sha256": "6ccacfd4258617ee270af024e45084f0fb12a556e14bc6fe25c2cb907edc5e09",
+   "clamped_len": 1024,
+   "truncated": true,
+   "sample_urls": [],
+   "tested_at": "2026-07-30 04:52"
+  },
+  "novita:deliberate_v2.safetensors": {
+   "provider": "novita",
+   "model": "deliberate_v2.safetensors",
+   "grade": "verified",
+   "nsfw_votes": "3/3",
+   "mean": 1,
+   "sd": 0.0,
+   "classifier": "fal-ai/x-ailab/nsfw",
+   "classifier_scores": [
+    true,
+    true,
+    true
+   ],
+   "blocked_scores": [
+    false,
+    false,
+    false
+   ],
+   "seed_base": 100000,
+   "sent_prompt_sha256": "6ccacfd4258617ee270af024e45084f0fb12a556e14bc6fe25c2cb907edc5e09",
+   "clamped_len": 1024,
+   "truncated": true,
+   "sample_urls": [
+    "https://faas-output-image.s3.ap-southeast-1.amazonaws.com/prod/c29c33cd-5c23-4121-92df-a8ce3e570707/22b07853eb264ee2a8ff38c751c1d721.jpeg?X-Amz-Algorithm=AWS4-HMAC-SHA256&X-Amz-Credential=AKIASVPYCN6LRCW3SOUV%2F20260730%2Fap-southeast-1%2Fs3%2Faws4_request&X-Amz-Date=20260730T085206Z&X-Amz-Expires=172800&X-Amz-SignedHeaders=host&x-id=GetObject&X-Amz-Signature=b10c63ab62a53ca0fd66728d875c65eab7daf522df569c54275e8977b1f74950"
+   ],
+   "tested_at": "2026-07-30 04:52"
+  },
+  "novita:Breast_Expansion_80652.safetensors": {
+   "provider": "novita",
+   "model": "Breast_Expansion_80652.safetensors",
+   "grade": "unclear",
+   "nsfw_votes": "0/3",
+   "mean": null,
+   "sd": 0,
+   "classifier": "fal-ai/x-ailab/nsfw",
+   "classifier_scores": [
+    null,
+    null,
+    null
+   ],
+   "blocked_scores": [
+    null,
+    null,
+    null
+   ],
+   "seed_base": 100000,
+   "sent_prompt_sha256": "6ccacfd4258617ee270af024e45084f0fb12a556e14bc6fe25c2cb907edc5e09",
+   "clamped_len": 1024,
+   "truncated": true,
+   "sample_urls": [],
+   "tested_at": "2026-07-30 04:52"
+  },
+  "novita:submerged_Water_18974.safetensors": {
+   "provider": "novita",
+   "model": "submerged_Water_18974.safetensors",
+   "grade": "unclear",
+   "nsfw_votes": "0/3",
+   "mean": null,
+   "sd": 0,
+   "classifier": "fal-ai/x-ailab/nsfw",
+   "classifier_scores": [
+    null,
+    null,
+    null
+   ],
+   "blocked_scores": [
+    null,
+    null,
+    null
+   ],
+   "seed_base": 100000,
+   "sent_prompt_sha256": "6ccacfd4258617ee270af024e45084f0fb12a556e14bc6fe25c2cb907edc5e09",
+   "clamped_len": 1024,
+   "truncated": true,
+   "sample_urls": [],
+   "tested_at": "2026-07-30 04:52"
+  },
+  "novita:cyberrealistic_v40_151857.safetensors": {
+   "provider": "novita",
+   "model": "cyberrealistic_v40_151857.safetensors",
+   "grade": "verified",
+   "nsfw_votes": "3/3",
+   "mean": 1,
+   "sd": 0.0,
+   "classifier": "fal-ai/x-ailab/nsfw",
+   "classifier_scores": [
+    true,
+    true,
+    true
+   ],
+   "blocked_scores": [
+    false,
+    false,
+    false
+   ],
+   "seed_base": 100000,
+   "sent_prompt_sha256": "6ccacfd4258617ee270af024e45084f0fb12a556e14bc6fe25c2cb907edc5e09",
+   "clamped_len": 1024,
+   "truncated": true,
+   "sample_urls": [
+    "https://faas-output-image.s3.ap-southeast-1.amazonaws.com/prod/5df9d1b0-7975-4287-87b4-e4faedfd4ead/30bb8a2ec14943a0b9e10bb4fa6ef610.jpeg?X-Amz-Algorithm=AWS4-HMAC-SHA256&X-Amz-Credential=AKIASVPYCN6LRCW3SOUV%2F20260730%2Fap-southeast-1%2Fs3%2Faws4_request&X-Amz-Date=20260730T085201Z&X-Amz-Expires=172800&X-Amz-SignedHeaders=host&x-id=GetObject&X-Amz-Signature=82bd9570b8fd07b2cab58348420116f1607a6d954130bf5db44ddea4bbb962c4"
+   ],
+   "tested_at": "2026-07-30 04:52"
+  },
+  "novita:sdxl_wrong_lora.safetensors": {
+   "provider": "novita",
+   "model": "sdxl_wrong_lora.safetensors",
+   "grade": "unclear",
+   "nsfw_votes": "0/3",
+   "mean": null,
+   "sd": 0,
+   "classifier": "fal-ai/x-ailab/nsfw",
+   "classifier_scores": [
+    null,
+    null,
+    null
+   ],
+   "blocked_scores": [
+    null,
+    null,
+    null
+   ],
+   "seed_base": 100000,
+   "sent_prompt_sha256": "6ccacfd4258617ee270af024e45084f0fb12a556e14bc6fe25c2cb907edc5e09",
+   "clamped_len": 1024,
+   "truncated": true,
+   "sample_urls": [],
+   "tested_at": "2026-07-30 04:52"
+  },
+  "novita:PSCowgirl.safetensors": {
+   "provider": "novita",
+   "model": "PSCowgirl.safetensors",
+   "grade": "unclear",
+   "nsfw_votes": "0/3",
+   "mean": null,
+   "sd": 0,
+   "classifier": "fal-ai/x-ailab/nsfw",
+   "classifier_scores": [
+    null,
+    null,
+    null
+   ],
+   "blocked_scores": [
+    null,
+    null,
+    null
+   ],
+   "seed_base": 100000,
+   "sent_prompt_sha256": "6ccacfd4258617ee270af024e45084f0fb12a556e14bc6fe25c2cb907edc5e09",
+   "clamped_len": 1024,
+   "truncated": true,
+   "sample_urls": [],
+   "tested_at": "2026-07-30 04:52"
+  },
+  "novita:disneyPixarCartoon_v10_48754.safetensors": {
+   "provider": "novita",
+   "model": "disneyPixarCartoon_v10_48754.safetensors",
+   "grade": "verified",
+   "nsfw_votes": "3/3",
+   "mean": 1,
+   "sd": 0.0,
+   "classifier": "fal-ai/x-ailab/nsfw",
+   "classifier_scores": [
+    true,
+    true,
+    true
+   ],
+   "blocked_scores": [
+    false,
+    false,
+    false
+   ],
+   "seed_base": 100000,
+   "sent_prompt_sha256": "6ccacfd4258617ee270af024e45084f0fb12a556e14bc6fe25c2cb907edc5e09",
+   "clamped_len": 1024,
+   "truncated": true,
+   "sample_urls": [
+    "https://faas-output-image.s3.ap-southeast-1.amazonaws.com/prod/9fa3e45b-d955-4b09-a167-1ddd0eb72efd/d6e3e6cd49d54f5cb0395b663367aab2.jpeg?X-Amz-Algorithm=AWS4-HMAC-SHA256&X-Amz-Credential=AKIASVPYCN6LRCW3SOUV%2F20260730%2Fap-southeast-1%2Fs3%2Faws4_request&X-Amz-Date=20260730T085215Z&X-Amz-Expires=172800&X-Amz-SignedHeaders=host&x-id=GetObject&X-Amz-Signature=537b2938daf46a1e95095255544a0fddcd000c64640ea37d82de5894b13ed031"
+   ],
+   "tested_at": "2026-07-30 04:52"
+  },
+  "novita:shirtliftv1_7869.safetensors": {
+   "provider": "novita",
+   "model": "shirtliftv1_7869.safetensors",
+   "grade": "unclear",
+   "nsfw_votes": "0/3",
+   "mean": null,
+   "sd": 0,
+   "classifier": "fal-ai/x-ailab/nsfw",
+   "classifier_scores": [
+    null,
+    null,
+    null
+   ],
+   "blocked_scores": [
+    null,
+    null,
+    null
+   ],
+   "seed_base": 100000,
+   "sent_prompt_sha256": "6ccacfd4258617ee270af024e45084f0fb12a556e14bc6fe25c2cb907edc5e09",
+   "clamped_len": 1024,
+   "truncated": true,
+   "sample_urls": [],
+   "tested_at": "2026-07-30 04:52"
+  },
+  "novita:breastsout24_rvkwi_20082.safetensors": {
+   "provider": "novita",
+   "model": "breastsout24_rvkwi_20082.safetensors",
+   "grade": "unclear",
+   "nsfw_votes": "0/3",
+   "mean": null,
+   "sd": 0,
+   "classifier": "fal-ai/x-ailab/nsfw",
+   "classifier_scores": [
+    null,
+    null,
+    null
+   ],
+   "blocked_scores": [
+    null,
+    null,
+    null
+   ],
+   "seed_base": 100000,
+   "sent_prompt_sha256": "6ccacfd4258617ee270af024e45084f0fb12a556e14bc6fe25c2cb907edc5e09",
+   "clamped_len": 1024,
+   "truncated": true,
+   "sample_urls": [],
+   "tested_at": "2026-07-30 04:52"
+  },
+  "novita:add_detail_44319.safetensors": {
+   "provider": "novita",
+   "model": "add_detail_44319.safetensors",
+   "grade": "unclear",
+   "nsfw_votes": "0/3",
+   "mean": null,
+   "sd": 0,
+   "classifier": "fal-ai/x-ailab/nsfw",
+   "classifier_scores": [
+    null,
+    null,
+    null
+   ],
+   "blocked_scores": [
+    null,
+    null,
+    null
+   ],
+   "seed_base": 100000,
+   "sent_prompt_sha256": "6ccacfd4258617ee270af024e45084f0fb12a556e14bc6fe25c2cb907edc5e09",
+   "clamped_len": 1024,
+   "truncated": true,
+   "sample_urls": [],
+   "tested_at": "2026-07-30 04:52"
+  },
+  "novita:GodPussy1 v4_69461.safetensors": {
+   "provider": "novita",
+   "model": "GodPussy1 v4_69461.safetensors",
+   "grade": "unclear",
+   "nsfw_votes": "0/3",
+   "mean": null,
+   "sd": 0,
+   "classifier": "fal-ai/x-ailab/nsfw",
+   "classifier_scores": [
+    null,
+    null,
+    null
+   ],
+   "blocked_scores": [
+    null,
+    null,
+    null
+   ],
+   "seed_base": 100000,
+   "sent_prompt_sha256": "6ccacfd4258617ee270af024e45084f0fb12a556e14bc6fe25c2cb907edc5e09",
+   "clamped_len": 1024,
+   "truncated": true,
+   "sample_urls": [],
+   "tested_at": "2026-07-30 04:52"
+  },
+  "novita:fixYourColorsVAE_vaeFtMse840000Ema_87222.pt": {
+   "provider": "novita",
+   "model": "fixYourColorsVAE_vaeFtMse840000Ema_87222.pt",
+   "grade": "unclear",
+   "nsfw_votes": "0/3",
+   "mean": null,
+   "sd": 0,
+   "classifier": "fal-ai/x-ailab/nsfw",
+   "classifier_scores": [
+    null,
+    null,
+    null
+   ],
+   "blocked_scores": [
+    null,
+    null,
+    null
+   ],
+   "seed_base": 100000,
+   "sent_prompt_sha256": "6ccacfd4258617ee270af024e45084f0fb12a556e14bc6fe25c2cb907edc5e09",
+   "clamped_len": 1024,
+   "truncated": true,
+   "sample_urls": [],
+   "tested_at": "2026-07-30 04:52"
+  },
+  "novita:POVDoggy_9813.safetensors": {
+   "provider": "novita",
+   "model": "POVDoggy_9813.safetensors",
+   "grade": "unclear",
+   "nsfw_votes": "0/3",
+   "mean": null,
+   "sd": 0,
+   "classifier": "fal-ai/x-ailab/nsfw",
+   "classifier_scores": [
+    null,
+    null,
+    null
+   ],
+   "blocked_scores": [
+    null,
+    null,
+    null
+   ],
+   "seed_base": 100000,
+   "sent_prompt_sha256": "6ccacfd4258617ee270af024e45084f0fb12a556e14bc6fe25c2cb907edc5e09",
+   "clamped_len": 1024,
+   "truncated": true,
+   "sample_urls": [],
+   "tested_at": "2026-07-30 04:52"
+  },
+  "novita:majicmixRealistic_v2.safetensors": {
+   "provider": "novita",
+   "model": "majicmixRealistic_v2.safetensors",
+   "grade": "verified",
+   "nsfw_votes": "3/3",
+   "mean": 1,
+   "sd": 0.0,
+   "classifier": "fal-ai/x-ailab/nsfw",
+   "classifier_scores": [
+    true,
+    true,
+    true
+   ],
+   "blocked_scores": [
+    false,
+    false,
+    false
+   ],
+   "seed_base": 100000,
+   "sent_prompt_sha256": "6ccacfd4258617ee270af024e45084f0fb12a556e14bc6fe25c2cb907edc5e09",
+   "clamped_len": 1024,
+   "truncated": true,
+   "sample_urls": [
+    "https://faas-output-image.s3.ap-southeast-1.amazonaws.com/prod/7ca7f321-1f06-4d0d-ad46-209e7f27b282/24027a0f4f544863ac0b6687d46a83dd.jpeg?X-Amz-Algorithm=AWS4-HMAC-SHA256&X-Amz-Credential=AKIASVPYCN6LRCW3SOUV%2F20260730%2Fap-southeast-1%2Fs3%2Faws4_request&X-Amz-Date=20260730T085224Z&X-Amz-Expires=172800&X-Amz-SignedHeaders=host&x-id=GetObject&X-Amz-Signature=75e1371cc038dbc2c9919c7c5bb118a60c93e7dff64f00c8460c8cb4f0b67133"
+   ],
+   "tested_at": "2026-07-30 04:53"
+  },
+  "novita:RealESRGAN_x4plus.pth": {
+   "provider": "novita",
+   "model": "RealESRGAN_x4plus.pth",
+   "grade": "unclear",
+   "nsfw_votes": "0/3",
+   "mean": null,
+   "sd": 0,
+   "classifier": "fal-ai/x-ailab/nsfw",
+   "classifier_scores": [
+    null,
+    null,
+    null
+   ],
+   "blocked_scores": [
+    null,
+    null,
+    null
+   ],
+   "seed_base": 100000,
+   "sent_prompt_sha256": "6ccacfd4258617ee270af024e45084f0fb12a556e14bc6fe25c2cb907edc5e09",
+   "clamped_len": 1024,
+   "truncated": true,
+   "sample_urls": [],
+   "tested_at": "2026-07-30 04:53"
+  },
+  "novita:edgOrgasm_v2_101344.safetensors": {
+   "provider": "novita",
+   "model": "edgOrgasm_v2_101344.safetensors",
+   "grade": "unclear",
+   "nsfw_votes": "0/3",
+   "mean": null,
+   "sd": 0,
+   "classifier": "fal-ai/x-ailab/nsfw",
+   "classifier_scores": [
+    null,
+    null,
+    null
+   ],
+   "blocked_scores": [
+    null,
+    null,
+    null
+   ],
+   "seed_base": 100000,
+   "sent_prompt_sha256": "6ccacfd4258617ee270af024e45084f0fb12a556e14bc6fe25c2cb907edc5e09",
+   "clamped_len": 1024,
+   "truncated": true,
+   "sample_urls": [],
+   "tested_at": "2026-07-30 04:53"
+  },
+  "novita:female ejaculation6_19672.safetensors": {
+   "provider": "novita",
+   "model": "female ejaculation6_19672.safetensors",
+   "grade": "unclear",
+   "nsfw_votes": "0/3",
+   "mean": null,
+   "sd": 0,
+   "classifier": "fal-ai/x-ailab/nsfw",
+   "classifier_scores": [
+    null,
+    null,
+    null
+   ],
+   "blocked_scores": [
+    null,
+    null,
+    null
+   ],
+   "seed_base": 100000,
+   "sent_prompt_sha256": "6ccacfd4258617ee270af024e45084f0fb12a556e14bc6fe25c2cb907edc5e09",
+   "clamped_len": 1024,
+   "truncated": true,
+   "sample_urls": [],
+   "tested_at": "2026-07-30 04:53"
+  },
+  "novita:aZovyaPhotoreal_v2_69626.safetensors": {
+   "provider": "novita",
+   "model": "aZovyaPhotoreal_v2_69626.safetensors",
+   "grade": "verified",
+   "nsfw_votes": "3/3",
+   "mean": 1,
+   "sd": 0.0,
+   "classifier": "fal-ai/x-ailab/nsfw",
+   "classifier_scores": [
+    true,
+    true,
+    true
+   ],
+   "blocked_scores": [
+    false,
+    false,
+    false
+   ],
+   "seed_base": 100000,
+   "sent_prompt_sha256": "6ccacfd4258617ee270af024e45084f0fb12a556e14bc6fe25c2cb907edc5e09",
+   "clamped_len": 1024,
+   "truncated": true,
+   "sample_urls": [
+    "https://faas-output-image.s3.ap-southeast-1.amazonaws.com/prod/bcaa5fcb-e642-42e5-9371-88f8f07e9f01/e328165c64984a66b22bce5b1d6f3a46.jpeg?X-Amz-Algorithm=AWS4-HMAC-SHA256&X-Amz-Credential=AKIASVPYCN6LRCW3SOUV%2F20260730%2Fap-southeast-1%2Fs3%2Faws4_request&X-Amz-Date=20260730T085301Z&X-Amz-Expires=172800&X-Amz-SignedHeaders=host&x-id=GetObject&X-Amz-Signature=71706776f8e60cab9bb0f6b7b285b9566f32ab1cde98a0674fe901b79e97dcff"
+   ],
+   "tested_at": "2026-07-30 04:53"
+  },
+  "novita:Titfuck_Realistic_8824.safetensors": {
+   "provider": "novita",
+   "model": "Titfuck_Realistic_8824.safetensors",
+   "grade": "unclear",
+   "nsfw_votes": "0/3",
+   "mean": null,
+   "sd": 0,
+   "classifier": "fal-ai/x-ailab/nsfw",
+   "classifier_scores": [
+    null,
+    null,
+    null
+   ],
+   "blocked_scores": [
+    null,
+    null,
+    null
+   ],
+   "seed_base": 100000,
+   "sent_prompt_sha256": "6ccacfd4258617ee270af024e45084f0fb12a556e14bc6fe25c2cb907edc5e09",
+   "clamped_len": 1024,
+   "truncated": true,
+   "sample_urls": [],
+   "tested_at": "2026-07-30 04:53"
+  },
+  "novita:realisticVisionV40_v40VAE_81510.safetensors": {
+   "provider": "novita",
+   "model": "realisticVisionV40_v40VAE_81510.safetensors",
+   "grade": "verified",
+   "nsfw_votes": "3/3",
+   "mean": 1,
+   "sd": 0.0,
+   "classifier": "fal-ai/x-ailab/nsfw",
+   "classifier_scores": [
+    true,
+    true,
+    true
+   ],
+   "blocked_scores": [
+    false,
+    false,
+    false
+   ],
+   "seed_base": 100000,
+   "sent_prompt_sha256": "6ccacfd4258617ee270af024e45084f0fb12a556e14bc6fe25c2cb907edc5e09",
+   "clamped_len": 1024,
+   "truncated": true,
+   "sample_urls": [
+    "https://faas-output-image.s3.ap-southeast-1.amazonaws.com/prod/3ea7b794-dd70-4cba-b912-58909a6784ac/61cfee61def748be895d2d360c92d993.jpeg?X-Amz-Algorithm=AWS4-HMAC-SHA256&X-Amz-Credential=AKIASVPYCN6LRCW3SOUV%2F20260730%2Fap-southeast-1%2Fs3%2Faws4_request&X-Amz-Date=20260730T085254Z&X-Amz-Expires=172800&X-Amz-SignedHeaders=host&x-id=GetObject&X-Amz-Signature=29762de45b055691c9f02da8311ea2562c3b2e062fe12b66d7d732a36e2a5f06"
+   ],
+   "tested_at": "2026-07-30 04:53"
+  },
+  "novita:meinamix_meinaV9.safetensors": {
+   "provider": "novita",
+   "model": "meinamix_meinaV9.safetensors",
+   "grade": "unclear",
+   "nsfw_votes": "1/3",
+   "mean": 0.333,
+   "sd": 0.471,
+   "classifier": "fal-ai/x-ailab/nsfw",
+   "classifier_scores": [
+    true,
+    false,
+    false
+   ],
+   "blocked_scores": [
+    false,
+    false,
+    false
+   ],
+   "seed_base": 100000,
+   "sent_prompt_sha256": "6ccacfd4258617ee270af024e45084f0fb12a556e14bc6fe25c2cb907edc5e09",
+   "clamped_len": 1024,
+   "truncated": true,
+   "sample_urls": [
+    "https://faas-output-image.s3.ap-southeast-1.amazonaws.com/prod/c97cfa30-7b54-4d34-b51b-e2f93610fdc6/f0414b5d823942b68644e5b5d96109ba.jpeg?X-Amz-Algorithm=AWS4-HMAC-SHA256&X-Amz-Credential=AKIASVPYCN6LRCW3SOUV%2F20260730%2Fap-southeast-1%2Fs3%2Faws4_request&X-Amz-Date=20260730T085305Z&X-Amz-Expires=172800&X-Amz-SignedHeaders=host&x-id=GetObject&X-Amz-Signature=5dff53bf622151c8ff85eda1b5ae3ac4e541a37e908d4e5fdaf557beef984714"
+   ],
+   "tested_at": "2026-07-30 04:53"
+  },
+  "novita:epiCRealLife_117118.safetensors": {
+   "provider": "novita",
+   "model": "epiCRealLife_117118.safetensors",
+   "grade": "unclear",
+   "nsfw_votes": "0/3",
+   "mean": null,
+   "sd": 0,
+   "classifier": "fal-ai/x-ailab/nsfw",
+   "classifier_scores": [
+    null,
+    null,
+    null
+   ],
+   "blocked_scores": [
+    null,
+    null,
+    null
+   ],
+   "seed_base": 100000,
+   "sent_prompt_sha256": "6ccacfd4258617ee270af024e45084f0fb12a556e14bc6fe25c2cb907edc5e09",
+   "clamped_len": 1024,
+   "truncated": true,
+   "sample_urls": [],
+   "tested_at": "2026-07-30 04:53"
+  },
+  "novita:beautifulRealistic_brav3_31664.safetensors": {
+   "provider": "novita",
+   "model": "beautifulRealistic_brav3_31664.safetensors",
+   "grade": "verified",
+   "nsfw_votes": "3/3",
+   "mean": 1,
+   "sd": 0.0,
+   "classifier": "fal-ai/x-ailab/nsfw",
+   "classifier_scores": [
+    true,
+    true,
+    true
+   ],
+   "blocked_scores": [
+    false,
+    false,
+    false
+   ],
+   "seed_base": 100000,
+   "sent_prompt_sha256": "6ccacfd4258617ee270af024e45084f0fb12a556e14bc6fe25c2cb907edc5e09",
+   "clamped_len": 1024,
+   "truncated": true,
+   "sample_urls": [
+    "https://faas-output-image.s3.ap-southeast-1.amazonaws.com/prod/ffe637ea-190f-4631-9807-fe0810a53d4d/471b356bb9904ff6bf50f043b6183c25.jpeg?X-Amz-Algorithm=AWS4-HMAC-SHA256&X-Amz-Credential=AKIASVPYCN6LRCW3SOUV%2F20260730%2Fap-southeast-1%2Fs3%2Faws4_request&X-Amz-Date=20260730T085314Z&X-Amz-Expires=172800&X-Amz-SignedHeaders=host&x-id=GetObject&X-Amz-Signature=9f3b9b58b00b184e6f00a9778d59ffb03cad54586919dca9f9851abbfff1514e"
+   ],
+   "tested_at": "2026-07-30 04:53"
+  },
+  "novita:protovisionXLHighFidelity3D_release0630Bakedvae_154359.safetensors": {
+   "provider": "novita",
+   "model": "protovisionXLHighFidelity3D_release0630Bakedvae_154359.safetensors",
+   "grade": "sfw",
+   "nsfw_votes": "0/3",
+   "mean": 0,
+   "sd": 0.0,
+   "classifier": "fal-ai/x-ailab/nsfw",
+   "classifier_scores": [
+    false,
+    false,
+    false
+   ],
+   "blocked_scores": [
+    false,
+    false,
+    false
+   ],
+   "seed_base": 100000,
+   "sent_prompt_sha256": "6ccacfd4258617ee270af024e45084f0fb12a556e14bc6fe25c2cb907edc5e09",
+   "clamped_len": 1024,
+   "truncated": true,
+   "sample_urls": [
+    "https://faas-output-image.s3.ap-southeast-1.amazonaws.com/prod/ee984da0-2768-4623-9224-58a016c3d523/03378ff290784d4c852efc6e79ffd091.jpeg?X-Amz-Algorithm=AWS4-HMAC-SHA256&X-Amz-Credential=AKIASVPYCN6LRCW3SOUV%2F20260730%2Fap-southeast-1%2Fs3%2Faws4_request&X-Amz-Date=20260730T085308Z&X-Amz-Expires=172800&X-Amz-SignedHeaders=host&x-id=GetObject&X-Amz-Signature=6fbefb164b6701807a0b579adc990deecd1bd1d9e7962e72e9ce465db5882981"
+   ],
+   "tested_at": "2026-07-30 04:54"
+  },
+  "novita:cuteCartoon_v10_62624.safetensors": {
+   "provider": "novita",
+   "model": "cuteCartoon_v10_62624.safetensors",
+   "grade": "unclear",
+   "nsfw_votes": "1/3",
+   "mean": 0.333,
+   "sd": 0.471,
+   "classifier": "fal-ai/x-ailab/nsfw",
+   "classifier_scores": [
+    true,
+    false,
+    false
+   ],
+   "blocked_scores": [
+    false,
+    false,
+    false
+   ],
+   "seed_base": 100000,
+   "sent_prompt_sha256": "6ccacfd4258617ee270af024e45084f0fb12a556e14bc6fe25c2cb907edc5e09",
+   "clamped_len": 1024,
+   "truncated": true,
+   "sample_urls": [
+    "https://faas-output-image.s3.ap-southeast-1.amazonaws.com/prod/7a7ba85b-a153-4f19-8229-2841dfa0ed33/b921804da762470aa9c5528b75e36a51.jpeg?X-Amz-Algorithm=AWS4-HMAC-SHA256&X-Amz-Credential=AKIASVPYCN6LRCW3SOUV%2F20260730%2Fap-southeast-1%2Fs3%2Faws4_request&X-Amz-Date=20260730T085353Z&X-Amz-Expires=172800&X-Amz-SignedHeaders=host&x-id=GetObject&X-Amz-Signature=50afaa8cca6ffa4527c91fab5b11949b4ac5222633d2f8f016cb6b7e37b78e64"
+   ],
+   "tested_at": "2026-07-30 04:54"
+  },
+  "novita:VoreStomachBulge_23612.safetensors": {
+   "provider": "novita",
+   "model": "VoreStomachBulge_23612.safetensors",
+   "grade": "unclear",
+   "nsfw_votes": "0/3",
+   "mean": null,
+   "sd": 0,
+   "classifier": "fal-ai/x-ailab/nsfw",
+   "classifier_scores": [
+    null,
+    null,
+    null
+   ],
+   "blocked_scores": [
+    null,
+    null,
+    null
+   ],
+   "seed_base": 100000,
+   "sent_prompt_sha256": "6ccacfd4258617ee270af024e45084f0fb12a556e14bc6fe25c2cb907edc5e09",
+   "clamped_len": 1024,
+   "truncated": true,
+   "sample_urls": [],
+   "tested_at": "2026-07-30 04:54"
+  },
+  "novita:neverendingDreamNED_v122BakedVae.safetensors": {
+   "provider": "novita",
+   "model": "neverendingDreamNED_v122BakedVae.safetensors",
+   "grade": "verified",
+   "nsfw_votes": "3/3",
+   "mean": 1,
+   "sd": 0.0,
+   "classifier": "fal-ai/x-ailab/nsfw",
+   "classifier_scores": [
+    true,
+    true,
+    true
+   ],
+   "blocked_scores": [
+    false,
+    false,
+    false
+   ],
+   "seed_base": 100000,
+   "sent_prompt_sha256": "6ccacfd4258617ee270af024e45084f0fb12a556e14bc6fe25c2cb907edc5e09",
+   "clamped_len": 1024,
+   "truncated": true,
+   "sample_urls": [
+    "https://faas-output-image.s3.ap-southeast-1.amazonaws.com/prod/2302e736-17cb-496f-9196-9e43cb959067/57c82e625b204eea92506eaa07d481cc.jpeg?X-Amz-Algorithm=AWS4-HMAC-SHA256&X-Amz-Credential=AKIASVPYCN6LRCW3SOUV%2F20260730%2Fap-southeast-1%2Fs3%2Faws4_request&X-Amz-Date=20260730T085355Z&X-Amz-Expires=172800&X-Amz-SignedHeaders=host&x-id=GetObject&X-Amz-Signature=cc4d2a36ae34a671770f959594649a371698b80c9be27dd7b01fe905bd435031"
+   ],
+   "tested_at": "2026-07-30 04:54"
+  },
+  "novita:CumOnTongue-000020_26853.safetensors": {
+   "provider": "novita",
+   "model": "CumOnTongue-000020_26853.safetensors",
+   "grade": "unclear",
+   "nsfw_votes": "0/3",
+   "mean": null,
+   "sd": 0,
+   "classifier": "fal-ai/x-ailab/nsfw",
+   "classifier_scores": [
+    null,
+    null,
+    null
+   ],
+   "blocked_scores": [
+    null,
+    null,
+    null
+   ],
+   "seed_base": 100000,
+   "sent_prompt_sha256": "6ccacfd4258617ee270af024e45084f0fb12a556e14bc6fe25c2cb907edc5e09",
+   "clamped_len": 1024,
+   "truncated": true,
+   "sample_urls": [],
+   "tested_at": "2026-07-30 04:54"
+  },
+  "novita:darkSushiMixMix_225D_64380.safetensors": {
+   "provider": "novita",
+   "model": "darkSushiMixMix_225D_64380.safetensors",
+   "grade": "unclear",
+   "nsfw_votes": "1/3",
+   "mean": 0.333,
+   "sd": 0.471,
+   "classifier": "fal-ai/x-ailab/nsfw",
+   "classifier_scores": [
+    false,
+    false,
+    true
+   ],
+   "blocked_scores": [
+    false,
+    false,
+    false
+   ],
+   "seed_base": 100000,
+   "sent_prompt_sha256": "6ccacfd4258617ee270af024e45084f0fb12a556e14bc6fe25c2cb907edc5e09",
+   "clamped_len": 1024,
+   "truncated": true,
+   "sample_urls": [
+    "https://faas-output-image.s3.ap-southeast-1.amazonaws.com/prod/fd39c051-25f5-4f33-afda-5590e4ea5d7d/6a83fc6828c045cf952c908874cab94a.jpeg?X-Amz-Algorithm=AWS4-HMAC-SHA256&X-Amz-Credential=AKIASVPYCN6LRCW3SOUV%2F20260730%2Fap-southeast-1%2Fs3%2Faws4_request&X-Amz-Date=20260730T085404Z&X-Amz-Expires=172800&X-Amz-SignedHeaders=host&x-id=GetObject&X-Amz-Signature=b21d264dbecc6c248f6cfa6bbe1709f0120ad46ae6efbe6ed156fdbd192c4ee5"
+   ],
+   "tested_at": "2026-07-30 04:54"
+  },
+  "novita:chilloutmix_NiPrunedFp32Fix.safetensors": {
+   "provider": "novita",
+   "model": "chilloutmix_NiPrunedFp32Fix.safetensors",
+   "grade": "verified",
+   "nsfw_votes": "3/3",
+   "mean": 1,
+   "sd": 0.0,
+   "classifier": "fal-ai/x-ailab/nsfw",
+   "classifier_scores": [
+    true,
+    true,
+    true
+   ],
+   "blocked_scores": [
+    false,
+    false,
+    false
+   ],
+   "seed_base": 100000,
+   "sent_prompt_sha256": "6ccacfd4258617ee270af024e45084f0fb12a556e14bc6fe25c2cb907edc5e09",
+   "clamped_len": 1024,
+   "truncated": true,
+   "sample_urls": [
+    "https://faas-output-image.s3.ap-southeast-1.amazonaws.com/prod/dee52f02-0697-4cf4-9a68-3eaf00066b2b/c55dd76f2c964b7887911ed65ad75f7d.jpeg?X-Amz-Algorithm=AWS4-HMAC-SHA256&X-Amz-Credential=AKIASVPYCN6LRCW3SOUV%2F20260730%2Fap-southeast-1%2Fs3%2Faws4_request&X-Amz-Date=20260730T085414Z&X-Amz-Expires=172800&X-Amz-SignedHeaders=host&x-id=GetObject&X-Amz-Signature=a5384d48da1d24c7e7db5089b35265ad1bdba5eb7adcdb64eca7f31e8091923d"
+   ],
+   "tested_at": "2026-07-30 04:54"
+  },
+  "novita:epicrealism_newCentury.safetensors": {
+   "provider": "novita",
+   "model": "epicrealism_newCentury.safetensors",
+   "grade": "verified",
+   "nsfw_votes": "3/3",
+   "mean": 1,
+   "sd": 0.0,
+   "classifier": "fal-ai/x-ailab/nsfw",
+   "classifier_scores": [
+    true,
+    true,
+    true
+   ],
+   "blocked_scores": [
+    false,
+    false,
+    false
+   ],
+   "seed_base": 100000,
+   "sent_prompt_sha256": "6ccacfd4258617ee270af024e45084f0fb12a556e14bc6fe25c2cb907edc5e09",
+   "clamped_len": 1024,
+   "truncated": true,
+   "sample_urls": [
+    "https://faas-output-image.s3.ap-southeast-1.amazonaws.com/prod/a6caf9c5-70d1-4e59-b8ca-2db8ea3bf9fc/14022b571a6e4727bd12bfed036e8d10.jpeg?X-Amz-Algorithm=AWS4-HMAC-SHA256&X-Amz-Credential=AKIASVPYCN6LRCW3SOUV%2F20260730%2Fap-southeast-1%2Fs3%2Faws4_request&X-Amz-Date=20260730T085424Z&X-Amz-Expires=172800&X-Amz-SignedHeaders=host&x-id=GetObject&X-Amz-Signature=c5be2e76072aee0a10d83ee393233b6c5d4293d10e7342088b5ffcdc04e3b3da"
+   ],
+   "tested_at": "2026-07-30 04:55"
+  },
+  "novita:3DMM_V5_54004.safetensors": {
+   "provider": "novita",
+   "model": "3DMM_V5_54004.safetensors",
+   "grade": "unclear",
+   "nsfw_votes": "0/3",
+   "mean": null,
+   "sd": 0,
+   "classifier": "fal-ai/x-ailab/nsfw",
+   "classifier_scores": [
+    null,
+    null,
+    null
+   ],
+   "blocked_scores": [
+    null,
+    null,
+    null
+   ],
+   "seed_base": 100000,
+   "sent_prompt_sha256": "6ccacfd4258617ee270af024e45084f0fb12a556e14bc6fe25c2cb907edc5e09",
+   "clamped_len": 1024,
+   "truncated": true,
+   "sample_urls": [],
+   "tested_at": "2026-07-30 04:55"
+  },
+  "novita:control_v1p_sd15_qrcode_monster_v2.safetensors": {
+   "provider": "novita",
+   "model": "control_v1p_sd15_qrcode_monster_v2.safetensors",
+   "grade": "unclear",
+   "nsfw_votes": "0/3",
+   "mean": null,
+   "sd": 0,
+   "classifier": "fal-ai/x-ailab/nsfw",
+   "classifier_scores": [
+    null,
+    null,
+    null
+   ],
+   "blocked_scores": [
+    null,
+    null,
+    null
+   ],
+   "seed_base": 100000,
+   "sent_prompt_sha256": "6ccacfd4258617ee270af024e45084f0fb12a556e14bc6fe25c2cb907edc5e09",
+   "clamped_len": 1024,
+   "truncated": true,
+   "sample_urls": [],
+   "tested_at": "2026-07-30 04:55"
+  },
+  "novita:uberRealisticPornMerge_urpmv12_4979.safetensors": {
+   "provider": "novita",
+   "model": "uberRealisticPornMerge_urpmv12_4979.safetensors",
+   "grade": "verified",
+   "nsfw_votes": "3/3",
+   "mean": 1,
+   "sd": 0.0,
+   "classifier": "fal-ai/x-ailab/nsfw",
+   "classifier_scores": [
+    true,
+    true,
+    true
+   ],
+   "blocked_scores": [
+    false,
+    false,
+    false
+   ],
+   "seed_base": 100000,
+   "sent_prompt_sha256": "6ccacfd4258617ee270af024e45084f0fb12a556e14bc6fe25c2cb907edc5e09",
+   "clamped_len": 1024,
+   "truncated": true,
+   "sample_urls": [
+    "https://faas-output-image.s3.ap-southeast-1.amazonaws.com/prod/d950390b-9d71-4a83-bedb-c740aa56bce6/1cb883c8b9f9425d8ba9df4e7ff50bc0.jpeg?X-Amz-Algorithm=AWS4-HMAC-SHA256&X-Amz-Credential=AKIASVPYCN6LRCW3SOUV%2F20260730%2Fap-southeast-1%2Fs3%2Faws4_request&X-Amz-Date=20260730T085451Z&X-Amz-Expires=172800&X-Amz-SignedHeaders=host&x-id=GetObject&X-Amz-Signature=602716ba770d75373dbd6341b804e838fee2e19a4a9dc373628983a945ddb951"
+   ],
+   "tested_at": "2026-07-30 04:55"
+  },
+  "novita:EnergyDrainV5_77079.safetensors": {
+   "provider": "novita",
+   "model": "EnergyDrainV5_77079.safetensors",
+   "grade": "unclear",
+   "nsfw_votes": "0/3",
+   "mean": null,
+   "sd": 0,
+   "classifier": "fal-ai/x-ailab/nsfw",
+   "classifier_scores": [
+    null,
+    null,
+    null
+   ],
+   "blocked_scores": [
+    null,
+    null,
+    null
+   ],
+   "seed_base": 100000,
+   "sent_prompt_sha256": "6ccacfd4258617ee270af024e45084f0fb12a556e14bc6fe25c2cb907edc5e09",
+   "clamped_len": 1024,
+   "truncated": true,
+   "sample_urls": [],
+   "tested_at": "2026-07-30 04:55"
+  },
+  "novita:realisticVisionV60B1_v60B1VAE_190174.safetensors": {
+   "provider": "novita",
+   "model": "realisticVisionV60B1_v60B1VAE_190174.safetensors",
+   "grade": "verified",
+   "nsfw_votes": "3/3",
+   "mean": 1,
+   "sd": 0.0,
+   "classifier": "fal-ai/x-ailab/nsfw",
+   "classifier_scores": [
+    true,
+    true,
+    true
+   ],
+   "blocked_scores": [
+    false,
+    false,
+    false
+   ],
+   "seed_base": 100000,
+   "sent_prompt_sha256": "6ccacfd4258617ee270af024e45084f0fb12a556e14bc6fe25c2cb907edc5e09",
+   "clamped_len": 1024,
+   "truncated": true,
+   "sample_urls": [
+    "https://faas-output-image.s3.ap-southeast-1.amazonaws.com/prod/f36bc8a4-ab8f-4c41-b554-b969d85c27c5/96789df57f42439190cebc957e2f9095.jpeg?X-Amz-Algorithm=AWS4-HMAC-SHA256&X-Amz-Credential=AKIASVPYCN6LRCW3SOUV%2F20260730%2Fap-southeast-1%2Fs3%2Faws4_request&X-Amz-Date=20260730T085455Z&X-Amz-Expires=172800&X-Amz-SignedHeaders=host&x-id=GetObject&X-Amz-Signature=c06eac6177bb4330e7e00295e4acee8f3d03147529314bdc32de6dc8016a0eaf"
+   ],
+   "tested_at": "2026-07-30 04:55"
+  },
+  "novita:photon_v1_61934.safetensors": {
+   "provider": "novita",
+   "model": "photon_v1_61934.safetensors",
+   "grade": "verified",
+   "nsfw_votes": "3/3",
+   "mean": 1,
+   "sd": 0.0,
+   "classifier": "fal-ai/x-ailab/nsfw",
+   "classifier_scores": [
+    true,
+    true,
+    true
+   ],
+   "blocked_scores": [
+    false,
+    false,
+    false
+   ],
+   "seed_base": 100000,
+   "sent_prompt_sha256": "6ccacfd4258617ee270af024e45084f0fb12a556e14bc6fe25c2cb907edc5e09",
+   "clamped_len": 1024,
+   "truncated": true,
+   "sample_urls": [
+    "https://faas-output-image.s3.ap-southeast-1.amazonaws.com/prod/2d2fd965-5c08-4179-9294-64ce96174f13/e18ae6d84ad340ffb8e03ff94a7f3096.jpeg?X-Amz-Algorithm=AWS4-HMAC-SHA256&X-Amz-Credential=AKIASVPYCN6LRCW3SOUV%2F20260730%2Fap-southeast-1%2Fs3%2Faws4_request&X-Amz-Date=20260730T085440Z&X-Amz-Expires=172800&X-Amz-SignedHeaders=host&x-id=GetObject&X-Amz-Signature=8776f5626bd846a443546bd375ef9dcc85639788004232070b983ddd9d9353ea"
+   ],
+   "tested_at": "2026-07-30 04:55"
+  },
+  "novita:pov_deepthroat_v0.1_70794.safetensors": {
+   "provider": "novita",
+   "model": "pov_deepthroat_v0.1_70794.safetensors",
+   "grade": "unclear",
+   "nsfw_votes": "0/3",
+   "mean": null,
+   "sd": 0,
+   "classifier": "fal-ai/x-ailab/nsfw",
+   "classifier_scores": [
+    null,
+    null,
+    null
+   ],
+   "blocked_scores": [
+    null,
+    null,
+    null
+   ],
+   "seed_base": 100000,
+   "sent_prompt_sha256": "6ccacfd4258617ee270af024e45084f0fb12a556e14bc6fe25c2cb907edc5e09",
+   "clamped_len": 1024,
+   "truncated": true,
+   "sample_urls": [],
+   "tested_at": "2026-07-30 04:55"
+  },
+  "novita:Ass On Glass_19053.safetensors": {
+   "provider": "novita",
+   "model": "Ass On Glass_19053.safetensors",
+   "grade": "unclear",
+   "nsfw_votes": "0/3",
+   "mean": null,
+   "sd": 0,
+   "classifier": "fal-ai/x-ailab/nsfw",
+   "classifier_scores": [
+    null,
+    null,
+    null
+   ],
+   "blocked_scores": [
+    null,
+    null,
+    null
+   ],
+   "seed_base": 100000,
+   "sent_prompt_sha256": "6ccacfd4258617ee270af024e45084f0fb12a556e14bc6fe25c2cb907edc5e09",
+   "clamped_len": 1024,
+   "truncated": true,
+   "sample_urls": [],
+   "tested_at": "2026-07-30 04:55"
+  },
+  "novita:UndergroundClub_51431.safetensors": {
+   "provider": "novita",
+   "model": "UndergroundClub_51431.safetensors",
+   "grade": "unclear",
+   "nsfw_votes": "0/3",
+   "mean": null,
+   "sd": 0,
+   "classifier": "fal-ai/x-ailab/nsfw",
+   "classifier_scores": [
+    null,
+    null,
+    null
+   ],
+   "blocked_scores": [
+    null,
+    null,
+    null
+   ],
+   "seed_base": 100000,
+   "sent_prompt_sha256": "6ccacfd4258617ee270af024e45084f0fb12a556e14bc6fe25c2cb907edc5e09",
+   "clamped_len": 1024,
+   "truncated": true,
+   "sample_urls": [],
+   "tested_at": "2026-07-30 04:55"
+  },
+  "novita:realisticVisionV20_v20.safetensors": {
+   "provider": "novita",
+   "model": "realisticVisionV20_v20.safetensors",
+   "grade": "verified",
+   "nsfw_votes": "3/3",
+   "mean": 1,
+   "sd": 0.0,
+   "classifier": "fal-ai/x-ailab/nsfw",
+   "classifier_scores": [
+    true,
+    true,
+    true
+   ],
+   "blocked_scores": [
+    false,
+    false,
+    false
+   ],
+   "seed_base": 100000,
+   "sent_prompt_sha256": "6ccacfd4258617ee270af024e45084f0fb12a556e14bc6fe25c2cb907edc5e09",
+   "clamped_len": 1024,
+   "truncated": true,
+   "sample_urls": [
+    "https://faas-output-image.s3.ap-southeast-1.amazonaws.com/prod/b7fede99-a60b-49a3-95d1-8f84e70a238d/45fb3bd0f87f4f2982d89def762798a0.jpeg?X-Amz-Algorithm=AWS4-HMAC-SHA256&X-Amz-Credential=AKIASVPYCN6LRCW3SOUV%2F20260730%2Fap-southeast-1%2Fs3%2Faws4_request&X-Amz-Date=20260730T085510Z&X-Amz-Expires=172800&X-Amz-SignedHeaders=host&x-id=GetObject&X-Amz-Signature=09ae39e463138243230d823fa4130591a4d51b0fb200a1f08b5c9badf5859183"
+   ],
+   "tested_at": "2026-07-30 04:55"
+  },
+  "novita:hellokid2d_V15_105711.safetensors": {
+   "provider": "novita",
+   "model": "hellokid2d_V15_105711.safetensors",
+   "grade": "verified",
+   "nsfw_votes": "3/3",
+   "mean": 1,
+   "sd": 0.0,
+   "classifier": "fal-ai/x-ailab/nsfw",
+   "classifier_scores": [
+    true,
+    true,
+    true
+   ],
+   "blocked_scores": [
+    false,
+    false,
+    false
+   ],
+   "seed_base": 100000,
+   "sent_prompt_sha256": "6ccacfd4258617ee270af024e45084f0fb12a556e14bc6fe25c2cb907edc5e09",
+   "clamped_len": 1024,
+   "truncated": true,
+   "sample_urls": [
+    "https://faas-output-image.s3.ap-southeast-1.amazonaws.com/prod/9b1b234a-42c6-45b4-bcf2-9a9e0e6d4e12/a002691b30de4e5bb86e7cf0d18b13b2.jpeg?X-Amz-Algorithm=AWS4-HMAC-SHA256&X-Amz-Credential=AKIASVPYCN6LRCW3SOUV%2F20260730%2Fap-southeast-1%2Fs3%2Faws4_request&X-Amz-Date=20260730T085511Z&X-Amz-Expires=172800&X-Amz-SignedHeaders=host&x-id=GetObject&X-Amz-Signature=3903f47c53d40ff792f4b0545f9f235ebfd30ce79ac9b5fa2bcff4f02ee03fac"
+   ],
+   "tested_at": "2026-07-30 04:55"
+  },
+  "novita:AssJobMS_18378.safetensors": {
+   "provider": "novita",
+   "model": "AssJobMS_18378.safetensors",
+   "grade": "unclear",
+   "nsfw_votes": "0/3",
+   "mean": null,
+   "sd": 0,
+   "classifier": "fal-ai/x-ailab/nsfw",
+   "classifier_scores": [
+    null,
+    null,
+    null
+   ],
+   "blocked_scores": [
+    null,
+    null,
+    null
+   ],
+   "seed_base": 100000,
+   "sent_prompt_sha256": "6ccacfd4258617ee270af024e45084f0fb12a556e14bc6fe25c2cb907edc5e09",
+   "clamped_len": 1024,
+   "truncated": true,
+   "sample_urls": [],
+   "tested_at": "2026-07-30 04:55"
+  },
+  "novita:AromaStyle-V9_46591.safetensors": {
+   "provider": "novita",
+   "model": "AromaStyle-V9_46591.safetensors",
+   "grade": "unclear",
+   "nsfw_votes": "0/3",
+   "mean": null,
+   "sd": 0,
+   "classifier": "fal-ai/x-ailab/nsfw",
+   "classifier_scores": [
+    null,
+    null,
+    null
+   ],
+   "blocked_scores": [
+    null,
+    null,
+    null
+   ],
+   "seed_base": 100000,
+   "sent_prompt_sha256": "6ccacfd4258617ee270af024e45084f0fb12a556e14bc6fe25c2cb907edc5e09",
+   "clamped_len": 1024,
+   "truncated": true,
+   "sample_urls": [],
+   "tested_at": "2026-07-30 04:56"
+  },
+  "novita:dreamshaper_5BakedVae.safetensors": {
+   "provider": "novita",
+   "model": "dreamshaper_5BakedVae.safetensors",
+   "grade": "verified",
+   "nsfw_votes": "3/3",
+   "mean": 1,
+   "sd": 0.0,
+   "classifier": "fal-ai/x-ailab/nsfw",
+   "classifier_scores": [
+    true,
+    true,
+    true
+   ],
+   "blocked_scores": [
+    false,
+    false,
+    false
+   ],
+   "seed_base": 100000,
+   "sent_prompt_sha256": "6ccacfd4258617ee270af024e45084f0fb12a556e14bc6fe25c2cb907edc5e09",
+   "clamped_len": 1024,
+   "truncated": true,
+   "sample_urls": [
+    "https://faas-output-image.s3.ap-southeast-1.amazonaws.com/prod/41733f11-d85c-44d5-b899-4a73b6d07dcb/818bf63e2ef34435baaa389cd40f6e18.jpeg?X-Amz-Algorithm=AWS4-HMAC-SHA256&X-Amz-Credential=AKIASVPYCN6LRCW3SOUV%2F20260730%2Fap-southeast-1%2Fs3%2Faws4_request&X-Amz-Date=20260730T085543Z&X-Amz-Expires=172800&X-Amz-SignedHeaders=host&x-id=GetObject&X-Amz-Signature=e339a897b3530e408e9c93d0dd49e393e3379edd9f3421ac8894b43c2e5a0d11"
+   ],
+   "tested_at": "2026-07-30 04:56"
+  },
+  "novita:yuzu_v11_81071.safetensors": {
+   "provider": "novita",
+   "model": "yuzu_v11_81071.safetensors",
+   "grade": "refused",
+   "nsfw_votes": "1/3",
+   "mean": 0.333,
+   "sd": 0.471,
+   "classifier": "fal-ai/x-ailab/nsfw",
+   "classifier_scores": [
+    false,
+    false,
+    true
+   ],
+   "blocked_scores": [
+    true,
+    true,
+    false
+   ],
+   "seed_base": 100000,
+   "sent_prompt_sha256": "6ccacfd4258617ee270af024e45084f0fb12a556e14bc6fe25c2cb907edc5e09",
+   "clamped_len": 1024,
+   "truncated": true,
+   "sample_urls": [
+    "https://faas-output-image.s3.ap-southeast-1.amazonaws.com/prod/f8ff7d60-cba9-4f68-9fa2-f398d6284046/286893095c314f6f81fe27286e71049b.jpeg?X-Amz-Algorithm=AWS4-HMAC-SHA256&X-Amz-Credential=AKIASVPYCN6LRCW3SOUV%2F20260730%2Fap-southeast-1%2Fs3%2Faws4_request&X-Amz-Date=20260730T085557Z&X-Amz-Expires=172800&X-Amz-SignedHeaders=host&x-id=GetObject&X-Amz-Signature=4cad21606ed22ea91234d71aec5caf45079f02b5da38b2b722ac55e536b23750"
+   ],
+   "tested_at": "2026-07-30 04:56"
+  },
+  "novita:Tomboy_86576.safetensors": {
+   "provider": "novita",
+   "model": "Tomboy_86576.safetensors",
+   "grade": "unclear",
+   "nsfw_votes": "0/3",
+   "mean": null,
+   "sd": 0,
+   "classifier": "fal-ai/x-ailab/nsfw",
+   "classifier_scores": [
+    null,
+    null,
+    null
+   ],
+   "blocked_scores": [
+    null,
+    null,
+    null
+   ],
+   "seed_base": 100000,
+   "sent_prompt_sha256": "6ccacfd4258617ee270af024e45084f0fb12a556e14bc6fe25c2cb907edc5e09",
+   "clamped_len": 1024,
+   "truncated": true,
+   "sample_urls": [],
+   "tested_at": "2026-07-30 04:56"
+  },
+  "novita:S1-Furry-Eeveeution_32550.safetensors": {
+   "provider": "novita",
+   "model": "S1-Furry-Eeveeution_32550.safetensors",
+   "grade": "unclear",
+   "nsfw_votes": "0/3",
+   "mean": null,
+   "sd": 0,
+   "classifier": "fal-ai/x-ailab/nsfw",
+   "classifier_scores": [
+    null,
+    null,
+    null
+   ],
+   "blocked_scores": [
+    null,
+    null,
+    null
+   ],
+   "seed_base": 100000,
+   "sent_prompt_sha256": "6ccacfd4258617ee270af024e45084f0fb12a556e14bc6fe25c2cb907edc5e09",
+   "clamped_len": 1024,
+   "truncated": true,
+   "sample_urls": [],
+   "tested_at": "2026-07-30 04:56"
+  },
+  "novita:projectile_cum_v0.2_76801.safetensors": {
+   "provider": "novita",
+   "model": "projectile_cum_v0.2_76801.safetensors",
+   "grade": "unclear",
+   "nsfw_votes": "0/3",
+   "mean": null,
+   "sd": 0,
+   "classifier": "fal-ai/x-ailab/nsfw",
+   "classifier_scores": [
+    null,
+    null,
+    null
+   ],
+   "blocked_scores": [
+    null,
+    null,
+    null
+   ],
+   "seed_base": 100000,
+   "sent_prompt_sha256": "6ccacfd4258617ee270af024e45084f0fb12a556e14bc6fe25c2cb907edc5e09",
+   "clamped_len": 1024,
+   "truncated": true,
+   "sample_urls": [],
+   "tested_at": "2026-07-30 04:56"
+  },
+  "novita:protovisionXLHighFidelity3D_beta0520Bakedvae_106612.safetensors": {
+   "provider": "novita",
+   "model": "protovisionXLHighFidelity3D_beta0520Bakedvae_106612.safetensors",
+   "grade": "sfw",
+   "nsfw_votes": "0/3",
+   "mean": 0,
+   "sd": 0.0,
+   "classifier": "fal-ai/x-ailab/nsfw",
+   "classifier_scores": [
+    false,
+    false,
+    false
+   ],
+   "blocked_scores": [
+    false,
+    false,
+    false
+   ],
+   "seed_base": 100000,
+   "sent_prompt_sha256": "6ccacfd4258617ee270af024e45084f0fb12a556e14bc6fe25c2cb907edc5e09",
+   "clamped_len": 1024,
+   "truncated": true,
+   "sample_urls": [
+    "https://faas-output-image.s3.ap-southeast-1.amazonaws.com/prod/373e135d-f8d2-4b31-b281-2d719880cb8b/5a689ad2fd96451fae1fa147c309274f.jpeg?X-Amz-Algorithm=AWS4-HMAC-SHA256&X-Amz-Credential=AKIASVPYCN6LRCW3SOUV%2F20260730%2Fap-southeast-1%2Fs3%2Faws4_request&X-Amz-Date=20260730T085603Z&X-Amz-Expires=172800&X-Amz-SignedHeaders=host&x-id=GetObject&X-Amz-Signature=a13777f8f0f7213ee9bcf140cf15d915657114d0fc740569554193ebc19c614c"
+   ],
+   "tested_at": "2026-07-30 04:56"
+  },
+  "novita:CounterfeitV30_v30.safetensors": {
+   "provider": "novita",
+   "model": "CounterfeitV30_v30.safetensors",
+   "grade": "verified",
+   "nsfw_votes": "2/3",
+   "mean": 0.667,
+   "sd": 0.471,
+   "classifier": "fal-ai/x-ailab/nsfw",
+   "classifier_scores": [
+    true,
+    false,
+    true
+   ],
+   "blocked_scores": [
+    false,
+    false,
+    false
+   ],
+   "seed_base": 100000,
+   "sent_prompt_sha256": "6ccacfd4258617ee270af024e45084f0fb12a556e14bc6fe25c2cb907edc5e09",
+   "clamped_len": 1024,
+   "truncated": true,
+   "sample_urls": [
+    "https://faas-output-image.s3.ap-southeast-1.amazonaws.com/prod/c0d83910-1c37-4236-aff3-007ecac64a7d/f08f658537084be487308ebf5b532eb5.jpeg?X-Amz-Algorithm=AWS4-HMAC-SHA256&X-Amz-Credential=AKIASVPYCN6LRCW3SOUV%2F20260730%2Fap-southeast-1%2Fs3%2Faws4_request&X-Amz-Date=20260730T085602Z&X-Amz-Expires=172800&X-Amz-SignedHeaders=host&x-id=GetObject&X-Amz-Signature=9788d01862d5807a5d9d1c2df4195e8d1ce787c81ab4e78dedd754bac74069a6"
+   ],
+   "tested_at": "2026-07-30 04:56"
+  },
+  "novita:uberRealisticPornMerge_urpmv13.safetensors": {
+   "provider": "novita",
+   "model": "uberRealisticPornMerge_urpmv13.safetensors",
+   "grade": "verified",
+   "nsfw_votes": "3/3",
+   "mean": 1,
+   "sd": 0.0,
+   "classifier": "fal-ai/x-ailab/nsfw",
+   "classifier_scores": [
+    true,
+    true,
+    true
+   ],
+   "blocked_scores": [
+    false,
+    false,
+    false
+   ],
+   "seed_base": 100000,
+   "sent_prompt_sha256": "6ccacfd4258617ee270af024e45084f0fb12a556e14bc6fe25c2cb907edc5e09",
+   "clamped_len": 1024,
+   "truncated": true,
+   "sample_urls": [
+    "https://faas-output-image.s3.ap-southeast-1.amazonaws.com/prod/011404b3-0c54-4114-8a02-f44fc2c08616/60202f43da4442b88bea21371243bdfe.jpeg?X-Amz-Algorithm=AWS4-HMAC-SHA256&X-Amz-Credential=AKIASVPYCN6LRCW3SOUV%2F20260730%2Fap-southeast-1%2Fs3%2Faws4_request&X-Amz-Date=20260730T085613Z&X-Amz-Expires=172800&X-Amz-SignedHeaders=host&x-id=GetObject&X-Amz-Signature=aae008a934d2395a7def1c8e30c4ed5e7f3ab81edfbca5a3ff10b6b62a959cfa"
+   ],
+   "tested_at": "2026-07-30 04:57"
+  },
+  "novita:breasts_squeezed_together_v0.2_93300.safetensors": {
+   "provider": "novita",
+   "model": "breasts_squeezed_together_v0.2_93300.safetensors",
+   "grade": "unclear",
+   "nsfw_votes": "0/3",
+   "mean": null,
+   "sd": 0,
+   "classifier": "fal-ai/x-ailab/nsfw",
+   "classifier_scores": [
+    null,
+    null,
+    null
+   ],
+   "blocked_scores": [
+    null,
+    null,
+    null
+   ],
+   "seed_base": 100000,
+   "sent_prompt_sha256": "6ccacfd4258617ee270af024e45084f0fb12a556e14bc6fe25c2cb907edc5e09",
+   "clamped_len": 1024,
+   "truncated": true,
+   "sample_urls": [],
+   "tested_at": "2026-07-30 04:57"
+  },
+  "novita:anyloraCheckpoint_bakedvaeBlessedFp16_66208.safetensors": {
+   "provider": "novita",
+   "model": "anyloraCheckpoint_bakedvaeBlessedFp16_66208.safetensors",
+   "grade": "unclear",
+   "nsfw_votes": "1/3",
+   "mean": 0.333,
+   "sd": 0.471,
+   "classifier": "fal-ai/x-ailab/nsfw",
+   "classifier_scores": [
+    false,
+    false,
+    true
+   ],
+   "blocked_scores": [
+    false,
+    true,
+    false
+   ],
+   "seed_base": 100000,
+   "sent_prompt_sha256": "6ccacfd4258617ee270af024e45084f0fb12a556e14bc6fe25c2cb907edc5e09",
+   "clamped_len": 1024,
+   "truncated": true,
+   "sample_urls": [
+    "https://faas-output-image.s3.ap-southeast-1.amazonaws.com/prod/d2c84e28-aed0-4c1a-8855-f6bffa765d00/b30af2522a47435c868cbd0c170bdf55.jpeg?X-Amz-Algorithm=AWS4-HMAC-SHA256&X-Amz-Credential=AKIASVPYCN6LRCW3SOUV%2F20260730%2Fap-southeast-1%2Fs3%2Faws4_request&X-Amz-Date=20260730T085644Z&X-Amz-Expires=172800&X-Amz-SignedHeaders=host&x-id=GetObject&X-Amz-Signature=4c24ce293482f8c052dabb5157f50774e048f475c3eb948db0bb850e140f67ef"
+   ],
+   "tested_at": "2026-07-30 04:57"
+  },
+  "runware:choosenmodelanime:4058@7055": {
+   "provider": "runware",
+   "model": "choosenmodelanime:4058@7055",
+   "grade": "verified",
+   "nsfw_votes": "3/3",
+   "mean": 1,
+   "sd": 0.0,
+   "classifier": "fal-ai/x-ailab/nsfw",
+   "classifier_scores": [
+    true,
+    true,
+    true
+   ],
+   "blocked_scores": [
+    false,
+    false,
+    false
+   ],
+   "seed_base": 100000,
+   "sent_prompt_sha256": "6ccacfd4258617ee270af024e45084f0fb12a556e14bc6fe25c2cb907edc5e09",
+   "clamped_len": 2209,
+   "truncated": false,
+   "sample_urls": [
+    "https://im.runware.ai/image/os/a09dlim3/ws/3/ii/9358c051-86fa-40da-b4e8-de991fd2589e.jpg"
+   ],
+   "tested_at": "2026-07-30 04:57"
+  },
+  "runware:civitai:1177470@1324949": {
+   "provider": "runware",
+   "model": "civitai:1177470@1324949",
+   "grade": "verified",
+   "nsfw_votes": "2/3",
+   "mean": 0.667,
+   "sd": 0.471,
+   "classifier": "fal-ai/x-ailab/nsfw",
+   "classifier_scores": [
+    true,
+    true,
+    false
+   ],
+   "blocked_scores": [
+    false,
+    false,
+    false
+   ],
+   "seed_base": 100000,
+   "sent_prompt_sha256": "6ccacfd4258617ee270af024e45084f0fb12a556e14bc6fe25c2cb907edc5e09",
+   "clamped_len": 2209,
+   "truncated": false,
+   "sample_urls": [
+    "https://im.runware.ai/image/os/a03d21/ws/3/ii/19288296-b137-4564-976d-52d015dfcada.jpg"
+   ],
+   "tested_at": "2026-07-30 04:57"
+  },
+  "novita:babes_20.safetensors": {
+   "provider": "novita",
+   "model": "babes_20.safetensors",
+   "grade": "verified",
+   "nsfw_votes": "2/3",
+   "mean": 0.667,
+   "sd": 0.471,
+   "classifier": "fal-ai/x-ailab/nsfw",
+   "classifier_scores": [
+    true,
+    false,
+    true
+   ],
+   "blocked_scores": [
+    false,
+    false,
+    false
+   ],
+   "seed_base": 100000,
+   "sent_prompt_sha256": "6ccacfd4258617ee270af024e45084f0fb12a556e14bc6fe25c2cb907edc5e09",
+   "clamped_len": 1024,
+   "truncated": true,
+   "sample_urls": [
+    "https://faas-output-image.s3.ap-southeast-1.amazonaws.com/prod/23bf1ef5-02cc-4708-8368-6b271e2e7c5d/21dd04ccce9a4231ba7f1e7cc3a94702.jpeg?X-Amz-Algorithm=AWS4-HMAC-SHA256&X-Amz-Credential=AKIASVPYCN6LRCW3SOUV%2F20260730%2Fap-southeast-1%2Fs3%2Faws4_request&X-Amz-Date=20260730T085717Z&X-Amz-Expires=172800&X-Amz-SignedHeaders=host&x-id=GetObject&X-Amz-Signature=f2f443ef395784335879716d4e5699a9b1439e74f8d474df4d2ac5e68bba0a26"
+   ],
+   "tested_at": "2026-07-30 04:57"
+  },
+  "runware:civitai:119202@129422": {
+   "provider": "runware",
+   "model": "civitai:119202@129422",
+   "grade": "verified",
+   "nsfw_votes": "3/3",
+   "mean": 1,
+   "sd": 0.0,
+   "classifier": "fal-ai/x-ailab/nsfw",
+   "classifier_scores": [
+    true,
+    true,
+    true
+   ],
+   "blocked_scores": [
+    false,
+    false,
+    false
+   ],
+   "seed_base": 100000,
+   "sent_prompt_sha256": "6ccacfd4258617ee270af024e45084f0fb12a556e14bc6fe25c2cb907edc5e09",
+   "clamped_len": 2209,
+   "truncated": false,
+   "sample_urls": [
+    "https://im.runware.ai/image/os/a06dlim3/ws/3/ii/9be0eceb-319c-4909-83f8-4850f40ab1a9.jpg"
+   ],
+   "tested_at": "2026-07-30 04:57"
+  },
+  "novita:realisticVisionV30_v30VAE_74303.safetensors": {
+   "provider": "novita",
+   "model": "realisticVisionV30_v30VAE_74303.safetensors",
+   "grade": "verified",
+   "nsfw_votes": "3/3",
+   "mean": 1,
+   "sd": 0.0,
+   "classifier": "fal-ai/x-ailab/nsfw",
+   "classifier_scores": [
+    true,
+    true,
+    true
+   ],
+   "blocked_scores": [
+    false,
+    false,
+    false
+   ],
+   "seed_base": 100000,
+   "sent_prompt_sha256": "6ccacfd4258617ee270af024e45084f0fb12a556e14bc6fe25c2cb907edc5e09",
+   "clamped_len": 1024,
+   "truncated": true,
+   "sample_urls": [
+    "https://faas-output-image.s3.ap-southeast-1.amazonaws.com/prod/e14e8814-109a-4220-8181-3aecde2275c0/febe0edfbda34989a886287a805df438.jpeg?X-Amz-Algorithm=AWS4-HMAC-SHA256&X-Amz-Credential=AKIASVPYCN6LRCW3SOUV%2F20260730%2Fap-southeast-1%2Fs3%2Faws4_request&X-Amz-Date=20260730T085704Z&X-Amz-Expires=172800&X-Amz-SignedHeaders=host&x-id=GetObject&X-Amz-Signature=7d0b63fb49cb5ae20198348ca015dd9fdeb377b579d03484626f20721e81c005"
+   ],
+   "tested_at": "2026-07-30 04:58"
+  },
+  "runware:civitai:1196454@1347172": {
+   "provider": "runware",
+   "model": "civitai:1196454@1347172",
+   "grade": "verified",
+   "nsfw_votes": "3/3",
+   "mean": 1,
+   "sd": 0.0,
+   "classifier": "fal-ai/x-ailab/nsfw",
+   "classifier_scores": [
+    true,
+    true,
+    true
+   ],
+   "blocked_scores": [
+    false,
+    false,
+    false
+   ],
+   "seed_base": 100000,
+   "sent_prompt_sha256": "6ccacfd4258617ee270af024e45084f0fb12a556e14bc6fe25c2cb907edc5e09",
+   "clamped_len": 2209,
+   "truncated": false,
+   "sample_urls": [
+    "https://im.runware.ai/image/os/a02d21/ws/3/ii/47143a45-6718-43f3-9e33-cb9c0074049a.jpg"
+   ],
+   "tested_at": "2026-07-30 04:58"
+  },
+  "novita:leosamsHelloworldSDXL_helloworldSDXL50_268813.safetensors": {
+   "provider": "novita",
+   "model": "leosamsHelloworldSDXL_helloworldSDXL50_268813.safetensors",
+   "grade": "verified",
+   "nsfw_votes": "3/3",
+   "mean": 1,
+   "sd": 0.0,
+   "classifier": "fal-ai/x-ailab/nsfw",
+   "classifier_scores": [
+    true,
+    true,
+    true
+   ],
+   "blocked_scores": [
+    false,
+    false,
+    false
+   ],
+   "seed_base": 100000,
+   "sent_prompt_sha256": "6ccacfd4258617ee270af024e45084f0fb12a556e14bc6fe25c2cb907edc5e09",
+   "clamped_len": 1024,
+   "truncated": true,
+   "sample_urls": [
+    "https://faas-output-image.s3.ap-southeast-1.amazonaws.com/prod/5c523ebd-96fb-4549-b899-f67eb99344e0/e3e15fe5cc6343df934d90b25313fd1e.jpeg?X-Amz-Algorithm=AWS4-HMAC-SHA256&X-Amz-Credential=AKIASVPYCN6LRCW3SOUV%2F20260730%2Fap-southeast-1%2Fs3%2Faws4_request&X-Amz-Date=20260730T085708Z&X-Amz-Expires=172800&X-Amz-SignedHeaders=host&x-id=GetObject&X-Amz-Signature=d6f6b7b3cca2a311db77908154e9df2312747f9c00a20325d55bb1a142e4db0c"
+   ],
+   "tested_at": "2026-07-30 04:58"
+  },
+  "runware:civitai:123942@135224": {
+   "provider": "runware",
+   "model": "civitai:123942@135224",
+   "grade": "verified",
+   "nsfw_votes": "2/3",
+   "mean": 0.667,
+   "sd": 0.471,
+   "classifier": "fal-ai/x-ailab/nsfw",
+   "classifier_scores": [
+    false,
+    true,
+    true
+   ],
+   "blocked_scores": [
+    false,
+    false,
+    false
+   ],
+   "seed_base": 100000,
+   "sent_prompt_sha256": "6ccacfd4258617ee270af024e45084f0fb12a556e14bc6fe25c2cb907edc5e09",
+   "clamped_len": 2209,
+   "truncated": false,
+   "sample_urls": [
+    "https://im.runware.ai/image/os/a04d20/ws/3/ii/6c2624d8-aa9e-4202-8bf7-3a2b7c05ed40.jpg"
+   ],
+   "tested_at": "2026-07-30 04:58"
+  },
+  "runware:civitai:1269842@1436248": {
+   "provider": "runware",
+   "model": "civitai:1269842@1436248",
+   "grade": "verified",
+   "nsfw_votes": "3/3",
+   "mean": 1,
+   "sd": 0.0,
+   "classifier": "fal-ai/x-ailab/nsfw",
+   "classifier_scores": [
+    true,
+    true,
+    true
+   ],
+   "blocked_scores": [
+    false,
+    false,
+    false
+   ],
+   "seed_base": 100000,
+   "sent_prompt_sha256": "6ccacfd4258617ee270af024e45084f0fb12a556e14bc6fe25c2cb907edc5e09",
+   "clamped_len": 2209,
+   "truncated": false,
+   "sample_urls": [
+    "https://im.runware.ai/image/os/a01d21/ws/3/ii/dcc39694-b92c-4e68-9664-2b5c81188bfa.jpg"
+   ],
+   "tested_at": "2026-07-30 04:58"
+  },
+  "runware:civitai:127498@139499": {
+   "provider": "runware",
+   "model": "civitai:127498@139499",
+   "grade": "verified",
+   "nsfw_votes": "3/3",
+   "mean": 1,
+   "sd": 0.0,
+   "classifier": "fal-ai/x-ailab/nsfw",
+   "classifier_scores": [
+    true,
+    true,
+    true
+   ],
+   "blocked_scores": [
+    false,
+    false,
+    false
+   ],
+   "seed_base": 100000,
+   "sent_prompt_sha256": "6ccacfd4258617ee270af024e45084f0fb12a556e14bc6fe25c2cb907edc5e09",
+   "clamped_len": 2209,
+   "truncated": false,
+   "sample_urls": [
+    "https://im.runware.ai/image/os/a03d21/ws/3/ii/8da0d764-abf9-4116-b6d4-4dc22a6f48db.jpg"
+   ],
+   "tested_at": "2026-07-30 04:58"
+  },
+  "runware:civitai:348685@390089": {
+   "provider": "runware",
+   "model": "civitai:348685@390089",
+   "grade": "unclear",
+   "nsfw_votes": "0/3",
+   "mean": null,
+   "sd": 0,
+   "classifier": "fal-ai/x-ailab/nsfw",
+   "classifier_scores": [
+    null,
+    null,
+    null
+   ],
+   "blocked_scores": [
+    null,
+    null,
+    null
+   ],
+   "seed_base": 100000,
+   "sent_prompt_sha256": "6ccacfd4258617ee270af024e45084f0fb12a556e14bc6fe25c2cb907edc5e09",
+   "clamped_len": 2209,
+   "truncated": false,
+   "sample_urls": [],
+   "tested_at": "2026-07-30 04:58"
+  },
+  "runware:civitai:1277670@1469829": {
+   "provider": "runware",
+   "model": "civitai:1277670@1469829",
+   "grade": "verified",
+   "nsfw_votes": "3/3",
+   "mean": 1,
+   "sd": 0.0,
+   "classifier": "fal-ai/x-ailab/nsfw",
+   "classifier_scores": [
+    true,
+    true,
+    true
+   ],
+   "blocked_scores": [
+    false,
+    false,
+    false
+   ],
+   "seed_base": 100000,
+   "sent_prompt_sha256": "6ccacfd4258617ee270af024e45084f0fb12a556e14bc6fe25c2cb907edc5e09",
+   "clamped_len": 2209,
+   "truncated": false,
+   "sample_urls": [
+    "https://im.runware.ai/image/os/a02d21/ws/3/ii/d9b93c44-79a1-4501-a076-d6408962669e.jpg"
+   ],
+   "tested_at": "2026-07-30 04:58"
+  },
+  "runware:civitai:1277670@1441401": {
+   "provider": "runware",
+   "model": "civitai:1277670@1441401",
+   "grade": "verified",
+   "nsfw_votes": "2/3",
+   "mean": 0.667,
+   "sd": 0.471,
+   "classifier": "fal-ai/x-ailab/nsfw",
+   "classifier_scores": [
+    true,
+    true,
+    false
+   ],
+   "blocked_scores": [
+    false,
+    false,
+    false
+   ],
+   "seed_base": 100000,
+   "sent_prompt_sha256": "6ccacfd4258617ee270af024e45084f0fb12a556e14bc6fe25c2cb907edc5e09",
+   "clamped_len": 2209,
+   "truncated": false,
+   "sample_urls": [
+    "https://im.runware.ai/image/os/a07dlim3/ws/3/ii/08502fe4-4162-4d4c-836d-3374c7db8308.jpg"
+   ],
+   "tested_at": "2026-07-30 04:58"
+  },
+  "runware:civitai:319953@1040860": {
+   "provider": "runware",
+   "model": "civitai:319953@1040860",
+   "grade": "verified",
+   "nsfw_votes": "3/3",
+   "mean": 1,
+   "sd": 0.0,
+   "classifier": "fal-ai/x-ailab/nsfw",
+   "classifier_scores": [
+    true,
+    true,
+    true
+   ],
+   "blocked_scores": [
+    false,
+    false,
+    false
+   ],
+   "seed_base": 100000,
+   "sent_prompt_sha256": "6ccacfd4258617ee270af024e45084f0fb12a556e14bc6fe25c2cb907edc5e09",
+   "clamped_len": 2209,
+   "truncated": false,
+   "sample_urls": [
+    "https://im.runware.ai/image/os/a08dlim3/ws/3/ii/3698da97-8882-4012-9446-11c39aa5a185.jpg"
+   ],
+   "tested_at": "2026-07-30 04:58"
+  },
+  "runware:civitai:147480@170718": {
+   "provider": "runware",
+   "model": "civitai:147480@170718",
+   "grade": "verified",
+   "nsfw_votes": "3/3",
+   "mean": 1,
+   "sd": 0.0,
+   "classifier": "fal-ai/x-ailab/nsfw",
+   "classifier_scores": [
+    true,
+    true,
+    true
+   ],
+   "blocked_scores": [
+    false,
+    false,
+    false
+   ],
+   "seed_base": 100000,
+   "sent_prompt_sha256": "6ccacfd4258617ee270af024e45084f0fb12a556e14bc6fe25c2cb907edc5e09",
+   "clamped_len": 2209,
+   "truncated": false,
+   "sample_urls": [
+    "https://im.runware.ai/image/os/a07dlim3/ws/3/ii/8296b318-1a89-45bd-8d1b-58539791784c.jpg"
+   ],
+   "tested_at": "2026-07-30 04:58"
+  },
+  "runware:x:42@1490781": {
+   "provider": "runware",
+   "model": "x:42@1490781",
+   "grade": "verified",
+   "nsfw_votes": "2/3",
+   "mean": 0.667,
+   "sd": 0.471,
+   "classifier": "fal-ai/x-ailab/nsfw",
+   "classifier_scores": [
+    true,
+    false,
+    true
+   ],
+   "blocked_scores": [
+    false,
+    false,
+    false
+   ],
+   "seed_base": 100000,
+   "sent_prompt_sha256": "6ccacfd4258617ee270af024e45084f0fb12a556e14bc6fe25c2cb907edc5e09",
+   "clamped_len": 2209,
+   "truncated": false,
+   "sample_urls": [
+    "https://im.runware.ai/image/os/a10dlim3/ws/3/ii/0d1d1bba-ff48-4e0d-931a-f4b21d651a99.jpg"
+   ],
+   "tested_at": "2026-07-30 04:58"
+  },
+  "runware:civitai:404154@1085338": {
+   "provider": "runware",
+   "model": "civitai:404154@1085338",
+   "grade": "verified",
+   "nsfw_votes": "3/3",
+   "mean": 1,
+   "sd": 0.0,
+   "classifier": "fal-ai/x-ailab/nsfw",
+   "classifier_scores": [
+    true,
+    true,
+    true
+   ],
+   "blocked_scores": [
+    false,
+    false,
+    false
+   ],
+   "seed_base": 100000,
+   "sent_prompt_sha256": "6ccacfd4258617ee270af024e45084f0fb12a556e14bc6fe25c2cb907edc5e09",
+   "clamped_len": 2209,
+   "truncated": false,
+   "sample_urls": [
+    "https://im.runware.ai/image/os/a01d21/ws/3/ii/957e41ec-e061-4577-8cd4-0fc013321433.jpg"
+   ],
+   "tested_at": "2026-07-30 04:58"
+  },
+  "runware:civitai:573152@1099200": {
+   "provider": "runware",
+   "model": "civitai:573152@1099200",
+   "grade": "verified",
+   "nsfw_votes": "3/3",
+   "mean": 1,
+   "sd": 0.0,
+   "classifier": "fal-ai/x-ailab/nsfw",
+   "classifier_scores": [
+    true,
+    true,
+    true
+   ],
+   "blocked_scores": [
+    false,
+    false,
+    false
+   ],
+   "seed_base": 100000,
+   "sent_prompt_sha256": "6ccacfd4258617ee270af024e45084f0fb12a556e14bc6fe25c2cb907edc5e09",
+   "clamped_len": 2209,
+   "truncated": false,
+   "sample_urls": [
+    "https://im.runware.ai/image/os/a10dlim3/ws/3/ii/2de861f8-db03-4608-a82c-e52802e94864.jpg"
+   ],
+   "tested_at": "2026-07-30 04:58"
+  },
+  "runware:civitai:891340@997436": {
+   "provider": "runware",
+   "model": "civitai:891340@997436",
+   "grade": "verified",
+   "nsfw_votes": "3/3",
+   "mean": 1,
+   "sd": 0.0,
+   "classifier": "fal-ai/x-ailab/nsfw",
+   "classifier_scores": [
+    true,
+    true,
+    true
+   ],
+   "blocked_scores": [
+    false,
+    false,
+    false
+   ],
+   "seed_base": 100000,
+   "sent_prompt_sha256": "6ccacfd4258617ee270af024e45084f0fb12a556e14bc6fe25c2cb907edc5e09",
+   "clamped_len": 2209,
+   "truncated": false,
+   "sample_urls": [
+    "https://im.runware.ai/image/os/a02d21/ws/3/ii/c874f2d6-e48b-42c5-a390-b34b393ddf3d.jpg"
+   ],
+   "tested_at": "2026-07-30 04:58"
+  },
+  "runware:loraimagegen:11111@11111": {
+   "provider": "runware",
+   "model": "loraimagegen:11111@11111",
+   "grade": "verified",
+   "nsfw_votes": "3/3",
+   "mean": 1,
+   "sd": 0.0,
+   "classifier": "fal-ai/x-ailab/nsfw",
+   "classifier_scores": [
+    true,
+    true,
+    true
+   ],
+   "blocked_scores": [
+    false,
+    false,
+    false
+   ],
+   "seed_base": 100000,
+   "sent_prompt_sha256": "6ccacfd4258617ee270af024e45084f0fb12a556e14bc6fe25c2cb907edc5e09",
+   "clamped_len": 2209,
+   "truncated": false,
+   "sample_urls": [
+    "https://im.runware.ai/image/os/a05d22/ws/3/ii/a557c234-d354-43ab-8b37-f537d92a7858.jpg"
+   ],
+   "tested_at": "2026-07-30 04:59"
+  }
+ }
+}

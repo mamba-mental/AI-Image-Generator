@@ -20,6 +20,7 @@ or any call with --dry-run, is always a cost-free preview. Test 2 full sweep ≈
 import argparse
 import hashlib
 import json
+import os
 import subprocess
 import sys
 import time
@@ -109,18 +110,18 @@ def dry_run(test: int, prompt: str, tag: str, providers: list[str], limit: int) 
         scope_line = (f"{min(n, limit) if limit else n} models × {N_RENDERS} renders "
                       f"≈ {gens} gens  ({src})")
     else:
-        n, src = _test1_scope()
+        n, src = _test2_scope(providers)   # Test 1 now = full multi-provider sweep (editorial prompt)
         cnt = min(n, limit) if limit else n
-        gens = cnt
-        est = gens * EST_PRICE_T1
-        scope_line = f"{cnt} fal-verified models × 1 render ≈ {gens} gens  ({src})"
+        gens = cnt * N_RENDERS
+        est = gens * EST_PRICE
+        scope_line = f"{cnt} models × {N_RENDERS} renders ≈ {gens} gens  ({src})"
 
     print("── NSFW versioned re-run · DRY-RUN (no gens, spends nothing) ──")
     print(f"test        : {test}  ({'multi-provider capability sweep' if test == 2 else 'fal fine-art gallery'})")
     print(f"prompt      : {prompt[:120]}{'…' if len(prompt) > 120 else ''}")
     print(f"prompt sha  : {prompt_sha(prompt)[:16]}")
     print(f"tag         : {tag}")
-    if test == 2:
+    if test in (1, 2):
         print(f"providers   : {','.join(providers)}")
     if limit:
         print(f"limit       : {limit}")
@@ -134,8 +135,10 @@ def dry_run(test: int, prompt: str, tag: str, providers: list[str], limit: int) 
 
 
 def _run(cmd: list[str], cwd: Path) -> None:
-    print("+ " + " ".join(str(c) for c in cmd))
-    subprocess.run([str(c) for c in cmd], cwd=str(cwd), check=True)
+    print("+ " + " ".join(str(c) for c in cmd), flush=True)
+    env = {**os.environ, "PYTHONUNBUFFERED": "1"}
+    subprocess.run([str(c) for c in cmd], cwd=str(cwd), check=True,
+                   stderr=subprocess.STDOUT, env=env)
 
 
 def _append_manifest(record: dict) -> None:
@@ -169,11 +172,17 @@ def real_run(test: int, prompt: str, tag: str, providers: list[str], limit: int)
         data_rel = f"data/nsfw-verified-{tag}.json"
         image_dir = f"assets/nsfw-verified/{tag}/"
         built = DATA / f"nsfw-verified-{tag}.json"
-    else:
-        gallery = [py, GALLERY, "--prompt", prompt, "--tag", tag]
-        _run(gallery, REPO)
+    else:  # Test 1 — full multi-provider sweep on the editorial prompt (all models), keep every image
+        cap_out = REPO / "engine" / f"nsfw_capability_test1_{tag}.json"
+        sweep = [py, SWEEP, "--recheck", "--prompt", prompt, "--out", cap_out,
+                 "--providers", ",".join(providers)]
+        if limit:
+            sweep += ["--limit", str(limit)]
+        _run(sweep, REPO)
+        _run([py, CONSOLE, "--capability", cap_out, "--tag", tag, "--test1",
+              "--prompt-text", prompt], COWORK)
         data_rel = f"data/nsfw-verified-test1-{tag}.json"
-        image_dir = f"nsfw-img/{tag}/"
+        image_dir = f"assets/nsfw-verified/{tag}/"
         built = DATA / f"nsfw-verified-test1-{tag}.json"
 
     verified_count = tested_total = None

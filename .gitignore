@@ -39,3 +39,20 @@ build/work*/
 .cache/
 scripts/.fal_schema_cache/
 engine/fal_models.json.bak-*
+
+# replicate legacy recovery (secrets + bulk output)
+scripts/.replicate_cookie
+scripts/.replicate_recover/
+config.json
+
+# secrets / backups / local data — never commit
+config.json
+*.bak
+*.bak-*
+config.json.bak*
+**/config.json.bak*
+.cache/
+*.db
+*.db-shm
+*.db-wal
+YOUR-RAW-PROMPTS_2026-07-13_1248.md

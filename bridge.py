@@ -4,6 +4,7 @@ and the JobRegistry pushes progress back via window.onEngineEvent.
 """
 import json
 import os
+import sqlite3
 from pathlib import Path
 
 from engine import config as engine_config
@@ -122,6 +123,11 @@ def _openrouter_catalog() -> list:
     return d.get("data") or []
 
 
+# NSFW/safety controls that must always surface in the param box (pre-set permissive to match the
+# backend's forced posture in replicate_api._build_input).
+_NSFW_FIELDS = {"disable_safety_checker", "safety_tolerance", "apply_watermark", "safety_checker", "nsfw"}
+
+
 def _openapi_props_to_params(schema: dict, comps: dict) -> list:
     """OpenAPI Input schema properties -> UI params[] (name/type/values/default/min/max/description)."""
     props = schema.get("properties", {})
@@ -158,9 +164,20 @@ def _openapi_props_to_params(schema: dict, comps: dict) -> list:
         desc = (p.get("description") or "")[:220]
         if desc:
             entry["description"] = desc
+        # NSFW-permissive UI default — the replicate backend FORCES these on every gen
+        # (replicate_api._build_input), so render the control pre-set to match reality instead of the
+        # model's stock (safe) default, which looks like NSFW is OFF when it isn't.
+        if name == "disable_safety_checker":
+            entry["default"] = True
+        elif name == "apply_watermark":
+            entry["default"] = False
+        elif name == "safety_tolerance" and "max" in entry:
+            entry["default"] = entry["max"]     # 6 = most permissive
         out.append(entry)
-    out.sort(key=lambda e: (0 if "default" in e else 1, e["name"]))
-    return out[:16]
+    # NSFW controls sort FIRST so they're always visible + never dropped by the 16-param cap, then
+    # params-with-a-default, then alphabetical.
+    out.sort(key=lambda e: (0 if e["name"] in _NSFW_FIELDS else 1, 0 if "default" in e else 1, e["name"]))
+    return out[:40]   # show the model's FULL option set (was 16 — cut real params like seed/width on big models)
 
 
 def _replicate_model_fetch(model_id: str) -> dict:
@@ -844,7 +861,7 @@ class Api:
                 pass
         return {"ok": True}
 
-    def list_library(self, limit: int = 8000, refresh: bool = False) -> list:
+    def list_library(self, limit: int = 50000, refresh: bool = False) -> list:
         """LIBRARY view source. Returns de-duped basenames across every enabled archive.
 
         Backed by the SQLite Library Index (`.cache/library.db`, ADR 0001). A warm call is a single
@@ -859,22 +876,41 @@ class Api:
             idx.ensure_indexed(bases)           # first-run only; already-indexed folders = pure DB read
         return idx.list_images(bases, int(limit))
 
-    def refresh_library(self, limit: int = 8000) -> list:
+    def refresh_library(self, limit: int = 50000) -> list:
         """Force a re-index of changed folders + return the fresh list (the Library ↻ refresh button)."""
         return self.list_library(limit=limit, refresh=True)
 
     # ---- tags (Spec C #8) ---------------------------------------------------------
 
+    def _db_path_for_name(self, name: str) -> str:
+        """Basename -> its real (possibly NESTED) absolute path via library.db. Resolves archive
+        images like .replicate_recover/images/<id>/<name> that a `dir/<name>` or output-dir join
+        misses. Returns "" if absent or the file is gone."""
+        try:
+            db = os.path.join(str(engine_config.repo_root()), ".cache", "library.db")
+            if not os.path.exists(db):
+                return ""
+            con = sqlite3.connect(f"file:{db}?mode=ro", uri=True, timeout=2)
+            row = con.execute("SELECT path FROM images WHERE name=? LIMIT 1", (name,)).fetchone()
+            con.close()
+            if row and os.path.exists(row[0]):
+                return row[0]
+        except Exception:
+            pass
+        return ""
+
     def _resolve_full(self, file: str, dir: str = "") -> str:
         """Resolve a (file, dir) pair from the JS side into ONE absolute path — `dir`
         disambiguates duplicate basenames across library folders (list_library de-dupes by name
-        for DISPLAY only; the DB/tag identity is the full path). Falls back to the legacy
-        basename-only `_resolve()` when dir is empty (session-gallery tiles already carry an
-        absolute path in `file`)."""
+        for DISPLAY only; the DB/tag identity is the full path). Falls back to a library.db lookup
+        (nested archives), then the legacy basename-only `_resolve()`."""
         if dir:
             cand = os.path.join(dir, os.path.basename(file or ""))
             if os.path.exists(cand):
                 return cand
+        db_path = self._db_path_for_name(os.path.basename(file or ""))  # nested archive images
+        if db_path:
+            return db_path
         return self._resolve(file)
 
     def _sidecar_meta_for_embed(self, path: str) -> dict:
@@ -1547,11 +1583,57 @@ class Api:
                 return {"ok": False, "error": str(e)}
         return {"ok": True}
 
+    def add_recent_model(self, service: str, model_id: str) -> dict:
+        """Add a user-supplied model id to recent_models_<service> (front, de-duped) and persist, so a
+        brand-new model (e.g. a Replicate `owner/model[:version]`) becomes selectable + runnable. The
+        engine already accepts any id; this just gives the UI an entry point. Returns {ok, model_id, models}."""
+        svc = (service or "").strip()
+        mid = (model_id or "").strip()
+        if not svc or not mid:
+            return {"ok": False, "error": "service and model_id required"}
+        key = f"recent_models_{svc}"
+        lst = [m for m in list(self.config.get(key, [])) if m != mid]
+        lst.insert(0, mid)
+        self.config[key] = lst
+        self.config[f"last_used_model_{svc}"] = mid
+        try:
+            self._save_config()   # merge-save so a concurrent write can't drop the new model
+        except Exception as e:  # noqa: BLE001
+            return {"ok": False, "error": f"save failed: {e}"}
+        return {"ok": True, "model_id": mid, "models": self.config.get(key, lst)}
+
     def read_meta(self, filename: str) -> dict:
-        """#9 — metadata for one output file. Prefer the <file>.json sidecar; fall back to the
-        matching basename in history.jsonl (covers images generated before sidecars existed)."""
+        """#9 — metadata for one output file. Resolve the file's REAL (possibly nested) path via the
+        library index first — a top-level-only sidecar scan misses archives like
+        .replicate_recover/images/<id>/<file> whose sidecar lives beside the nested image, not at the
+        folder root. Order: (1) index row -> nested <path>.json sidecar (full params), (2) the index
+        row's own columns if the sidecar is gone, (3) legacy top-level sidecar scan, (4) history.jsonl."""
         out_dir = self.config["output_directory"]
         name = os.path.basename(filename or "")
+        # (1) library.db: name -> real (nested) path, then read the sidecar beside it.
+        try:
+            db = os.path.join(str(engine_config.repo_root()), ".cache", "library.db")
+            if os.path.exists(db):
+                con = sqlite3.connect(f"file:{db}?mode=ro", uri=True, timeout=2)
+                con.row_factory = sqlite3.Row
+                row = con.execute("SELECT path,service,model,seed,prompt,category,width,height "
+                                  "FROM images WHERE name=? LIMIT 1", (name,)).fetchone()
+                con.close()
+                if row:
+                    side = str(row["path"]) + ".json"
+                    if os.path.exists(side):
+                        try:
+                            with open(side, encoding="utf-8") as f:
+                                return {"source": "sidecar", **json.load(f)}
+                        except Exception:
+                            pass
+                    # sidecar missing but the index still carries the core fields
+                    return {"source": "index", "service": row["service"], "model": row["model"],
+                            "seed": row["seed"], "prompt": row["prompt"], "category": row["category"],
+                            "width": row["width"], "height": row["height"]}
+        except Exception:
+            pass
+        # (2) legacy top-level sidecar scan (flat folders)
         for _base in (out_dir, *self._library_dirs()):
             if not _base:
                 continue
@@ -1613,7 +1695,24 @@ class Api:
 
     # ---- internal ----
 
+    def _save_config(self):
+        """Persist self.config, but first UNION every recent_models_* list with whatever is on disk —
+        so an external edit, a config script, or a second app instance never clobbers added models
+        (recents are append-only, so union is always safe). This is why added models kept vanishing:
+        the app blindly overwrote config.json from its in-memory copy."""
+        try:
+            p = engine_config.config_path()
+            if os.path.exists(p):
+                disk = json.loads(Path(p).read_text(encoding="utf-8"))
+                for k, v in disk.items():
+                    if k.startswith("recent_models_") and isinstance(v, list):
+                        have = list(self.config.get(k) or [])
+                        self.config[k] = have + [m for m in v if m not in have]
+        except Exception:
+            pass
+        engine_config.save(self.config)
+
     def _persist(self):
         for _s, _k in getattr(self, "_lora_cfg", {}).items():
             self.config[_k] = self.lora_managers[_s].get_loras()
-        engine_config.save(self.config)
+        self._save_config()

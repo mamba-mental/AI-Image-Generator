@@ -103,11 +103,19 @@
       <div class="lbl">Category · Model <em id="pricenote"></em></div>
       <div class="cat-chips" id="cats"></div>
       <select id="model"></select>
+      <div class="addmodel-row">
+        <input type="text" id="addmodelinput" class="addmodel-input" placeholder="add a model: owner/model or a replicate.com URL" autocomplete="off">
+        <button type="button" id="addmodelbtn" title="Add this model id / URL to the current provider and select it (the engine runs any owner/model[:version])">+ add model</button>
+      </div>
       <div class="promptguide" id="modelinfo" hidden></div>
     </div>
     <div class="sec" id="aspectwrap" style="display:none">
       <div class="lbl">Aspect Ratio <span id="aspectbadge" title=""></span></div>
       <select id="aspectpreset"></select>
+    </div>
+    <div class="sec" id="numimgwrap" style="display:none">
+      <div class="lbl"># Images <span class="phelp" title="How many images to generate. On Replicate this runs the model once per image (varying the seed) so it works even on models with no native batch option.">&#9432;</span></div>
+      <input type="number" id="numimages" min="1" max="8" value="1">
     </div>
     <div class="sec">
       <div class="lbl">Prompt</div>

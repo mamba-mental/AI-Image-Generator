@@ -78,6 +78,10 @@ def generate(model_id, params, progress=None, cancel_event=None) -> list:
         v = params.get(k)
         if v not in (None, ""):
             body[k] = v
+    # Together rejects a negative_prompt outside 2–500 chars ("Invalid value for 'negative_prompt'")
+    # — omit a too-short one (e.g. wan-ai/wan2.6-image) rather than 400.
+    if isinstance(body.get("negative_prompt"), str) and len(body["negative_prompt"].strip()) < 2:
+        body.pop("negative_prompt", None)
     # Schnell/turbo FLUX models are timestep-distilled and reject guidance_scale (HTTP 400).
     # Strip it up front so the common free-model path skips a wasted round-trip; the generic
     # 400-retry below still covers any other model that rejects any other param.
@@ -106,7 +110,11 @@ def generate(model_id, params, progress=None, cancel_event=None) -> list:
         except urllib.error.HTTPError as e:
             msg = e.read().decode(errors="ignore")
             if e.code == 400:
-                m = re.search(r"Unsupported use of '([^']+)' parameter", msg)
+                # Together names the offending param in several phrasings — catch them all:
+                #   "Unsupported use of 'X' parameter"                 (guidance_scale on schnell)
+                #   "Parameter 'X' is not supported ..."               (steps on seedance/wan)
+                #   "Invalid value for 'X' parameter ..."              (negative_prompt length)
+                m = re.search(r"(?:Unsupported use of|Parameter|Invalid value for)\s+'([^']+)'", msg)
                 if m and m.group(1) in body:
                     dropped = m.group(1)
                     body.pop(dropped, None)

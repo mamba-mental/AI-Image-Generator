@@ -7,6 +7,7 @@ Run: python scripts/gen_verified_gallery.py   (needs FAL_KEY). ~22 fal gens (~<$
 """
 import argparse
 import json
+import os
 import re
 import sys
 import time
@@ -28,6 +29,21 @@ DEFAULT_OUT = Path("I:/nsfw-verify")            # base (untagged) full-res archi
 DEFAULT_PROMPT = "artistic nude figure study of a woman, tasteful fine-art photography, soft studio light"
 OUT = DEFAULT_OUT                                # overridden per-run in main()
 PROMPT = DEFAULT_PROMPT                          # overridden per-run in main()
+
+
+def _ensure_fal_key():
+    """Resolve the fal key the way the app does (config.json 'fal_api_key' -> FAL_KEY env), so a
+    subprocess-launched run isn't at the mercy of the parent server's start-time environment."""
+    if os.environ.get("FAL_KEY"):
+        return
+    try:
+        sys.path.insert(0, str(ROOT))
+        from engine import config as _config
+        _config.resolve_keys(_config.load())
+    except Exception as e:  # noqa: BLE001
+        print(f"  (config key-load failed: {type(e).__name__})", flush=True)
+    if not os.environ.get("FAL_KEY"):
+        raise SystemExit("FAL_KEY not set - add 'fal_api_key' to config.json or export FAL_KEY.")
 
 
 def permissive_params(model):
@@ -70,7 +86,7 @@ def gen_one(mid):
     safe = re.sub(r"[^a-z0-9]+", "_", mid.lower()).strip("_")
     dest = OUT / (safe + ".jpg")
     try:
-        res = fal_client.subscribe(mid, arguments={"prompt": PROMPT, **permissive_params(m)}, with_logs=False)
+        res = fal_client.subscribe(mid, arguments={"prompt": PROMPT, **permissive_params(m)}, with_logs=False, client_timeout=180)
         url = _find_url(res)
         if not url:
             return {"id": mid, "label": m.get("label", mid), "ok": False, "err": "no url"}
@@ -131,6 +147,7 @@ def main():
     ap.add_argument("--tag", default=None, help="date-version slug. When set, images go to "
                     "dashboards/nsfw-img/<tag>/ and dashboards/data/nsfw-verified-test1-<tag>.json is written.")
     args = ap.parse_args()
+    _ensure_fal_key()
     PROMPT = (args.prompt or "").strip() or DEFAULT_PROMPT
     tag = (args.tag or "").strip() or None
     OUT = (DASH / "nsfw-img" / tag) if tag else DEFAULT_OUT
@@ -148,17 +165,17 @@ def main():
         mid = v.get("model") or (k.split(":", 1)[-1] if ":" in k else k)
         verified.append((mid, v))
 
-    print(f"generating {len(verified)} fal-verified models -> {OUT} (SPENDING fal credits)...")
+    print(f"generating {len(verified)} fal-verified models -> {OUT} (SPENDING fal credits)...", flush=True)
     t0 = time.time()
     cap_by_mid = {mid: v for mid, v in verified}
     results = []
     with ThreadPoolExecutor(4) as pool:
         for r in pool.map(gen_one, [mid for mid, _ in verified]):
             results.append(r)
-            print(f"  {'OK ' if r['ok'] else 'ERR'} {r['id']}" + ("" if r["ok"] else f"  ({r.get('err')})"))
+            print(f"  {'OK ' if r['ok'] else 'ERR'} {r['id']}" + ("" if r["ok"] else f"  ({r.get('err')})"), flush=True)
     ok = [r for r in results if r.get("ok")]
     (OUT / "_manifest.json").write_text(json.dumps(results, indent=1), encoding="utf-8")
-    print(f"\n{len(ok)}/{len(results)} generated in {time.time()-t0:.0f}s")
+    print(f"\n{len(ok)}/{len(results)} generated in {time.time()-t0:.0f}s", flush=True)
 
     # Tagged run → emit the reproducible Test-1 console dataset the page consumes (shape mirrors
     # data/nsfw-verified-test1.json). Untagged run keeps the legacy archive + contact-sheet only,
@@ -185,7 +202,7 @@ def main():
             "tested_total": len(results), "verified_count": len(ok),
             "generated_at": time.strftime("%Y-%m-%d"), "tag": tag, "models": rows,
         }, indent=1), encoding="utf-8")
-        print("console dataset:", data_path)
+        print("console dataset:", data_path, flush=True)
     elif ok:
         sheet = build_contact_sheet(results, str(ROOT / "scripts" / "_contact-sheet.jpg"))
         # also drop a copy on the NAS next to the images
